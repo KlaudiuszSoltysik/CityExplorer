@@ -26,7 +26,7 @@ def convert_geojson_to_wgs84(filename):
     transformer = Transformer.from_crs(crs_from, crs_to, always_xy=True)
 
     try:
-        with open(filename, 'r', encoding='utf-8') as f:
+        with open(filename, "r", encoding="utf-8") as f:
             geojson_data = json.load(f)
 
         for feature in geojson_data.get("features", []):
@@ -36,7 +36,7 @@ def convert_geojson_to_wgs84(filename):
                 geometry["coordinates"] = transform_coordinates(geometry["coordinates"], geom_type, transformer)
 
         output_filename = filename
-        with open(output_filename, 'w', encoding='utf-8') as f:
+        with open(output_filename, "w", encoding="utf-8") as f:
             json.dump(geojson_data, f, indent=2)
     except Exception as e:
         print(f"Error: {e}")

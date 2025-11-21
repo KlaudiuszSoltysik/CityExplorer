@@ -78,8 +78,8 @@ def fetch_pois(bbox, receiver):
             continue
 
         poi = {
-            "osm_id": f"{el['type']}/{el['id']}",
-            "name": tags.get('name', tags.get('name:en', None)),
+            "osm_id": f"{el["type"]}/{el["id"]}",
+            "name": tags.get("name", tags.get("name:en", None)),
             "poi_type": poi_type,
             "poi_subtype": tags.get(poi_type) if poi_type else None,
         }
@@ -199,12 +199,12 @@ def visualize_hexagons(hexagons):
     max_weight = max([h["tourist_weight"] for h in hexagons])
 
     for hex_data in hexagons:
-        hex_id = hex_data['id']
-        tourist_weight = hex_data['tourist_weight']
+        hex_id = hex_data["id"]
+        tourist_weight = hex_data["tourist_weight"]
 
         fill_opacity = float(tourist_weight/max_weight)
 
-        color = '#3186cc'
+        color = "#3186cc"
 
         boundaries = h3.cell_to_boundary(hex_id)
 
@@ -282,10 +282,10 @@ CONNECTION_STRING = "host=localhost port=6000 user=admin password=admin dbname=p
 
 
 try:
-    with open(INPUT_FILENAME, 'r', encoding='utf-8') as f:
+    with open(INPUT_FILENAME, "r", encoding="utf-8") as f:
         geojson_data = json.load(f)
 
-    geojson_coords = geojson_data['features'][0]['geometry']['coordinates'][0][0]
+    geojson_coords = geojson_data["features"][0]["geometry"]["coordinates"][0][0]
     coords_h3 = [(point[1], point[0]) for point in geojson_coords]
 
     lats = [p[0] for p in coords_h3]
@@ -306,7 +306,7 @@ try:
     save_to_db(hexagons)
 
     visualize_hexagons(hexagons)
-    with open("hexagons.json", 'w', encoding='utf-8') as f:
+    with open("hexagons.json", "w", encoding="utf-8") as f:
         json.dump(hexagons, f, indent=2)
 except Exception as e:
     print(f"Error: {e}")
