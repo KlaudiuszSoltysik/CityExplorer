@@ -1,10 +1,11 @@
-﻿from collections import defaultdict
-
-import psycopg2
+﻿import psycopg2
 import requests
 import json
 import h3
 import folium
+
+from convert_geojson_units import convert_geojson_to_wgs84
+
 
 def build_overpass_query(bbox, receiver):
     bbox_str = f"{bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}"
@@ -272,8 +273,8 @@ def save_to_db(hexagons):
     conn.close()
 
 
-INPUT_FILENAME = "geojsons/poznan.geojson"
-CITY = "Poznań"
+INPUT_FILENAME = "geojsons/wroclaw.geojson"
+CITY = "Wrocław"
 TOURIST_POI_KEYS = {"tourism": 4, "historic": 4, "amenity": 2, "leisure": 2, "natural": 2, "waterway": 2}
 LOCAL_POI_KEYS = {"amenity": 1, "leisure": 1, "craft": 1}
 RESOLUTION = 9
