@@ -4,8 +4,6 @@ import json
 import h3
 import folium
 
-from convert_geojson_units import convert_geojson_to_wgs84
-
 
 def build_overpass_query(bbox, receiver):
     bbox_str = f"{bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}"
@@ -231,10 +229,10 @@ def save_to_db(hexagons):
         local_weight = hex_item["local_weight"]
 
         cursor.execute("""
-            INSERT INTO "Hexagons" ("Id", "City", "TouristWeight", "LocalWeight")
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO "Hexagons" ("Id", "Country", "City", "TouristWeight", "LocalWeight")
+            VALUES (%s, %s, %s, %s, %s)
             ON CONFLICT ("Id") DO NOTHING;
-        """, (hex_id, CITY, tourist_weight, local_weight))
+        """, (hex_id, COUNTRY, CITY, tourist_weight, local_weight))
 
         for poi in hex_item.get("tourist_pois", []):
             cursor.execute("""
@@ -273,40 +271,38 @@ def save_to_db(hexagons):
     conn.close()
 
 
-INPUT_FILENAME = "geojsons/wroclaw.geojson"
-CITY = "Wrocław"
+INPUT_FILENAME = "geojsons/poznan.geojson"
+CITY = "Poznań"
+COUNTRY = "Poland"
 TOURIST_POI_KEYS = {"tourism": 4, "historic": 4, "amenity": 2, "leisure": 2, "natural": 2, "waterway": 2}
 LOCAL_POI_KEYS = {"amenity": 1, "leisure": 1, "craft": 1}
 RESOLUTION = 9
 CONNECTION_STRING = "host=localhost port=6000 user=admin password=admin dbname=postgres"
 
 
-try:
-    with open(INPUT_FILENAME, "r", encoding="utf-8") as f:
-        geojson_data = json.load(f)
+with open(INPUT_FILENAME, "r", encoding="utf-8") as f:
+    geojson_data = json.load(f)
 
-    geojson_coords = geojson_data["features"][0]["geometry"]["coordinates"][0][0]
-    coords_h3 = [(point[1], point[0]) for point in geojson_coords]
+geojson_coords = geojson_data["features"][0]["geometry"]["coordinates"][0][0]
+coords_h3 = [(point[1], point[0]) for point in geojson_coords]
 
-    lats = [p[0] for p in coords_h3]
-    lons = [p[1] for p in coords_h3]
+lats = [p[0] for p in coords_h3]
+lons = [p[1] for p in coords_h3]
 
-    bbox = (min(lats), min(lons), max(lats), max(lons))
+bbox = (min(lats), min(lons), max(lats), max(lons))
 
 
-    hexagons = hexagons_from_coords(coords_h3)
+hexagons = hexagons_from_coords(coords_h3)
 
-    tourist_pois = fetch_pois(bbox, "tourist")
-    local_pois = fetch_pois(bbox, "local")
+tourist_pois = fetch_pois(bbox, "tourist")
+local_pois = fetch_pois(bbox, "local")
 
-    hexagons = assign_pois_to_hexagons(hexagons, tourist_pois, local_pois)
+hexagons = assign_pois_to_hexagons(hexagons, tourist_pois, local_pois)
 
-    hexagons = calculate_weights(hexagons)
+hexagons = calculate_weights(hexagons)
 
-    save_to_db(hexagons)
+save_to_db(hexagons)
 
-    visualize_hexagons(hexagons)
-    with open("hexagons.json", "w", encoding="utf-8") as f:
-        json.dump(hexagons, f, indent=2)
-except Exception as e:
-    print(f"Error: {e}")
+visualize_hexagons(hexagons)
+with open("hexagons.json", "w", encoding="utf-8") as f:
+    json.dump(hexagons, f, indent=2)
