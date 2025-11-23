@@ -18,7 +18,8 @@ builder.Services.AddCors(options =>
             .AllowCredentials();
     });
 });
-builder.WebHost.UseUrls("https://localhost:6101");
+
+builder.WebHost.UseUrls("http://localhost:6101");
 
 var app = builder.Build();
 
