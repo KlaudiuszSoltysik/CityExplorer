@@ -20,17 +20,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.cityexplorer.data.dtos.GetCountriesWithCitiesDto
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CitySelectorScreen(viewModel: CitySelectorViewModel = viewModel()) {
+fun CitySelectorScreen(
+    viewModel: CitySelectorViewModel = viewModel(),
+    onNavigateToMapScreen: (city: String) -> Unit
+) {
     val uiState = viewModel.uiState
     val isRefreshing = viewModel.isRefreshing
 
     fun handleCityClick(city: String) {
-        println("TODO: Implement logic for $city")
+        onNavigateToMapScreen(city)
     }
 
     PullToRefreshBox(
@@ -91,7 +93,6 @@ fun CountryItem(
                 .fillMaxWidth()
                 .clickable {
                     expanded = !expanded
-                    println("Country ${dto.country} expanded: $expanded")
                 }
                 .padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -112,12 +113,11 @@ fun CountryItem(
             Column {
                 dto.cities.forEach { city ->
                     Text(
-                        text = "📍 $city",
+                        text = city,
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                println("City clicked: $city")
                                 onCityClick(city)
                             }
                             .padding(start = 24.dp, top = 8.dp, bottom = 8.dp)

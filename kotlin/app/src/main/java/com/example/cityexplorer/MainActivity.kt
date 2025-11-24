@@ -11,7 +11,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.cityexplorer.ui.cityselector.CitySelectorScreen
+import com.example.cityexplorer.ui.map.MapScreen
 import com.example.cityexplorer.ui.navigation.Screen
 import com.example.cityexplorer.ui.theme.CityExplorerTheme
 
@@ -34,9 +40,29 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun CityExplorerAppHost(modifier: Modifier = Modifier) {
+    val navController = rememberNavController()
+
     Surface(modifier = modifier.fillMaxSize()) {
-        when (Screen.CitySelector) {
-            is Screen.CitySelector -> CitySelectorScreen()
+        NavHost(
+            navController = navController,
+            startDestination = Screen.CitySelector.route,
+            modifier = modifier
+        ) {
+            composable(Screen.CitySelector.route) {
+                CitySelectorScreen(
+                    onNavigateToMapScreen = { city ->
+                        navController.navigate(Screen.MapScreen("").createRoute(city))
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.MapScreen("").route,
+                arguments = listOf(navArgument("city") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val city = backStackEntry.arguments?.getString("city")!!
+                MapScreen(city = city)
+            }
         }
     }
 }
