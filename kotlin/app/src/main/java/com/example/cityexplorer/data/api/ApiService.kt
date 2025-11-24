@@ -1,35 +1,33 @@
-package com.example.cityexplorer.data
+package com.example.cityexplorer.data.api
 
 import android.annotation.SuppressLint
+import com.example.cityexplorer.data.util.Constants
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
-import retrofit2.http.GET
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.SSLContext
 import javax.net.ssl.X509TrustManager
 
-interface ApiService {
-    @GET("/hexagon/get-countries-with-cities")
-    suspend fun getCountriesWithCities(): List<GetCountriesWithCitiesDto>
-}
-
 object ApiClient {
+    private const val BASE_URL = Constants.BASE_URL
+
     private val json = Json { ignoreUnknownKeys = true }
 
-    private val unsafeClient: OkHttpClient = getUnsafeOkHttpClient()
-
-    val retrofit: ApiService by lazy {
+    private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
-            .baseUrl(Constants.BASE_URL)
-            .client(unsafeClient)
+            .baseUrl(BASE_URL)
+            .client(getUnsafeOkHttpClient())
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
-            .create(ApiService::class.java)
+    }
+
+    val hexagonApiService: HexagonApiService by lazy {
+        retrofit.create(HexagonApiService::class.java)
     }
 }
 

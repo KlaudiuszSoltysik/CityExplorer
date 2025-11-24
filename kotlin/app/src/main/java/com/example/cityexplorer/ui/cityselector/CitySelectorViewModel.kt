@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cityexplorer.data.api.ApiClient
 import com.example.cityexplorer.data.dtos.GetCountriesWithCitiesDto
+import com.example.cityexplorer.data.repository.HexagonRepository
 import kotlinx.coroutines.launch
 
 sealed interface MainUiState {
@@ -15,22 +16,26 @@ sealed interface MainUiState {
     data class Error(val message: String) : MainUiState
 }
 
-class MainViewModel : ViewModel() {
+class CitySelectorViewModel : ViewModel() {
+    private val repository = HexagonRepository(ApiClient.hexagonApiService)
+
     var uiState: MainUiState by mutableStateOf(MainUiState.Loading)
         private set
 
     init {
-        fetchCountriesWithCities()
+        fetchData()
     }
 
-    private fun fetchCountriesWithCities() {
+    private fun fetchData() {
         viewModelScope.launch {
             uiState = MainUiState.Loading
             try {
-                val countriesWithCities = ApiClient.retrofit.getCountriesWithCities()
-                uiState = MainUiState.Success(countriesWithCities)
+                val data = repository.getCountriesWithCities()
+                println("Data fetched successfully: ${data.size} items")
+                uiState = MainUiState.Success(data)
             } catch (e: Exception) {
-                uiState = MainUiState.Error(e.message ?: "Unknown error.")
+                println("Error fetching data: ${e.message}")
+                uiState = MainUiState.Error(e.message ?: "Unknown error")
             }
         }
     }

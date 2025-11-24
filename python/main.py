@@ -271,16 +271,16 @@ def save_to_db(hexagons):
     conn.close()
 
 
-INPUT_FILENAME = "geojsons/poznan.geojson"
-CITY = "Poznań"
-COUNTRY = "Poland"
+INPUT_FILENAME = "geojsons/berlin.geojson"
+CITY = "Berlin"
+COUNTRY = "Germany"
 TOURIST_POI_KEYS = {"tourism": 4, "historic": 4, "amenity": 2, "leisure": 2, "natural": 2, "waterway": 2}
 LOCAL_POI_KEYS = {"amenity": 1, "leisure": 1, "craft": 1}
 RESOLUTION = 9
 CONNECTION_STRING = "host=localhost port=6000 user=admin password=admin dbname=postgres"
 
 
-with open(INPUT_FILENAME, "r", encoding="utf-8") as f:
+with open(INPUT_FILENAME, "r", encoding="utf-8-sig") as f:
     geojson_data = json.load(f)
 
 geojson_coords = geojson_data["features"][0]["geometry"]["coordinates"][0][0]
