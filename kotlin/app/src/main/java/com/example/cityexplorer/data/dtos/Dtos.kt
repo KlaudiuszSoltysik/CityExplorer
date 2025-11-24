@@ -1,4 +1,4 @@
-package com.example.cityexplorer.data
+package com.example.cityexplorer.data.dto
 
 import kotlinx.serialization.Serializable
 
