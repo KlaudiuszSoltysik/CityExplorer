@@ -50,6 +50,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.jetbrains.kotlinx.serialization.json)
     implementation(libs.retrofit2.kotlinx.serialization.converter)
+    implementation("androidx.core:core-splashscreen:1.0.1")
 
 
     implementation(libs.androidx.core.ktx)

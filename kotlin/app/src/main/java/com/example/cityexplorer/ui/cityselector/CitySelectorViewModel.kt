@@ -22,20 +22,28 @@ class CitySelectorViewModel : ViewModel() {
     var uiState: MainUiState by mutableStateOf(MainUiState.Loading)
         private set
 
+    var isRefreshing: Boolean by mutableStateOf(false)
+        private set
+
     init {
-        fetchData()
+        loadData(isInitial = true)
     }
 
-    private fun fetchData() {
+    fun refreshData() {
+        loadData(isInitial = false)
+    }
+
+    private fun loadData(isInitial: Boolean) {
         viewModelScope.launch {
-            uiState = MainUiState.Loading
+            if (isInitial) uiState = MainUiState.Loading else isRefreshing = true
+
             try {
                 val data = repository.getCountriesWithCities()
-                println("Data fetched successfully: ${data.size} items")
                 uiState = MainUiState.Success(data)
             } catch (e: Exception) {
-                println("Error fetching data: ${e.message}")
-                uiState = MainUiState.Error(e.message ?: "Unknown error")
+                if (isInitial) uiState = MainUiState.Error(e.message ?: "Unknown error")
+            } finally {
+                isRefreshing = false
             }
         }
     }

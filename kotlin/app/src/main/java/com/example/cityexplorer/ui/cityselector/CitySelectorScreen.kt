@@ -1,33 +1,54 @@
 package com.example.cityexplorer.ui.cityselector
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.cityexplorer.data.dtos.GetCountriesWithCitiesDto
-import com.example.cityexplorer.ui.theme.CityExplorerTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CitySelectorScreen(
-    viewModel: CitySelectorViewModel = viewModel()
-) {
+fun CitySelectorScreen(viewModel: CitySelectorViewModel = viewModel()) {
     val uiState = viewModel.uiState
+    val isRefreshing = viewModel.isRefreshing
 
-    Box(
+    fun handleCityClick(city: String) {
+        println("TODO: Implement logic for $city")
+    }
+
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = { viewModel.refreshData() },
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         when (uiState) {
             is MainUiState.Loading -> CircularProgressIndicator()
             is MainUiState.Success -> {
-                CountriesWithCitiesList(countries = uiState.countriesWithCities)
+                CountriesWithCitiesList(
+                    countries = uiState.countriesWithCities,
+                    modifier = Modifier.fillMaxSize(),
+                    onCityClick = { city ->
+                        handleCityClick(city)
+                    }
+                )
             }
             is MainUiState.Error -> {
                 Text(text = "Error: ${uiState.message}")
@@ -37,43 +58,73 @@ fun CitySelectorScreen(
 }
 
 @Composable
-fun CountriesWithCitiesList(countries: List<GetCountriesWithCitiesDto>, modifier: Modifier = Modifier) {
+fun CountriesWithCitiesList(
+    countries: List<GetCountriesWithCitiesDto>,
+    modifier: Modifier = Modifier,
+    onCityClick: (String) -> Unit
+) {
     LazyColumn(modifier = modifier.padding(16.dp)) {
-        countries.forEach { dto ->
-            item {
-                Text(
-                    text = dto.country,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
-            items(dto.cities) { city ->
-                Text(
-                    text = " - $city",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(start = 16.dp, bottom = 4.dp)
-                )
-            }
+        items(countries) { dto ->
+            CountryItem(
+                dto = dto,
+                onCityClick = onCityClick
+            )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
         }
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-fun CountriesWithCitiesListPreview() {
-    CityExplorerTheme {
-        CountriesWithCitiesList(
-            countries = listOf(
-                GetCountriesWithCitiesDto(
-                    country = "Poland",
-                    cities = listOf("Warszawa", "Kraków", "Gdańsk")
-                ),
-                GetCountriesWithCitiesDto(
-                    country = "Germany",
-                    cities = listOf("Berlin", "Hamburg", "Munich")
-                )
+fun CountryItem(
+    dto: GetCountriesWithCitiesDto,
+    onCityClick: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    expanded = !expanded
+                    println("Country ${dto.country} expanded: $expanded")
+                }
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = dto.country,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
             )
-        )
+            Icon(
+                imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = if (expanded) "Collapse" else "Expand"
+            )
+        }
+        
+        if (expanded) {
+            Column {
+                dto.cities.forEach { city ->
+                    Text(
+                        text = "📍 $city",
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                println("City clicked: $city")
+                                onCityClick(city)
+                            }
+                            .padding(start = 24.dp, top = 8.dp, bottom = 8.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
     }
 }
