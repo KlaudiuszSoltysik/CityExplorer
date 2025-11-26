@@ -32,8 +32,14 @@ class MapViewModel(private val city: String, private val mode: String) : ViewMod
     private fun loadData() {
         viewModelScope.launch {
             try {
-                val data = repository.getHexagonsFromCity(city, mode)
-                uiState = MainUiState.Success(data)
+                var data = repository.getHexagonsFromCity(city, mode)
+
+                data = data.map { hex ->
+                    val closedBoundaries: List<List<Double>> = hex.boundaries + listOf(hex.boundaries.first())
+                    hex.copy(boundaries = closedBoundaries)
+                }
+
+                uiState = MainUiState.Success(data.take(10))
             } catch (e: Exception) {
                 uiState = MainUiState.Error(e.message ?: "Unknown error")
             } finally {

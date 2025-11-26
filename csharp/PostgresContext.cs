@@ -24,7 +24,8 @@ public class PostgresContext(DbContextOptions<PostgresContext> options) : DbCont
 
         var doubleListListConverter2 = new ValueConverter<List<List<double>>, string>(
             v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
-            v => JsonSerializer.Deserialize<List<List<double>>>(v, (JsonSerializerOptions?)null) ?? new List<List<double>>()
+            v => JsonSerializer.Deserialize<List<List<double>>>(v, (JsonSerializerOptions?)null) ??
+                 new List<List<double>>()
         );
 
         modelBuilder.Entity<PoiModel>(entity =>

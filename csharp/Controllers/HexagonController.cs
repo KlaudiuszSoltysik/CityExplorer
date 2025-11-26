@@ -12,9 +12,7 @@ public class HexagonController(PostgresContext postgresContext) : ControllerBase
     public async Task<IActionResult> GetHexagonsFromCity([FromQuery] string mode, [FromQuery] string city)
     {
         if (mode != "tourist" && mode != "local")
-        {
             return BadRequest("Invalid mode specified. Must be 'tourist' or 'local'.");
-        }
 
         var hexagonsData = await postgresContext.Hexagons
             .Where(h => h.City == city)
