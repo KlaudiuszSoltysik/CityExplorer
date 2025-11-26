@@ -5,6 +5,7 @@ namespace csharp.Models;
 public class HexagonModel
 {
     [Key] public string Id { get; set; } = string.Empty;
+    public List<List<double>> Boundaries { get; set; }
     public string Country { get; set; } = string.Empty;
     public string City { get; set; } = string.Empty;
     public List<PoiModel> TouristPois { get; set; } = [];

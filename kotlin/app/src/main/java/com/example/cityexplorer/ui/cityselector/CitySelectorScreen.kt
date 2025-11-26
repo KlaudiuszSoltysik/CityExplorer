@@ -26,13 +26,13 @@ import androidx.compose.runtime.setValue
 @Composable
 fun CitySelectorScreen(
     viewModel: CitySelectorViewModel = viewModel(),
-    onNavigateToMapScreen: (city: String) -> Unit
+    onNavigateToModeSelectorScreen: (city: String) -> Unit
 ) {
     val uiState = viewModel.uiState
     val isRefreshing = viewModel.isRefreshing
 
     fun handleCityClick(city: String) {
-        onNavigateToMapScreen(city)
+        onNavigateToModeSelectorScreen(city)
     }
 
     PullToRefreshBox(

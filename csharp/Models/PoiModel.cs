@@ -4,7 +4,7 @@ namespace csharp.Models;
 
 public class PoiModel
 {
-    [Key] public string OsmId { get; set; }
+    [Key] public string Id { get; set; }
     public string? Name { get; set; }
     public string PoiType { get; set; } = string.Empty;
     public string PoiSubtype { get; set; } = string.Empty;

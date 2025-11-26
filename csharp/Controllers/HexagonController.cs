@@ -1,5 +1,4 @@
 ﻿using csharp.Dtos;
-using csharp.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,6 +21,7 @@ public class HexagonController(PostgresContext postgresContext) : ControllerBase
             .Select(h => new GetHexagonsFromCityDto
             {
                 Id = h.Id,
+                Boundaries = h.Boundaries,
                 Weight = mode == "tourist" ? h.TouristWeight : h.LocalWeight
             })
             .ToListAsync();
@@ -29,22 +29,22 @@ public class HexagonController(PostgresContext postgresContext) : ControllerBase
         return Ok(hexagonsData);
     }
 
-        [HttpGet("get-countries-with-cities")]
-        public async Task<IActionResult> GetCountriesWithCities()
-        {
-            var countriesData = await postgresContext.Hexagons
-                .GroupBy(h => h.Country)
-                .Select(g => new GetCountriesWithCitiesDto
-                {
-                    Country = g.Key,
-                    Cities = g.Select(h => h.City)
-                        .Distinct()
-                        .OrderBy(c => c)
-                        .ToList()
-                })
-                .OrderBy(c => c.Country)
-                .ToListAsync();
+    [HttpGet("get-countries-with-cities")]
+    public async Task<IActionResult> GetCountriesWithCities()
+    {
+        var countriesData = await postgresContext.Hexagons
+            .GroupBy(h => h.Country)
+            .Select(g => new GetCountriesWithCitiesDto
+            {
+                Country = g.Key,
+                Cities = g.Select(h => h.City)
+                    .Distinct()
+                    .OrderBy(c => c)
+                    .ToList()
+            })
+            .OrderBy(c => c.Country)
+            .ToListAsync();
 
-            return Ok(countriesData);
-        }
+        return Ok(countriesData);
+    }
 }

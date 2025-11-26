@@ -3,6 +3,7 @@
 public class GetHexagonsFromCityDto
 {
     public string Id { get; set; }
+    public List<List<double>> Boundaries { get; set; }
     public double Weight { get; set; }
 }
 

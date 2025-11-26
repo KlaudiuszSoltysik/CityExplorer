@@ -22,9 +22,14 @@ public class PostgresContext(DbContextOptions<PostgresContext> options) : DbCont
             v => v == null ? null : JsonSerializer.Deserialize<List<List<double>>>(v, (JsonSerializerOptions?)null)
         );
 
+        var doubleListListConverter2 = new ValueConverter<List<List<double>>, string>(
+            v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+            v => JsonSerializer.Deserialize<List<List<double>>>(v, (JsonSerializerOptions?)null) ?? new List<List<double>>()
+        );
+
         modelBuilder.Entity<PoiModel>(entity =>
         {
-            entity.HasKey(x => x.OsmId);
+            entity.HasKey(x => x.Id);
 
             entity.Property(x => x.Location)
                 .HasConversion(doubleListConverter);
@@ -36,6 +41,9 @@ public class PostgresContext(DbContextOptions<PostgresContext> options) : DbCont
         modelBuilder.Entity<HexagonModel>(entity =>
         {
             entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Boundaries)
+                .HasConversion(doubleListListConverter2);
 
             entity
                 .HasMany(x => x.TouristPois)

@@ -76,7 +76,7 @@ def fetch_pois(bbox, receiver):
             continue
 
         poi = {
-            "osm_id": f"{el["type"]}/{el["id"]}",
+            "id": f"{el["type"]}/{el["id"]}",
             "name": tags.get("name", tags.get("name:en", None)),
             "poi_type": poi_type,
             "poi_subtype": tags.get(poi_type) if poi_type else None,
@@ -127,7 +127,7 @@ def assign_pois_to_hexagons(hexagons, tourist_pois, local_pois):
             poi_hex = h3.latlng_to_cell(poi_lat, poi_lon, RESOLUTION)
 
             if poi_hex in valid_hex_set:
-                poi["osm_id"] += "#" + poi_hex
+                poi["id"] += "#" + poi_hex
                 hex_tourist_poi_map[poi_hex].append(poi)
         else:
             poi_hexagons = hexagons_from_bbox(poi["boundary"])
@@ -135,7 +135,7 @@ def assign_pois_to_hexagons(hexagons, tourist_pois, local_pois):
             for hex_id in poi_hexagons:
                 if hex_id in valid_hex_set:
                     new_poi = dict(poi)
-                    new_poi["osm_id"] += "#" + hex_id
+                    new_poi["id"] += "#" + hex_id
                     hex_tourist_poi_map[hex_id].append(new_poi)
 
     for poi in local_pois:
@@ -146,7 +146,7 @@ def assign_pois_to_hexagons(hexagons, tourist_pois, local_pois):
             poi_hex = h3.latlng_to_cell(poi_lat, poi_lon, RESOLUTION)
 
             if poi_hex in valid_hex_set:
-                poi["osm_id"] += "#" + poi_hex
+                poi["id"] += "#" + poi_hex
                 hex_local_poi_map[poi_hex].append(poi)
         else:
             poi_hexagons = hexagons_from_bbox(poi["boundary"])
@@ -154,7 +154,7 @@ def assign_pois_to_hexagons(hexagons, tourist_pois, local_pois):
             for hex_id in poi_hexagons:
                 if hex_id in valid_hex_set:
                     new_poi = dict(poi)
-                    new_poi["osm_id"] += "#" + hex_id
+                    new_poi["id"] += "#" + hex_id
                     hex_local_poi_map[hex_id].append(new_poi)
 
     for hex in hexagons:
@@ -166,45 +166,97 @@ def assign_pois_to_hexagons(hexagons, tourist_pois, local_pois):
 
     return hexagons_with_pois
 
-def calculate_weights(hexagons):
-    for res in hexagons:
-        res["tourist_weight"] = 0
-        res["local_weight"] = 0
-
-        for poi in res["tourist_pois"]:
-            res["tourist_weight"] += TOURIST_POI_KEYS.get(poi["poi_type"], 0)
-
-        for poi in res["tourist_pois"] + res["local_pois"]:
-            res["local_weight"] += {**TOURIST_POI_KEYS, **LOCAL_POI_KEYS}.get(poi["poi_type"], 0)
-
-    max_tourist_weight = max(res["tourist_weight"] for res in hexagons) or 1
-    max_local_weight = max(res["local_weight"] for res in hexagons) or 1
-    for res in hexagons:
-        res["tourist_weight"] = res["tourist_weight"] / max_tourist_weight * 1000
-        res["local_weight"] = res["local_weight"] / max_local_weight * 1000
-
-    tourist_weight_sum = sum(res["tourist_weight"] for res in hexagons)
-    local_weight_sum = sum(res["local_weight"] for res in hexagons)
-    for res in hexagons:
-        res["tourist_weight"] = res["tourist_weight"] / tourist_weight_sum
-        res["local_weight"] = res["local_weight"] / local_weight_sum
+def attach_boundaries(hexagons):
+    for hex in hexagons:
+        hex["boundaries"] = h3.cell_to_boundary(hex["id"])
 
     return hexagons
+
+def calculate_weights(hexagons):
+    for hex in hexagons:
+        hex["tourist_weight"] = 0
+        hex["local_weight"] = 0
+
+        for poi in hex["tourist_pois"]:
+            hex["tourist_weight"] += TOURIST_POI_KEYS.get(poi["poi_type"], 0)
+
+        for poi in hex["tourist_pois"] + hex["local_pois"]:
+            hex["local_weight"] += {**TOURIST_POI_KEYS, **LOCAL_POI_KEYS}.get(poi["poi_type"], 0)
+
+    max_tourist_weight = max(hex["tourist_weight"] for hex in hexagons) or 1
+    max_local_weight = max(hex["local_weight"] for hex in hexagons) or 1
+    for hex in hexagons:
+        hex["tourist_weight"] = hex["tourist_weight"] / max_tourist_weight * 1000
+        hex["local_weight"] = hex["local_weight"] / max_local_weight * 1000
+
+    tourist_weight_sum = sum(hex["tourist_weight"] for hex in hexagons)
+    local_weight_sum = sum(hex["local_weight"] for hex in hexagons)
+    for hex in hexagons:
+        hex["tourist_weight"] = hex["tourist_weight"] / tourist_weight_sum
+        hex["local_weight"] = hex["local_weight"] / local_weight_sum
+
+    return hexagons
+
+def save_to_db(hexagons):
+    conn = psycopg2.connect(CONNECTION_STRING)
+
+    cursor = conn.cursor()
+
+    for hex in hexagons:
+        cursor.execute("""
+            INSERT INTO "Hexagons" ("Id", "Boundaries", "Country", "City", "TouristWeight", "LocalWeight")
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT ("Id") DO UPDATE SET
+                "Boundaries" = EXCLUDED."Boundaries",
+                "Country" = EXCLUDED."Country",
+                "City" = EXCLUDED."City",
+                "TouristWeight" = EXCLUDED."TouristWeight",
+                "LocalWeight" = EXCLUDED."LocalWeight";
+        """, (hex["id"], json.dumps(hex["boundaries"]), COUNTRY, CITY, hex["tourist_weight"], hex["local_weight"]))
+
+        for poi in hex.get("tourist_pois", []):
+            cursor.execute("""
+                INSERT INTO "Pois" ("Id", "Name", "PoiType", "PoiSubtype", "Location", "Boundary", "TouristHexagonId")
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT ("Id") DO UPDATE SET
+                    "Name" = EXCLUDED."Name",
+                    "PoiType" = EXCLUDED."PoiType",
+                    "PoiSubtype" = EXCLUDED."PoiSubtype",
+                    "Location" = EXCLUDED."Location",
+                    "Boundary" = EXCLUDED."Boundary",
+                    "TouristHexagonId" = EXCLUDED."TouristHexagonId";
+            """, (poi["id"], poi["name"], poi["poi_type"], poi["poi_subtype"], json.dumps(poi.get("location")), json.dumps(poi.get("boundary")), hex["id"]))
+
+        for poi in hex.get("local_pois", []):
+            cursor.execute("""
+                INSERT INTO "Pois" ("Id", "Name", "PoiType", "PoiSubtype", "Location", "Boundary", "LocalHexagonId")
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT ("Id") DO UPDATE SET
+                    "Name" = EXCLUDED."Name",
+                    "PoiType" = EXCLUDED."PoiType",
+                    "PoiSubtype" = EXCLUDED."PoiSubtype",
+                    "Location" = EXCLUDED."Location",
+                    "Boundary" = EXCLUDED."Boundary",
+                    "LocalHexagonId" = EXCLUDED."LocalHexagonId";
+            """, (poi["id"], poi["name"], poi["poi_type"], poi["poi_subtype"], json.dumps(poi.get("location")), json.dumps(poi.get("boundary")), hex["id"]))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
 
 def visualize_hexagons(hexagons):
     m = folium.Map(zoom_start=12, tiles="cartodbpositron")
 
     max_weight = max([h["tourist_weight"] for h in hexagons])
 
-    for hex_data in hexagons:
-        hex_id = hex_data["id"]
-        tourist_weight = hex_data["tourist_weight"]
+    for hex in hexagons:
+        tourist_weight = hex["tourist_weight"]
 
         fill_opacity = float(tourist_weight/max_weight)
 
         color = "#3186cc"
 
-        boundaries = h3.cell_to_boundary(hex_id)
+        boundaries = hex["boundaries"]
 
         folium.Polygon(
             locations=boundaries,
@@ -213,62 +265,10 @@ def visualize_hexagons(hexagons):
             fill_opacity=fill_opacity,
             color=color,
             weight=0.5,
-            tooltip=f"Hex ID: {hex_id}<br>Tourist Weight: {tourist_weight:.4f}"
+            tooltip=f"Hex ID: {hex["id"]}<br>Tourist Weight: {tourist_weight:.4f}"
         ).add_to(m)
 
     m.save("hexagons.html")
-
-def save_to_db(hexagons):
-    conn = psycopg2.connect(CONNECTION_STRING)
-
-    cursor = conn.cursor()
-
-    for hex_item in hexagons:
-        hex_id = hex_item["id"]
-        tourist_weight = hex_item["tourist_weight"]
-        local_weight = hex_item["local_weight"]
-
-        cursor.execute("""
-            INSERT INTO "Hexagons" ("Id", "Country", "City", "TouristWeight", "LocalWeight")
-            VALUES (%s, %s, %s, %s, %s)
-            ON CONFLICT ("Id") DO NOTHING;
-        """, (hex_id, COUNTRY, CITY, tourist_weight, local_weight))
-
-        for poi in hex_item.get("tourist_pois", []):
-            cursor.execute("""
-                INSERT INTO "Pois" 
-                ("OsmId", "Name", "PoiType", "PoiSubtype", "Location", "Boundary", "LocalHexagonId")
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT ("OsmId") DO NOTHING;
-            """, (
-                poi["osm_id"],
-                poi["name"],
-                poi["poi_type"],
-                poi["poi_subtype"],
-                json.dumps(poi.get("location")),
-                json.dumps(poi.get("boundary")),
-                hex_id
-            ))
-
-        for poi in hex_item.get("local_pois", []):
-            cursor.execute("""
-                INSERT INTO "Pois" 
-                ("OsmId", "Name", "PoiType", "PoiSubtype", "Location", "Boundary", "LocalHexagonId")
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT ("OsmId") DO NOTHING;
-            """, (
-                poi["osm_id"],
-                poi["name"],
-                poi["poi_type"],
-                poi["poi_subtype"],
-                json.dumps(poi.get("location")),
-                json.dumps(poi.get("boundary")),
-                hex_id
-            ))
-
-    conn.commit()
-    cursor.close()
-    conn.close()
 
 
 INPUT_FILENAME = "geojsons/berlin.geojson"
@@ -282,27 +282,18 @@ CONNECTION_STRING = "host=localhost port=6000 user=admin password=admin dbname=p
 
 with open(INPUT_FILENAME, "r", encoding="utf-8-sig") as f:
     geojson_data = json.load(f)
-
 geojson_coords = geojson_data["features"][0]["geometry"]["coordinates"][0][0]
 coords_h3 = [(point[1], point[0]) for point in geojson_coords]
-
 lats = [p[0] for p in coords_h3]
 lons = [p[1] for p in coords_h3]
-
 bbox = (min(lats), min(lons), max(lats), max(lons))
-
-
 hexagons = hexagons_from_coords(coords_h3)
-
 tourist_pois = fetch_pois(bbox, "tourist")
 local_pois = fetch_pois(bbox, "local")
-
 hexagons = assign_pois_to_hexagons(hexagons, tourist_pois, local_pois)
-
+hexagons = attach_boundaries(hexagons)
 hexagons = calculate_weights(hexagons)
-
 save_to_db(hexagons)
-
 visualize_hexagons(hexagons)
 with open("hexagons.json", "w", encoding="utf-8") as f:
     json.dump(hexagons, f, indent=2)

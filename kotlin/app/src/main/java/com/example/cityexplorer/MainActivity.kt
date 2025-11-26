@@ -18,6 +18,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.cityexplorer.ui.cityselector.CitySelectorScreen
 import com.example.cityexplorer.ui.map.MapScreen
+import com.example.cityexplorer.ui.modeselector.ModeSelectorScreen
 import com.example.cityexplorer.ui.navigation.Screen
 import com.example.cityexplorer.ui.theme.CityExplorerTheme
 
@@ -45,23 +46,41 @@ fun CityExplorerAppHost(modifier: Modifier = Modifier) {
     Surface(modifier = modifier.fillMaxSize()) {
         NavHost(
             navController = navController,
-            startDestination = Screen.CitySelector.route,
+            startDestination = Screen.CitySelectorScreen.route,
             modifier = modifier
         ) {
-            composable(Screen.CitySelector.route) {
+            composable(Screen.CitySelectorScreen.route) {
                 CitySelectorScreen(
-                    onNavigateToMapScreen = { city ->
-                        navController.navigate(Screen.MapScreen("").createRoute(city))
+                    onNavigateToModeSelectorScreen = { city ->
+                        navController.navigate(Screen.ModeSelectorScreen("").createRoute(city))
                     }
                 )
             }
 
             composable(
-                route = Screen.MapScreen("").route,
+                route = Screen.ModeSelectorScreen("").route,
                 arguments = listOf(navArgument("city") { type = NavType.StringType })
             ) { backStackEntry ->
                 val city = backStackEntry.arguments?.getString("city")!!
-                MapScreen(city = city)
+                ModeSelectorScreen(
+                    city = city,
+                    onNavigateToMapScreen = { navigatedCity, navigatedMode ->
+                        navController.navigate(Screen.MapScreen(navigatedCity, navigatedMode).createRoute(navigatedCity, navigatedMode))
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.MapScreen("", "").route,
+                arguments = listOf(
+                    navArgument("city") { type = NavType.StringType },
+                    navArgument("mode") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val city = backStackEntry.arguments?.getString("city")!!
+                val mode = backStackEntry.arguments?.getString("mode")!!
+
+                MapScreen(city = city, mode = mode)
             }
         }
     }
