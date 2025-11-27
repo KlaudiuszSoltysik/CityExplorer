@@ -3,6 +3,7 @@ import requests
 import json
 import h3
 import folium
+from unidecode import unidecode
 
 
 def build_overpass_query(bbox, receiver):
@@ -168,7 +169,9 @@ def assign_pois_to_hexagons(hexagons, tourist_pois, local_pois):
 
 def attach_boundaries(hexagons):
     for hex in hexagons:
-        hex["boundaries"] = h3.cell_to_boundary(hex["id"])
+        temp_list = list(h3.cell_to_boundary(hex["id"]))
+        temp_list.append(temp_list[0])
+        hex["boundaries"] = temp_list
 
     return hexagons
 
@@ -197,24 +200,31 @@ def calculate_weights(hexagons):
 
     return hexagons
 
-def save_to_db(hexagons):
+def save_to_db(hexagons, bbox):
     conn = psycopg2.connect(CONNECTION_STRING)
 
     cursor = conn.cursor()
 
+    cursor.execute("""
+        INSERT INTO "Cities" ("City", "Country", "Bbox")
+        VALUES (%s, %s, %s)
+        ON CONFLICT ("City") DO UPDATE SET
+            "Country" = EXCLUDED."Country",
+            "Bbox" = EXCLUDED."Bbox";
+    """, (CITY, COUNTRY, json.dumps(bbox)))
+
     for hex in hexagons:
         cursor.execute("""
-            INSERT INTO "Hexagons" ("Id", "Boundaries", "Country", "City", "TouristWeight", "LocalWeight")
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO "Hexagons" ("Id", "Boundaries", "CityId", "TouristWeight", "LocalWeight")
+            VALUES (%s, %s, %s, %s, %s)
             ON CONFLICT ("Id") DO UPDATE SET
                 "Boundaries" = EXCLUDED."Boundaries",
-                "Country" = EXCLUDED."Country",
-                "City" = EXCLUDED."City",
+                "CityId" = EXCLUDED."CityId",
                 "TouristWeight" = EXCLUDED."TouristWeight",
                 "LocalWeight" = EXCLUDED."LocalWeight";
-        """, (hex["id"], json.dumps(hex["boundaries"]), COUNTRY, CITY, hex["tourist_weight"], hex["local_weight"]))
+        """, (hex["id"], json.dumps(hex["boundaries"]), CITY, hex["tourist_weight"], hex["local_weight"]))
 
-        for poi in hex.get("tourist_pois", []):
+        for poi in hex["tourist_pois"]:
             cursor.execute("""
                 INSERT INTO "Pois" ("Id", "Name", "PoiType", "PoiSubtype", "Location", "Boundary", "TouristHexagonId")
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -227,7 +237,7 @@ def save_to_db(hexagons):
                     "TouristHexagonId" = EXCLUDED."TouristHexagonId";
             """, (poi["id"], poi["name"], poi["poi_type"], poi["poi_subtype"], json.dumps(poi.get("location")), json.dumps(poi.get("boundary")), hex["id"]))
 
-        for poi in hex.get("local_pois", []):
+        for poi in hex["local_pois"]:
             cursor.execute("""
                 INSERT INTO "Pois" ("Id", "Name", "PoiType", "PoiSubtype", "Location", "Boundary", "LocalHexagonId")
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -271,9 +281,9 @@ def visualize_hexagons(hexagons):
     m.save("hexagons.html")
 
 
-INPUT_FILENAME = "geojsons/berlin.geojson"
-CITY = "Berlin"
-COUNTRY = "Germany"
+INPUT_FILENAME = "geojsons/poznan.geojson"
+CITY = "Poznań"
+COUNTRY = "Poland"
 TOURIST_POI_KEYS = {"tourism": 4, "historic": 4, "amenity": 2, "leisure": 2, "natural": 2, "waterway": 2}
 LOCAL_POI_KEYS = {"amenity": 1, "leisure": 1, "craft": 1}
 RESOLUTION = 9
@@ -293,7 +303,7 @@ local_pois = fetch_pois(bbox, "local")
 hexagons = assign_pois_to_hexagons(hexagons, tourist_pois, local_pois)
 hexagons = attach_boundaries(hexagons)
 hexagons = calculate_weights(hexagons)
-save_to_db(hexagons)
+save_to_db(hexagons, bbox)
 visualize_hexagons(hexagons)
 with open("hexagons.json", "w", encoding="utf-8") as f:
     json.dump(hexagons, f, indent=2)

@@ -1,7 +1,7 @@
 package com.example.cityexplorer.data.api
 
 import com.example.cityexplorer.data.dtos.GetCountriesWithCitiesDto
-import com.example.cityexplorer.data.dtos.GetHexagonsFromCityDto
+import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
 import retrofit2.http.GET
 import retrofit2.http.Query
 
@@ -13,5 +13,5 @@ interface HexagonApiService {
     suspend fun getHexagonsFromCity(
         @Query("city") city: String,
         @Query("mode") mode: String
-    ): List<GetHexagonsFromCityDto>
+    ): GetCityHexagonsDataDto
 }

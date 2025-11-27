@@ -9,6 +9,7 @@ public class PostgresContext(DbContextOptions<PostgresContext> options) : DbCont
 {
     public DbSet<HexagonModel> Hexagons { get; set; }
     public DbSet<PoiModel> Pois { get; set; }
+    public DbSet<CityModel> Cities { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -27,6 +28,20 @@ public class PostgresContext(DbContextOptions<PostgresContext> options) : DbCont
             v => JsonSerializer.Deserialize<List<List<double>>>(v, (JsonSerializerOptions?)null) ??
                  new List<List<double>>()
         );
+
+        var doubleListConverter2 = new ValueConverter<List<double>, string>(
+            v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+            v => JsonSerializer.Deserialize<List<double>>(v, (JsonSerializerOptions?)null) ??
+                 new List<double>()
+        );
+
+        modelBuilder.Entity<CityModel>(entity =>
+        {
+            entity.HasKey(x => x.City);
+
+            entity.Property(x => x.Bbox)
+                .HasConversion(doubleListConverter2);
+        });
 
         modelBuilder.Entity<PoiModel>(entity =>
         {
@@ -56,6 +71,12 @@ public class PostgresContext(DbContextOptions<PostgresContext> options) : DbCont
                 .HasMany(x => x.LocalPois)
                 .WithOne()
                 .HasForeignKey("LocalHexagonId")
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity
+                .HasOne(x => x.City)
+                .WithMany()
+                .HasForeignKey(x => x.CityId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

@@ -9,7 +9,13 @@ data class GetCountriesWithCitiesDto(
 )
 
 @Serializable
-data class GetHexagonsFromCityDto(
+data class GetCityHexagonsDataDto(
+    val bbox: List<Double>,
+    val hexagons: List<HexagonsDto>
+)
+
+@Serializable
+data class HexagonsDto(
     val id: String,
     val boundaries: List<List<Double>>,
     val weight: Double

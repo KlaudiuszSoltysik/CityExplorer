@@ -5,7 +5,6 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
-
     alias(libs.plugins.secrets.gradle.plugin)
 }
 
@@ -24,10 +23,8 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
-
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -66,7 +63,6 @@ dependencies {
     implementation(libs.androidx.navigation.compose.android)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.material.icons.extended)
-
     implementation(libs.play.services.maps)
     implementation(libs.maps.compose)
     implementation(libs.maps.compose.utils)

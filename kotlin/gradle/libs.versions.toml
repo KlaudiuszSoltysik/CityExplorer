@@ -1,5 +1,5 @@
 [versions]
-agp = "8.11.2"
+agp = "8.13.1"
 coreSplashscreen = "1.2.0"
 kotlin = "2.2.21"
 coreKtx = "1.17.0"
@@ -17,7 +17,6 @@ playServicesMaps = "19.2.0"
 retrofit = "3.0.0"
 retrofit2KotlinxSerializationConverter = "1.0.0"
 navigationComposeAndroid = "2.9.6"
-
 secrets-gradle-plugin = "2.0.1"
 
 [libraries]

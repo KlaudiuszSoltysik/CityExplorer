@@ -6,13 +6,13 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cityexplorer.data.api.ApiClient
-import com.example.cityexplorer.data.dtos.GetHexagonsFromCityDto
+import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
 import com.example.cityexplorer.data.repository.HexagonRepository
 import kotlinx.coroutines.launch
 
 sealed interface MainUiState {
     data object Loading : MainUiState
-    data class Success(val hexagons: List<GetHexagonsFromCityDto>) : MainUiState
+    data class Success(val data: GetCityHexagonsDataDto) : MainUiState
     data class Error(val message: String) : MainUiState
 }
 
@@ -34,12 +34,7 @@ class MapViewModel(private val city: String, private val mode: String) : ViewMod
             try {
                 var data = repository.getHexagonsFromCity(city, mode)
 
-                data = data.map { hex ->
-                    val closedBoundaries: List<List<Double>> = hex.boundaries + listOf(hex.boundaries.first())
-                    hex.copy(boundaries = closedBoundaries)
-                }
-
-                uiState = MainUiState.Success(data.take(10))
+                uiState = MainUiState.Success(data)
             } catch (e: Exception) {
                 uiState = MainUiState.Error(e.message ?: "Unknown error")
             } finally {
