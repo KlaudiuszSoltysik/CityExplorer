@@ -38,10 +38,7 @@ public class HexagonController(PostgresContext postgresContext) : ControllerBase
             .Where(h => h.City.City == city)
             .ToListAsync();
 
-        if (hexagonsData.Count == 0)
-        {
-            return NotFound("City or hexagons data not found.");
-        }
+        if (hexagonsData.Count == 0) return NotFound("City or hexagons data not found.");
 
         var cityBbox = hexagonsData.First().City.Bbox;
 

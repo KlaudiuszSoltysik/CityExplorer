@@ -1,5 +1,6 @@
 package com.example.cityexplorer
 
+import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,7 +10,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -21,12 +24,14 @@ import com.example.cityexplorer.ui.map.MapScreen
 import com.example.cityexplorer.ui.modeselector.ModeSelectorScreen
 import com.example.cityexplorer.ui.navigation.Screen
 import com.example.cityexplorer.ui.theme.CityExplorerTheme
+import com.google.android.gms.location.LocationServices
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
         setContent {
             CityExplorerTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -79,8 +84,13 @@ fun CityExplorerAppHost(modifier: Modifier = Modifier) {
             ) { backStackEntry ->
                 val city = backStackEntry.arguments?.getString("city")!!
                 val mode = backStackEntry.arguments?.getString("mode")!!
+                val context = LocalContext.current
 
-                MapScreen(city = city, mode = mode)
+                val locationClient = remember {
+                    LocationServices.getFusedLocationProviderClient(context)
+                }
+
+                MapScreen(city, mode, locationClient)
             }
         }
     }

@@ -282,9 +282,9 @@ def visualize_hexagons(hexagons):
     m.save("hexagons.html")
 
 
-INPUT_FILENAME = "geojsons/poznan.geojson"
-CITY = "Poznań"
-COUNTRY = "Poland"
+INPUT_FILENAME = "geojsons/berlin.geojson"
+CITY = "Berlin"
+COUNTRY = "Germany"
 TOURIST_POI_KEYS = {"tourism": 4, "historic": 4, "amenity": 2, "leisure": 2, "natural": 2, "waterway": 2}
 LOCAL_POI_KEYS = {"amenity": 1, "leisure": 1, "craft": 1}
 RESOLUTION = 9
