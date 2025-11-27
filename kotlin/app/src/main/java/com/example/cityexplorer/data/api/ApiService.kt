@@ -9,6 +9,7 @@ import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
+import java.util.concurrent.TimeUnit
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.SSLContext
 import javax.net.ssl.X509TrustManager
@@ -47,5 +48,8 @@ fun getUnsafeOkHttpClient(): OkHttpClient {
     return OkHttpClient.Builder()
         .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0])
         .hostnameVerifier(hostnameVerifier)
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(5, TimeUnit.SECONDS)
+        .writeTimeout(5, TimeUnit.SECONDS)
         .build()
 }

@@ -26,17 +26,22 @@ class MapViewModel(private val city: String, private val mode: String) : ViewMod
         private set
 
     init {
-        loadData()
+        loadData(isInitial = true)
     }
 
-    private fun loadData() {
-        viewModelScope.launch {
-            try {
-                var data = repository.getHexagonsFromCity(city, mode)
+    fun refreshData() {
+        loadData(isInitial = false)
+    }
 
+    private fun loadData(isInitial: Boolean) {
+        viewModelScope.launch {
+            if (isInitial) uiState = MainUiState.Loading else isRefreshing = true
+
+            try {
+                val data = repository.getHexagonsFromCity(city, mode)
                 uiState = MainUiState.Success(data)
             } catch (e: Exception) {
-                uiState = MainUiState.Error(e.message ?: "Unknown error")
+                if (isInitial) uiState = MainUiState.Error(e.message ?: "Unknown error")
             } finally {
                 isRefreshing = false
             }

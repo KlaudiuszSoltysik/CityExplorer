@@ -186,17 +186,18 @@ def calculate_weights(hexagons):
         for poi in hex["tourist_pois"] + hex["local_pois"]:
             hex["local_weight"] += {**TOURIST_POI_KEYS, **LOCAL_POI_KEYS}.get(poi["poi_type"], 0)
 
-    max_tourist_weight = max(hex["tourist_weight"] for hex in hexagons) or 1
-    max_local_weight = max(hex["local_weight"] for hex in hexagons) or 1
-    for hex in hexagons:
-        hex["tourist_weight"] = hex["tourist_weight"] / max_tourist_weight * 1000
-        hex["local_weight"] = hex["local_weight"] / max_local_weight * 1000
+    tourist_weight_sum = sum(hex["tourist_weight"] for hex in hexagons) or 1
+    local_weight_sum = sum(hex["local_weight"] for hex in hexagons) or 1
 
-    tourist_weight_sum = sum(hex["tourist_weight"] for hex in hexagons)
-    local_weight_sum = sum(hex["local_weight"] for hex in hexagons)
+    hex_count = len(hexagons)
+    uniform_weight = 1.0 / hex_count if hex_count > 0 else 0
+
     for hex in hexagons:
-        hex["tourist_weight"] = hex["tourist_weight"] / tourist_weight_sum
-        hex["local_weight"] = hex["local_weight"] / local_weight_sum
+        poi_share_tourist = hex["tourist_weight"] / tourist_weight_sum
+        poi_share_local = hex["local_weight"] / local_weight_sum
+
+        hex["tourist_weight"] = (poi_share_tourist * 0.8) + (uniform_weight * 0.2)
+        hex["local_weight"] = (poi_share_local * 0.5) + (uniform_weight * 0.5)
 
     return hexagons
 
