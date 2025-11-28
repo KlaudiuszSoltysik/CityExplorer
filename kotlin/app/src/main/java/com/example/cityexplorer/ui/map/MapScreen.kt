@@ -49,9 +49,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.DisposableEffect
 import com.example.cityexplorer.LocationService
+import com.example.cityexplorer.R
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun MapScreen(
     modifier: Modifier = Modifier,
@@ -77,13 +80,10 @@ fun MapScreen(
             context, Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
 
-        val hasNotification = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val hasNotification =
             ContextCompat.checkSelfPermission(
                 context, Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
-        } else {
-            true
-        }
 
         return hasLocation && hasNotification
     }
@@ -205,7 +205,7 @@ fun MapScreen(
                         )
                     }
 
-                    if (arePermissionsGranted) {
+                    if (arePermissionsGranted && isUserInCity) {
                         Button(
                             onClick = {
                                 isExploringMode = !isExploringMode
@@ -246,6 +246,8 @@ fun HexMap(
     selectedHexId: String?,
     onHexClick: (String) -> Unit
 ) {
+    val context = LocalContext.current
+
     val center = LatLng((data.bbox[0] + data.bbox[2]) / 2, (data.bbox[1] + data.bbox[3]) / 2)
 
     val cameraPositionState = rememberCameraPositionState {
@@ -257,17 +259,9 @@ fun HexMap(
         LatLng(data.bbox[2], data.bbox[3])
     )
 
-    val rawJsonStyle = """
-    [
-      { "featureType": "all", "elementType": "labels", "stylers": [ { "visibility": "off" } ] },
-      { "featureType": "poi", "stylers": [ { "visibility": "off" } ] },
-      { "featureType": "transit", "stylers": [ { "visibility": "off" } ] }
-    ]
-    """
-
     val mapProperties = remember(isUserInCity) {
         MapProperties(
-            mapStyleOptions = MapStyleOptions(rawJsonStyle),
+            mapStyleOptions = MapStyleOptions.loadRawResourceStyle(context, R.raw.custom_map),
             latLngBoundsForCameraTarget = bounds,
             maxZoomPreference = 16f,
             minZoomPreference = 9f,
