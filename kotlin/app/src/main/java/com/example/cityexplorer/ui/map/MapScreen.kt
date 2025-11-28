@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -20,18 +21,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
 import com.example.cityexplorer.ui.theme.CustomBlack
+import com.example.cityexplorer.ui.theme.CustomWhite
 import com.example.cityexplorer.ui.theme.CustomYellow
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.maps.model.CameraPosition
@@ -46,6 +47,7 @@ import com.google.maps.android.compose.rememberCameraPositionState
 
 @Composable
 fun MapScreen(
+    modifier: Modifier = Modifier,
     city: String,
     mode: String,
     locationClient: FusedLocationProviderClient,
@@ -55,6 +57,7 @@ fun MapScreen(
     val isRefreshing = viewModel.isRefreshing
 
     var selectedHexId by remember { mutableStateOf<String?>(null) }
+    var isExploringMode by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
 
@@ -101,29 +104,31 @@ fun MapScreen(
     }
 
     PullToRefreshBox(
+        modifier = Modifier.fillMaxSize(),
         isRefreshing = isRefreshing,
         onRefresh = { viewModel.refreshData() },
-        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         when (uiState) {
             is MainUiState.Loading -> CircularProgressIndicator()
             is MainUiState.Success -> {
-                val showActionBtn by remember(viewModel.userLocation, uiState.data.bbox) {
+                val isUserInCity by remember(viewModel.userLocation, uiState.data.bbox) {
                     derivedStateOf { isLocationInBbox(viewModel.userLocation, uiState.data.bbox) }
                 }
 
-                Box(modifier = Modifier.fillMaxSize()) {
-                    HexMap(
-                        data = uiState.data,
-                        selectedHexId = selectedHexId,
-                        onHexClick = { id ->
-                            selectedHexId = if (selectedHexId == id) null else id
-                        },
-                        hasLocationPermission,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                HexMap(
+                    isUserInCity = isUserInCity,
+                    data = uiState.data,
+                    selectedHexId = selectedHexId,
+                    onHexClick = { id ->
+                        selectedHexId = if (selectedHexId == id) null else id
+                    }
+                )
 
+                Box (
+                    modifier = modifier
+                        .fillMaxSize()
+                ) {
                     val selectedHexagon = uiState.data.hexagons.find { it.id == selectedHexId }
 
                     if (selectedHexagon != null) {
@@ -131,27 +136,33 @@ fun MapScreen(
 
                         Text(
                             text = displayText,
-                            color = CustomBlack,
+                            color = CustomWhite,
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
-                                .padding(top = 16.dp, start = 16.dp, end = 16.dp)
                                 .background(
-                                    Color.White.copy(alpha = 0.8f),
+                                    CustomBlack.copy(alpha = 0.6f),
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .padding(vertical = 8.dp, horizontal = 16.dp)
                         )
                     }
 
-                    if (showActionBtn) {
+                    if (isUserInCity) {
                         Button(
-                            onClick = { /* TODO: Akcja */ },
+                            onClick = {
+                                isExploringMode = !isExploringMode
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = CustomBlack.copy(alpha = 0.6f),
+                                contentColor = CustomWhite
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
-                                .padding(bottom = 32.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CustomBlack)
+                                .padding(bottom = 16.dp)
                         ) {
-                            Text("Jesteś na obszarze!")
+                            Text(text = if (isExploringMode) "Stop exploring!" else "Start exploring!")
                         }
                     }
                 }
@@ -159,7 +170,6 @@ fun MapScreen(
             is MainUiState.Error -> {
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
                         .verticalScroll(rememberScrollState()),
                     contentAlignment = Alignment.Center
                 ) {
@@ -172,11 +182,10 @@ fun MapScreen(
 
 @Composable
 fun HexMap(
+    isUserInCity: Boolean,
     data: GetCityHexagonsDataDto,
     selectedHexId: String?,
-    onHexClick: (String) -> Unit,
-    hasLocationPermission: Boolean,
-    modifier: Modifier
+    onHexClick: (String) -> Unit
 ) {
     val center = LatLng((data.bbox[0] + data.bbox[2]) / 2, (data.bbox[1] + data.bbox[3]) / 2)
 
@@ -197,13 +206,13 @@ fun HexMap(
     ]
     """
 
-    val mapProperties = remember(hasLocationPermission) {
+    val mapProperties = remember(isUserInCity) {
         MapProperties(
             mapStyleOptions = MapStyleOptions(rawJsonStyle),
             latLngBoundsForCameraTarget = bounds,
             maxZoomPreference = 16f,
             minZoomPreference = 9f,
-            isMyLocationEnabled = hasLocationPermission
+            isMyLocationEnabled = isUserInCity
         )
     }
 
@@ -211,11 +220,11 @@ fun HexMap(
         zoomControlsEnabled = false,
         compassEnabled = false,
         rotationGesturesEnabled = false,
-        tiltGesturesEnabled = false
+        tiltGesturesEnabled = false,
+        myLocationButtonEnabled = false
     )
 
     GoogleMap(
-        modifier = modifier,
         cameraPositionState = cameraPositionState,
         properties = mapProperties,
         uiSettings = mapUiSettings

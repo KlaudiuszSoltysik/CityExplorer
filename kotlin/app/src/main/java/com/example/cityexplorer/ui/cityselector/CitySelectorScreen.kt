@@ -1,6 +1,7 @@
 package com.example.cityexplorer.ui.cityselector
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,11 +24,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import com.example.cityexplorer.ui.theme.CustomBlack
 
 @Composable
 fun CitySelectorScreen(
+    modifier: Modifier = Modifier,
+    onNavigateToModeSelectorScreen: (city: String) -> Unit,
     viewModel: CitySelectorViewModel = viewModel(),
-    onNavigateToModeSelectorScreen: (city: String) -> Unit
 ) {
     val uiState = viewModel.uiState
     val isRefreshing = viewModel.isRefreshing
@@ -39,7 +42,7 @@ fun CitySelectorScreen(
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = { viewModel.refreshData() },
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
         when (uiState) {
@@ -47,7 +50,6 @@ fun CitySelectorScreen(
             is MainUiState.Success -> {
                 CountriesWithCitiesList(
                     countries = uiState.countriesWithCities,
-                    modifier = Modifier.fillMaxSize(),
                     onCityClick = { city ->
                         handleCityClick(city)
                     }
@@ -70,10 +72,11 @@ fun CitySelectorScreen(
 @Composable
 fun CountriesWithCitiesList(
     countries: List<GetCountriesWithCitiesDto>,
-    modifier: Modifier = Modifier,
     onCityClick: (String) -> Unit
 ) {
-    LazyColumn(modifier = modifier.padding(16.dp)) {
+    LazyColumn(modifier = Modifier
+        .fillMaxSize()
+        .padding(16.dp)) {
         items(countries) { dto ->
             CountryItem(
                 dto = dto,

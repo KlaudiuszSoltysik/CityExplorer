@@ -1,10 +1,11 @@
 package com.example.cityexplorer
 
-import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -24,6 +25,7 @@ import com.example.cityexplorer.ui.map.MapScreen
 import com.example.cityexplorer.ui.modeselector.ModeSelectorScreen
 import com.example.cityexplorer.ui.navigation.Screen
 import com.example.cityexplorer.ui.theme.CityExplorerTheme
+import com.example.cityexplorer.ui.theme.CustomBlack
 import com.google.android.gms.location.LocationServices
 
 class MainActivity : ComponentActivity() {
@@ -34,9 +36,13 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             CityExplorerTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                Scaffold(modifier = Modifier
+                    .fillMaxSize()) { innerPadding ->
                     CityExplorerAppHost(
-                        modifier = Modifier.padding(innerPadding)
+                        modifier = Modifier
+                            .background(CustomBlack)
+                            .fillMaxSize(),
+                        contentPadding = innerPadding
                     )
                 }
             }
@@ -45,7 +51,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun CityExplorerAppHost(modifier: Modifier = Modifier) {
+fun CityExplorerAppHost(modifier: Modifier = Modifier, contentPadding: PaddingValues) {
     val navController = rememberNavController()
 
     Surface(modifier = modifier.fillMaxSize()) {
@@ -56,6 +62,7 @@ fun CityExplorerAppHost(modifier: Modifier = Modifier) {
         ) {
             composable(Screen.CitySelectorScreen.route) {
                 CitySelectorScreen(
+                    modifier = Modifier.padding(contentPadding),
                     onNavigateToModeSelectorScreen = { city ->
                         navController.navigate(Screen.ModeSelectorScreen("").createRoute(city))
                     }
@@ -68,6 +75,7 @@ fun CityExplorerAppHost(modifier: Modifier = Modifier) {
             ) { backStackEntry ->
                 val city = backStackEntry.arguments?.getString("city")!!
                 ModeSelectorScreen(
+                    modifier = Modifier.padding(contentPadding),
                     city = city,
                     onNavigateToMapScreen = { navigatedCity, navigatedMode ->
                         navController.navigate(Screen.MapScreen(navigatedCity, navigatedMode).createRoute(navigatedCity, navigatedMode))
@@ -90,7 +98,12 @@ fun CityExplorerAppHost(modifier: Modifier = Modifier) {
                     LocationServices.getFusedLocationProviderClient(context)
                 }
 
-                MapScreen(city, mode, locationClient)
+                MapScreen(
+                    modifier = Modifier.padding(contentPadding),
+                    city = city,
+                    mode = mode,
+                    locationClient = locationClient
+                )
             }
         }
     }

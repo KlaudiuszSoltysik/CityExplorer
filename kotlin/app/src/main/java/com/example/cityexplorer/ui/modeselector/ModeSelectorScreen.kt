@@ -3,7 +3,6 @@ package com.example.cityexplorer.ui.modeselector
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -16,17 +15,19 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun ModeSelectorScreen(
+    modifier: Modifier = Modifier,
     city: String,
-    viewModel: ModeSelectorViewModel = viewModel(factory = ModeSelectorViewModelFactory(city)),
-    onNavigateToMapScreen: (city: String, mode: String) -> Unit
+    onNavigateToMapScreen: (city: String, mode: String) -> Unit,
+    viewModel: ModeSelectorViewModel = viewModel(factory = ModeSelectorViewModelFactory(city))
 ) {
     fun handleModeClick(mode: String) {
         onNavigateToMapScreen(city, mode)
     }
 
     Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        modifier = modifier
+            .fillMaxWidth(),
+        contentAlignment = Alignment.Center,
     ) {
         Column {
             Text(
