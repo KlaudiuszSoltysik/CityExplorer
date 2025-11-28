@@ -1,6 +1,7 @@
 package com.example.cityexplorer.ui.navigation
 
 sealed class Screen(val route: String) {
+    data object LoginScreen : Screen("login")
     data object CitySelectorScreen : Screen("city_selector")
 
     data class ModeSelectorScreen(val city: String) : Screen("mode_selector/{city}") {

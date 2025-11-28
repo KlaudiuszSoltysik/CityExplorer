@@ -1,4 +1,4 @@
-package com.example.cityexplorer.data.repository
+package com.example.cityexplorer.data.util
 
 import android.annotation.SuppressLint
 import android.location.Location

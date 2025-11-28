@@ -15,13 +15,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.cityexplorer.data.util.TokenManager
 import com.example.cityexplorer.ui.cityselector.CitySelectorScreen
 import com.example.cityexplorer.ui.map.MapScreen
+import com.example.cityexplorer.ui.login.LoginScreen
+import com.example.cityexplorer.ui.login.LoginViewModelFactory
 import com.example.cityexplorer.ui.modeselector.ModeSelectorScreen
 import com.example.cityexplorer.ui.navigation.Screen
 import com.example.cityexplorer.ui.theme.CityExplorerTheme
@@ -34,15 +38,24 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        val tokenManager = TokenManager(applicationContext)
+
+        val startDestination = if (tokenManager.getToken() != null) {
+            Screen.CitySelectorScreen.route
+        } else {
+            Screen.LoginScreen.route
+        }
+
         setContent {
             CityExplorerTheme {
-                Scaffold(modifier = Modifier
-                    .fillMaxSize()) { innerPadding ->
+                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     CityExplorerAppHost(
                         modifier = Modifier
                             .background(CustomBlack)
                             .fillMaxSize(),
-                        contentPadding = innerPadding
+                        contentPadding = innerPadding,
+                        startDestination = startDestination,
+                        tokenManager = tokenManager
                     )
                 }
             }
@@ -51,15 +64,34 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun CityExplorerAppHost(modifier: Modifier = Modifier, contentPadding: PaddingValues) {
+fun CityExplorerAppHost(
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues,
+    startDestination: String,
+    tokenManager: TokenManager
+) {
     val navController = rememberNavController()
 
     Surface(modifier = modifier.fillMaxSize()) {
         NavHost(
             navController = navController,
-            startDestination = Screen.CitySelectorScreen.route,
+            startDestination = startDestination,
             modifier = modifier
         ) {
+            composable(Screen.LoginScreen.route) {
+                LoginScreen(
+                    modifier = Modifier.padding(contentPadding),
+                    onNavigateToCitySelectorScreen = {
+                        navController.navigate(Screen.CitySelectorScreen.route) {
+                            popUpTo(Screen.LoginScreen.route) { inclusive = true }
+                        }
+                    },
+                    viewModel = viewModel(
+                        factory = LoginViewModelFactory(tokenManager)
+                    )
+                )
+            }
+
             composable(Screen.CitySelectorScreen.route) {
                 CitySelectorScreen(
                     modifier = Modifier.padding(contentPadding),

@@ -7,10 +7,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cityexplorer.data.api.ApiClient
 import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
-import com.example.cityexplorer.data.repository.HexagonRepository
+import com.example.cityexplorer.data.util.HexagonRepository
 import kotlinx.coroutines.launch
 import android.location.Location
-import com.example.cityexplorer.data.repository.getLocationFlow
+import com.example.cityexplorer.data.util.getLocationFlow
 import com.google.android.gms.location.FusedLocationProviderClient
 
 sealed interface MainUiState {

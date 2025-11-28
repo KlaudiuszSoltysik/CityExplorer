@@ -51,7 +51,7 @@ import android.content.IntentFilter
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.DisposableEffect
-import com.example.cityexplorer.LocationService
+import com.example.cityexplorer.data.util.LocationService
 import com.example.cityexplorer.R
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)

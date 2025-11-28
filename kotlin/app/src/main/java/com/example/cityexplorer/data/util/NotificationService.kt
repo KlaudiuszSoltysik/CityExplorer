@@ -1,4 +1,4 @@
-package com.example.cityexplorer
+package com.example.cityexplorer.data.util
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -8,6 +8,8 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import com.example.cityexplorer.MainActivity
+import com.example.cityexplorer.R
 
 class LocationService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null

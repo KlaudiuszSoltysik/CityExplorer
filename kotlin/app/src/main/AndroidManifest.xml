@@ -29,7 +29,7 @@
             android:value="@integer/google_play_services_version" />
 
         <service
-            android:name=".LocationService"
+            android:name=".data.util.LocationService"
             android:foregroundServiceType="location"
             android:exported="false" />
 
