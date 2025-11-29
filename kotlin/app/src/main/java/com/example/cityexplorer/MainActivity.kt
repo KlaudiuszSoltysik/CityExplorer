@@ -27,7 +27,6 @@ import com.example.cityexplorer.ui.map.MapScreen
 import com.example.cityexplorer.ui.login.LoginScreen
 import com.example.cityexplorer.ui.login.LoginViewModelFactory
 import com.example.cityexplorer.ui.modeselector.ModeSelectorScreen
-import com.example.cityexplorer.ui.navigation.Screen
 import com.example.cityexplorer.ui.theme.CityExplorerTheme
 import com.example.cityexplorer.ui.theme.CustomBlack
 import com.google.android.gms.location.LocationServices

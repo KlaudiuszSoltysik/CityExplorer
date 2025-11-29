@@ -232,7 +232,7 @@ fun MapScreen(
                         .verticalScroll(rememberScrollState()),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "Connection error.")
+                    Text(text = "Error: ${uiState.message}.")
                 }
             }
         }

@@ -1,4 +1,4 @@
-package com.example.cityexplorer.ui.navigation
+package com.example.cityexplorer
 
 sealed class Screen(val route: String) {
     data object LoginScreen : Screen("login")

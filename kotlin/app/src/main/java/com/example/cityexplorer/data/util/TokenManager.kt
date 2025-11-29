@@ -3,6 +3,7 @@ package com.example.cityexplorer.data.util
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import androidx.core.content.edit
 
 class TokenManager(context: Context) {
     private val masterKey = MasterKey.Builder(context)
@@ -18,7 +19,7 @@ class TokenManager(context: Context) {
     )
 
     fun saveToken(token: String) {
-        sharedPreferences.edit().putString("jwt_token", token).apply()
+        sharedPreferences.edit { putString("jwt_token", token) }
     }
 
     fun getToken(): String? {
@@ -26,6 +27,6 @@ class TokenManager(context: Context) {
     }
 
     fun clearToken() {
-        sharedPreferences.edit().remove("jwt_token").apply()
+        sharedPreferences.edit { remove("jwt_token") }
     }
 }

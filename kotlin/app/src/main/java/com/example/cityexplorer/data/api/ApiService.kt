@@ -30,6 +30,10 @@ object ApiClient {
     val hexagonApiService: HexagonApiService by lazy {
         retrofit.create(HexagonApiService::class.java)
     }
+
+    val userApiService: UserApiService by lazy {
+        retrofit.create(UserApiService::class.java)
+    }
 }
 
 @SuppressLint("CustomX509TrustManager", "TrustAllX509TrustManager")

@@ -6,7 +6,10 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.cityexplorer.data.api.ApiClient
+import com.example.cityexplorer.data.dtos.LoginRequestDto
 import com.example.cityexplorer.data.util.TokenManager
+import com.example.cityexplorer.data.repositories.UserRepository
 import kotlinx.coroutines.launch
 
 sealed interface MainUiState {
@@ -18,11 +21,8 @@ sealed interface MainUiState {
 class LoginViewModel(
     private val tokenManager: TokenManager
 ) : ViewModel() {
+    private val repository = UserRepository(ApiClient.userApiService)
     var uiState: MainUiState by mutableStateOf(MainUiState.Waiting)
-        private set
-
-    var isRefreshing: Boolean by mutableStateOf(false)
-        private set
 
     fun resetState() {
         uiState = MainUiState.Waiting
@@ -32,13 +32,19 @@ class LoginViewModel(
         viewModelScope.launch {
             uiState = MainUiState.Loading
 
-            tokenManager.saveToken(token)
+            try {
+                val loginRequestDto = LoginRequestDto(token = token)
+                val loginResponseDto = repository.validateLoginToken(loginRequestDto)
 
-            // Validate token in backend
-            if (token.isNotEmpty()) {
-                onNavigateNext()
-            } else {
-                uiState = MainUiState.Error("User not logged")
+                if (loginResponseDto.isSuccess && loginResponseDto.token != null) {
+                    tokenManager.saveToken(loginResponseDto.token)
+
+                    onNavigateNext()
+                } else {
+                    uiState = MainUiState.Error("Login failed on server")
+                }
+            } catch (e: Exception) {
+                uiState = MainUiState.Error(e.message ?: "Unknown error")
             }
         }
     }

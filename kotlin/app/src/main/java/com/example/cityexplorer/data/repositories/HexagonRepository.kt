@@ -1,4 +1,4 @@
-package com.example.cityexplorer.data.util
+package com.example.cityexplorer.data.repositories
 
 import com.example.cityexplorer.data.api.HexagonApiService
 import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
