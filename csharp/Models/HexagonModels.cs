@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace csharp.Models;
 
@@ -22,6 +23,10 @@ public class PoiModel
     [MaxLength(50)] public string PoiSubtype { get; init; } = string.Empty;
     public List<double>? Location { get; init; }
     public List<List<double>>? Boundary { get; init; }
+    [MaxLength(50)] public string? TouristHexagonId { get; init; }
+    [ForeignKey(nameof(TouristHexagonId))] public HexagonModel? TouristHexagon { get; init; }
+    [MaxLength(50)] public string? LocalHexagonId { get; init; }
+    [ForeignKey(nameof(LocalHexagonId))] public HexagonModel? LocalHexagon { get; init; }
 }
 
 public class CityModel
@@ -29,4 +34,5 @@ public class CityModel
     [Key] [MaxLength(50)] public string City { get; init; } = string.Empty;
     [MaxLength(50)] public string Country { get; init; } = string.Empty;
     public required List<double> Bbox { get; init; }
+    public ICollection<HexagonModel> Hexagons { get; init; } = [];
 }

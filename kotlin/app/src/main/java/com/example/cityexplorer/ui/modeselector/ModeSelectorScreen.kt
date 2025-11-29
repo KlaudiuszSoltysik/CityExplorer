@@ -11,14 +11,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun ModeSelectorScreen(
     modifier: Modifier = Modifier,
     city: String,
     onNavigateToMapScreen: (city: String, mode: String) -> Unit,
-    viewModel: ModeSelectorViewModel = viewModel(factory = ModeSelectorViewModelFactory(city))
 ) {
     fun handleModeClick(mode: String) {
         onNavigateToMapScreen(city, mode)

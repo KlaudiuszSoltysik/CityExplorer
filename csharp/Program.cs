@@ -1,4 +1,5 @@
 using csharp;
+using csharp.Utils;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
@@ -18,6 +19,7 @@ builder.Services.AddCors(options =>
             .AllowCredentials();
     });
 });
+builder.Services.AddHostedService<SessionCleanupService>();
 
 // builder.WebHost.UseUrls("http://localhost:6101");
 builder.WebHost.UseUrls("http://0.0.0.0:6101");

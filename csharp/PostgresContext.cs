@@ -10,6 +10,8 @@ public class PostgresContext(DbContextOptions<PostgresContext> options) : DbCont
     public DbSet<HexagonModel> Hexagons { get; set; }
     public DbSet<PoiModel> Pois { get; set; }
     public DbSet<CityModel> Cities { get; set; }
+    public DbSet<UserModel> Users { get; set; }
+    public DbSet<SessionModel> Sessions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -18,65 +20,60 @@ public class PostgresContext(DbContextOptions<PostgresContext> options) : DbCont
             v => v == null ? null : JsonSerializer.Deserialize<List<double>>(v, (JsonSerializerOptions?)null)
         );
 
-        var doubleListListConverter = new ValueConverter<List<List<double>>?, string?>(
+        var nullableDoubleListListConverter = new ValueConverter<List<List<double>>?, string?>(
             v => v == null ? null : JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
             v => v == null ? null : JsonSerializer.Deserialize<List<List<double>>>(v, (JsonSerializerOptions?)null)
         );
 
-        var doubleListListConverter2 = new ValueConverter<List<List<double>>, string>(
+        var doubleListListConverter = new ValueConverter<List<List<double>>, string>(
             v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
-            v => JsonSerializer.Deserialize<List<List<double>>>(v, (JsonSerializerOptions?)null) ??
-                 new List<List<double>>()
+            v => string.IsNullOrEmpty(v)
+                ? new List<List<double>>()
+                : JsonSerializer.Deserialize<List<List<double>>>(v, (JsonSerializerOptions?)null) ??
+                  new List<List<double>>()
         );
 
-        var doubleListConverter2 = new ValueConverter<List<double>, string>(
+        var requiredDoubleListConverter = new ValueConverter<List<double>, string>(
             v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
-            v => JsonSerializer.Deserialize<List<double>>(v, (JsonSerializerOptions?)null) ??
-                 new List<double>()
+            v => string.IsNullOrEmpty(v)
+                ? new List<double>()
+                : JsonSerializer.Deserialize<List<double>>(v, (JsonSerializerOptions?)null) ?? new List<double>()
         );
+
+        modelBuilder.Entity<UserModel>()
+            .HasOne(u => u.ActiveSession)
+            .WithOne(s => s.User)
+            .HasForeignKey<SessionModel>(s => s.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<CityModel>(entity =>
         {
-            entity.HasKey(x => x.City);
+            entity.Property(x => x.Bbox).HasConversion(requiredDoubleListConverter);
 
-            entity.Property(x => x.Bbox)
-                .HasConversion(doubleListConverter2);
+            entity.HasMany(c => c.Hexagons)
+                .WithOne(h => h.City)
+                .HasForeignKey(h => h.CityId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<PoiModel>(entity =>
         {
-            entity.HasKey(x => x.Id);
-
-            entity.Property(x => x.Location)
-                .HasConversion(doubleListConverter);
-
-            entity.Property(x => x.Boundary)
-                .HasConversion(doubleListListConverter);
+            entity.Property(x => x.Location).HasConversion(doubleListConverter);
+            entity.Property(x => x.Boundary).HasConversion(nullableDoubleListListConverter);
         });
 
         modelBuilder.Entity<HexagonModel>(entity =>
         {
-            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Boundaries).HasConversion(doubleListListConverter);
 
-            entity.Property(x => x.Boundaries)
-                .HasConversion(doubleListListConverter2);
-
-            entity
-                .HasMany(x => x.TouristPois)
-                .WithOne()
-                .HasForeignKey("TouristHexagonId")
+            entity.HasMany(x => x.TouristPois)
+                .WithOne(p => p.TouristHexagon)
+                .HasForeignKey(p => p.TouristHexagonId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity
-                .HasMany(x => x.LocalPois)
-                .WithOne()
-                .HasForeignKey("LocalHexagonId")
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity
-                .HasOne(x => x.City)
-                .WithMany()
-                .HasForeignKey(x => x.CityId)
+            entity.HasMany(x => x.LocalPois)
+                .WithOne(p => p.LocalHexagon)
+                .HasForeignKey(p => p.LocalHexagonId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

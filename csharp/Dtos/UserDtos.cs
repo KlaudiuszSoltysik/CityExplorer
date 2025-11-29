@@ -8,5 +8,5 @@ public class LoginRequestDto
 public class LoginResponseDto
 {
     public bool IsSuccess { get; set; }
-    public required string? Token { get; set; }
+    public string? Token { get; set; }
 }

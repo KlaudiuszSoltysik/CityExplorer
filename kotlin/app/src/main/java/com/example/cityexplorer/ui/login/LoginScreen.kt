@@ -1,6 +1,5 @@
 package com.example.cityexplorer.ui.login
 
-import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -145,6 +144,7 @@ fun LoginScreen(
                     Button (
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Primary,
+                            contentColor = CustomWhite
                         ),
                         shape = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(
