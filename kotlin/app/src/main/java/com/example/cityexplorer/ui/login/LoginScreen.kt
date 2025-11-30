@@ -34,6 +34,7 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
+import com.example.cityexplorer.data.util.TokenManager
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
@@ -41,10 +42,11 @@ import kotlinx.coroutines.launch
 @Composable
 fun LoginScreen(
     modifier: Modifier = Modifier,
+    tokenManager: TokenManager,
     onNavigateToCitySelectorScreen: () -> Unit,
-    viewModel: LoginViewModel = viewModel(),
+    viewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(tokenManager)),
 ) {
-    val uiState = viewModel.uiState
+    var uiState = viewModel.uiState
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -98,19 +100,19 @@ fun LoginScreen(
 
                                                 viewModel.onGoogleLoginSuccess(googleIdToken, onNavigateToCitySelectorScreen)
                                             } catch (e: Exception) {
-                                                viewModel.uiState = MainUiState.Error(e.message ?: "Unknown error")
+                                                uiState = MainUiState.Error(e.message ?: "Unknown error")
                                             }
                                         } else {
-                                            viewModel.uiState = MainUiState.Error("Invalid Google credential type")
+                                            uiState = MainUiState.Error("Invalid Google credential type")
                                         }
                                     }
 
                                     else -> {
-                                        viewModel.uiState = MainUiState.Error("Google credential missing")
+                                        uiState = MainUiState.Error("Google credential missing")
                                     }
                                 }
                             } catch (e: GetCredentialException) {
-                                viewModel.uiState = MainUiState.Error(e.message ?: "Unknown error")
+                                uiState = MainUiState.Error(e.message ?: "Unknown error")
                             }
                         }
                     }
@@ -137,7 +139,7 @@ fun LoginScreen(
             is MainUiState.Error -> {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "Error: ${uiState.message}.",
+                        text = "Error: ${(uiState as MainUiState.Error).message}.",
                         color = CustomError
                     )
                     Spacer(modifier = Modifier.height(8.dp))

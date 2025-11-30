@@ -12,3 +12,13 @@ data class LoginResponseDto(
     val isSuccess: Boolean,
     val token: String?
 )
+
+@Serializable
+data class GetUserRequestDto(
+    val token: String
+)
+
+@Serializable
+data class GetUserResponseDto(
+    val isAuthorized: Boolean
+)

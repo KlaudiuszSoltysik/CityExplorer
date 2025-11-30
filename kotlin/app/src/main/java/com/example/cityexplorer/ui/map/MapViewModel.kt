@@ -10,8 +10,13 @@ import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
 import com.example.cityexplorer.data.repositories.HexagonRepository
 import kotlinx.coroutines.launch
 import android.location.Location
+import com.example.cityexplorer.data.dtos.GetUserRequestDto
+import com.example.cityexplorer.data.repositories.UserRepository
+import com.example.cityexplorer.data.util.TokenManager
 import com.example.cityexplorer.data.util.getLocationFlow
 import com.google.android.gms.location.FusedLocationProviderClient
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 
 sealed interface MainUiState {
     data object Loading : MainUiState
@@ -19,21 +24,47 @@ sealed interface MainUiState {
     data class Error(val message: String) : MainUiState
 }
 
+interface MapUiEvent {
+    data class ToggleService(val shouldStart: Boolean) : MapUiEvent
+    data object NavigateToLogin : MapUiEvent
+    data class ShowError(val message: String) : MapUiEvent
+}
+
+//TODO:
+//ogarnąć jak ten kod działa
+//wymusić powiadomienia i lokalizacje dopiero jak robisz start exploring
+//dodać te toasty z errorem
+//zrobić nawigację map -> login -> map
+
 class MapViewModel(
     private val city: String,
     private val mode: String,
-    private val locationClient: FusedLocationProviderClient
+    private val locationClient: FusedLocationProviderClient,
+    private val tokenManager: TokenManager
 ) : ViewModel() {
-    private val repository = HexagonRepository(ApiClient.hexagonApiService)
-
+    private val hexagonRepository = HexagonRepository(ApiClient.hexagonApiService)
+    private val userRepository = UserRepository(ApiClient.userApiService)
+    private val _uiEvent = Channel<MapUiEvent>()
+    val uiEvent = _uiEvent.receiveAsFlow()
     var uiState: MainUiState by mutableStateOf(MainUiState.Loading)
         private set
-
     var isRefreshing: Boolean by mutableStateOf(false)
         private set
-
     var userLocation: Location? by mutableStateOf(null)
         private set
+    var isExploringMode: Boolean by mutableStateOf(false)
+        private set
+    var arePermissionsGranted: Boolean by mutableStateOf(false)
+        private set
+    val isUserInCity: Boolean
+        get() {
+            val location = userLocation ?: return false
+            val state = uiState as? MainUiState.Success ?: return false
+            val bbox = state.data.bbox
+
+            return location.latitude in bbox[0]..bbox[2] &&
+                    location.longitude in bbox[1]..bbox[3]
+        }
 
     init {
         loadData(isInitial = true)
@@ -43,12 +74,53 @@ class MapViewModel(
         loadData(isInitial = false)
     }
 
-    private fun loadData(isInitial: Boolean) {
+    fun updatePermissionStatus(isGranted: Boolean) {
+        arePermissionsGranted = isGranted
+        if (isGranted) {
+            startLocationTracking()
+        }
+    }
+
+    fun onExplorerToggleClick() {
+        viewModelScope.launch {
+            val token = tokenManager.getToken()
+
+            if (token == null) {
+                _uiEvent.send(MapUiEvent.NavigateToLogin)
+                return@launch
+            }
+
+            try {
+                val getUserResponseDto = userRepository.getLoggedUser(GetUserRequestDto(token))
+
+                if (getUserResponseDto.isAuthorized) {
+                    isExploringMode = !isExploringMode
+
+                    _uiEvent.send(MapUiEvent.ToggleService(isExploringMode))
+                } else {
+                    handleLogout()
+                }
+            } catch (e: Exception) {
+                _uiEvent.send(MapUiEvent.ShowError("Error: ${e.message ?: "Unknown error"}"))
+            }
+        }
+    }
+
+    suspend fun handleLogout() {
+        tokenManager.clearToken()
+        _uiEvent.send(MapUiEvent.NavigateToLogin)
+    }
+
+    fun onServiceStoppedExternal() {
+        isExploringMode = false
+    }
+
+    fun loadData(isInitial: Boolean) {
         viewModelScope.launch {
             if (isInitial) uiState = MainUiState.Loading else isRefreshing = true
 
             try {
-                val data = repository.getHexagonsFromCity(city, mode)
+                val data = hexagonRepository.getHexagonsFromCity(city, mode)
                 uiState = MainUiState.Success(data)
             } catch (e: Exception) {
                 if (isInitial) uiState = MainUiState.Error(e.message ?: "Unknown error")
@@ -75,11 +147,12 @@ class MapViewModel(
 class MapViewModelFactory(
     private val city: String,
     private val mode: String,
-    private val locationClient: FusedLocationProviderClient
+    private val locationClient: FusedLocationProviderClient,
+    private val tokenManager: TokenManager
 ) : androidx.lifecycle.ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(MapViewModel::class.java)) {
-            return MapViewModel(city, mode, locationClient) as T
+            return MapViewModel(city, mode, locationClient, tokenManager) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

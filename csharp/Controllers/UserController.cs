@@ -79,6 +79,33 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
             return StatusCode(500, "An internal error occurred during login.");
         }
     }
+    
+    [HttpPost("get-logged-user")]
+    public async Task<IActionResult> ValidateAuthorizationToken([FromBody] AuthorizationRequestDto authorizationRequestDto)
+    {
+        var session = await postgresContext.Sessions
+            .Where(s=>s.Token == authorizationRequestDto.Token)
+            .Include(s=>s.User)
+            .FirstOrDefaultAsync();
+
+        if (session == null || session.Token !=  authorizationRequestDto.Token)
+        {
+            return Ok(new AuthorizationResponseDto
+            {
+                IsAuthorized = false
+            });
+        }
+        var user = session.User;
+
+        return Ok(new AuthorizationResponseDto
+        {
+            IsAuthorized = true,
+            UserDto = new UserDto
+            {
+                Id = user.Id
+            }
+        });
+    }
 
     private string CreateAppJwtToken(GoogleJsonWebSignature.Payload payload)
     {

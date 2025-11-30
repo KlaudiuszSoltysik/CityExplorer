@@ -19,7 +19,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,8 +50,12 @@ import android.content.IntentFilter
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.cityexplorer.data.util.LocationService
 import com.example.cityexplorer.R
+import com.example.cityexplorer.data.util.TokenManager
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
@@ -61,39 +64,33 @@ fun MapScreen(
     city: String,
     mode: String,
     locationClient: FusedLocationProviderClient,
-    viewModel: MapViewModel = viewModel(factory = MapViewModelFactory(city, mode, locationClient))
+    tokenManager: TokenManager,
+    onNavigateToLogin: () -> Unit,
+    viewModel: MapViewModel = viewModel(factory = MapViewModelFactory(city, mode, locationClient, tokenManager))
 ) {
+    val lifecycleOwner = LocalLifecycleOwner.current
     val uiState = viewModel.uiState
     val isRefreshing = viewModel.isRefreshing
-
+    val isUserInCity = viewModel.isUserInCity
+    val isExploringMode = viewModel.isExploringMode
+    val arePermissionsGranted = viewModel.arePermissionsGranted
     var selectedHexId by remember { mutableStateOf<String?>(null) }
-    var isExploringMode by remember { mutableStateOf(false) }
-
     val context = LocalContext.current
 
-    var arePermissionsGranted by remember {
-        mutableStateOf(false)
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val isGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true &&
+                permissions[Manifest.permission.POST_NOTIFICATIONS] == true
+
+        viewModel.updatePermissionStatus(isGranted)
     }
 
-    fun checkPermissions(): Boolean {
-        val hasLocation = ContextCompat.checkSelfPermission(
-            context, Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-
-        val hasNotification =
-            ContextCompat.checkSelfPermission(
-                context, Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
-
-        return hasLocation && hasNotification
-    }
-
-    fun toggleService(enable: Boolean) {
+    fun toggleLocalizationService(enable: Boolean) {
         Intent(context, LocationService::class.java).also { intent ->
             if (enable) {
                 intent.action = LocationService.ACTION_START
                 context.startForegroundService(intent)
-                viewModel.startLocationTracking()
             } else {
                 intent.action = LocationService.ACTION_STOP
                 context.startService(intent)
@@ -101,41 +98,34 @@ fun MapScreen(
         }
     }
 
-    fun isLocationInBbox(location: android.location.Location?, bbox: List<Double>): Boolean {
-        if (location == null) return false
-
-        return location.latitude in bbox[0]..bbox[2] &&
-                location.longitude in bbox[1]..bbox[3]
-    }
-
-    LaunchedEffect(Unit) {
-        arePermissionsGranted = checkPermissions()
-    }
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val locationGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
-
-        val notificationGranted = permissions[Manifest.permission.POST_NOTIFICATIONS] == true
-
-        arePermissionsGranted = locationGranted && notificationGranted
-    }
-
-    LaunchedEffect(Unit) {
-        if (!checkPermissions()) {
-            val permissionsToRequest = mutableListOf(
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.POST_NOTIFICATIONS
-            )
-
-            permissionLauncher.launch(permissionsToRequest.toTypedArray())
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.uiEvent.collect { event ->
+                when (event) {
+                    is MapUiEvent.ToggleService -> {
+                        toggleLocalizationService(event.shouldStart)
+                    }
+                    is MapUiEvent.NavigateToLogin -> {
+                        onNavigateToLogin()
+                    }
+                    is MapUiEvent.ShowError -> {
+                        // TODO: Handle error
+                    }
+                }
+            }
         }
     }
 
-    LaunchedEffect(arePermissionsGranted) {
-        if (arePermissionsGranted) {
-            viewModel.startLocationTracking()
+    LaunchedEffect(Unit) {
+        val hasLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val hasNotification = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+
+        if (hasLocation && hasNotification) {
+            viewModel.updatePermissionStatus(true)
+        } else {
+            permissionLauncher.launch(
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.POST_NOTIFICATIONS)
+            )
         }
     }
 
@@ -143,7 +133,7 @@ fun MapScreen(
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 if (intent?.action == LocationService.ACTION_STOPPED_FROM_NOTIFICATION) {
-                    isExploringMode = false
+                    viewModel.onServiceStoppedExternal()
                 }
             }
         }
@@ -152,11 +142,8 @@ fun MapScreen(
 
         onDispose {
             context.unregisterReceiver(receiver)
-
             if (isExploringMode) {
-                val stopIntent = Intent(context, LocationService::class.java)
-                stopIntent.action = LocationService.ACTION_STOP
-                context.startService(stopIntent)
+                toggleLocalizationService(false)
             }
         }
     }
@@ -170,10 +157,6 @@ fun MapScreen(
         when (uiState) {
             is MainUiState.Loading -> CircularProgressIndicator()
             is MainUiState.Success -> {
-                val isUserInCity by remember(viewModel.userLocation, uiState.data.bbox) {
-                    derivedStateOf { isLocationInBbox(viewModel.userLocation, uiState.data.bbox) }
-                }
-
                 HexMap(
                     isUserInCity = isUserInCity,
                     data = uiState.data,
@@ -208,8 +191,7 @@ fun MapScreen(
                     if (arePermissionsGranted && isUserInCity) {
                         Button(
                             onClick = {
-                                isExploringMode = !isExploringMode
-                                toggleService(isExploringMode)
+                                viewModel.onExplorerToggleClick()
                             },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = CustomBlack.copy(alpha = 0.6f),

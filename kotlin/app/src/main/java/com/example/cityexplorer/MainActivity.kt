@@ -15,7 +15,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -25,7 +24,6 @@ import com.example.cityexplorer.data.util.TokenManager
 import com.example.cityexplorer.ui.cityselector.CitySelectorScreen
 import com.example.cityexplorer.ui.map.MapScreen
 import com.example.cityexplorer.ui.login.LoginScreen
-import com.example.cityexplorer.ui.login.LoginViewModelFactory
 import com.example.cityexplorer.ui.modeselector.ModeSelectorScreen
 import com.example.cityexplorer.ui.theme.CityExplorerTheme
 import com.example.cityexplorer.ui.theme.CustomBlack
@@ -80,14 +78,12 @@ fun CityExplorerAppHost(
             composable(Screen.LoginScreen.route) {
                 LoginScreen(
                     modifier = Modifier.padding(contentPadding),
+                    tokenManager = tokenManager,
                     onNavigateToCitySelectorScreen = {
                         navController.navigate(Screen.CitySelectorScreen.route) {
                             popUpTo(Screen.LoginScreen.route) { inclusive = true }
                         }
                     },
-                    viewModel = viewModel(
-                        factory = LoginViewModelFactory(tokenManager)
-                    )
                 )
             }
 
@@ -133,7 +129,13 @@ fun CityExplorerAppHost(
                     modifier = Modifier.padding(contentPadding),
                     city = city,
                     mode = mode,
-                    locationClient = locationClient
+                    locationClient = locationClient,
+                    tokenManager = tokenManager,
+                    onNavigateToLogin = {
+                        navController.navigate(Screen.LoginScreen.route) {
+                            popUpTo(Screen.CitySelectorScreen.route)
+                        }
+                    }
                 )
             }
         }
