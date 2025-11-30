@@ -28,13 +28,8 @@ interface MapUiEvent {
     data class ToggleService(val shouldStart: Boolean) : MapUiEvent
     data object NavigateToLogin : MapUiEvent
     data class ShowError(val message: String) : MapUiEvent
+    data object RequestPermissions : MapUiEvent
 }
-
-//TODO:
-//ogarnąć jak ten kod działa
-//wymusić powiadomienia i lokalizacje dopiero jak robisz start exploring
-//dodać te toasty z errorem
-//zrobić nawigację map -> login -> map
 
 class MapViewModel(
     private val city: String,
@@ -83,6 +78,16 @@ class MapViewModel(
 
     fun onExplorerToggleClick() {
         viewModelScope.launch {
+            if (!arePermissionsGranted) {
+                _uiEvent.send(MapUiEvent.RequestPermissions)
+                return@launch
+            }
+
+            if (!isUserInCity) {
+                _uiEvent.send(MapUiEvent.ShowError("You are not in the city!"))
+                return@launch
+            }
+
             val token = tokenManager.getToken()
 
             if (token == null) {
@@ -100,8 +105,8 @@ class MapViewModel(
                 } else {
                     handleLogout()
                 }
-            } catch (e: Exception) {
-                _uiEvent.send(MapUiEvent.ShowError("Error: ${e.message ?: "Unknown error"}"))
+            } catch (_: Exception) {
+                _uiEvent.send(MapUiEvent.ShowError("Server error"))
             }
         }
     }
@@ -122,8 +127,8 @@ class MapViewModel(
             try {
                 val data = hexagonRepository.getHexagonsFromCity(city, mode)
                 uiState = MainUiState.Success(data)
-            } catch (e: Exception) {
-                if (isInitial) uiState = MainUiState.Error(e.message ?: "Unknown error")
+            } catch (_: Exception) {
+                if (isInitial) uiState = MainUiState.Error("Couldn't load data")
             } finally {
                 isRefreshing = false
             }
@@ -136,8 +141,8 @@ class MapViewModel(
                 getLocationFlow(locationClient).collect { location ->
                     userLocation = location
                 }
-            } catch (e: Exception) {
-                uiState = MainUiState.Error(e.message ?: "Unknown error")
+            } catch (_: Exception) {
+                uiState = MainUiState.Error("App error")
             }
         }
     }

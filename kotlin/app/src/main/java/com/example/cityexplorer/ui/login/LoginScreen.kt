@@ -1,12 +1,11 @@
 package com.example.cityexplorer.ui.login
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -19,39 +18,41 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.cityexplorer.ui.theme.CustomBlack
-import com.example.cityexplorer.ui.theme.CustomError
-import com.example.cityexplorer.ui.theme.Primary
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.sp
 import com.example.cityexplorer.R
 import com.example.cityexplorer.ui.theme.CustomWhite
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
-import androidx.credentials.CredentialManager
-import androidx.credentials.CustomCredential
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.exceptions.GetCredentialException
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.cityexplorer.data.util.TokenManager
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
     modifier: Modifier = Modifier,
     tokenManager: TokenManager,
-    onNavigateToCitySelectorScreen: () -> Unit,
+    onNavigateToNextScreen: () -> Unit,
     viewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(tokenManager)),
 ) {
-    var uiState = viewModel.uiState
+    val uiState = viewModel.uiState
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    val credentialManager = androidx.compose.runtime.remember {
-        CredentialManager.create(context)
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.uiEvent.collect { event ->
+                when (event) {
+                    is LoginUiEvent.ShowError -> {
+                        Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
     }
 
     Box(
@@ -69,52 +70,7 @@ fun LoginScreen(
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     onClick = {
-                        coroutineScope.launch {
-                            try {
-                                val googleIdOption = GetGoogleIdOption.Builder()
-                                    .setFilterByAuthorizedAccounts(false)
-                                    .setServerClientId("357422343630-2v64co21drksl119p77bjhs642qk3cmd.apps.googleusercontent.com")
-                                    .setAutoSelectEnabled(true)
-                                    .build()
-
-                                val request = GetCredentialRequest.Builder()
-                                    .addCredentialOption(googleIdOption)
-                                    .build()
-
-                                val result = credentialManager.getCredential(
-                                    request = request,
-                                    context = context,
-                                )
-
-                                when (val credential = result.credential) {
-                                    is GoogleIdTokenCredential -> {
-                                        val googleIdToken = credential.idToken
-                                        viewModel.onGoogleLoginSuccess(googleIdToken, onNavigateToCitySelectorScreen)
-                                    }
-
-                                    is CustomCredential -> {
-                                        if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                                            try {
-                                                val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
-                                                val googleIdToken = googleIdTokenCredential.idToken
-
-                                                viewModel.onGoogleLoginSuccess(googleIdToken, onNavigateToCitySelectorScreen)
-                                            } catch (e: Exception) {
-                                                uiState = MainUiState.Error(e.message ?: "Unknown error")
-                                            }
-                                        } else {
-                                            uiState = MainUiState.Error("Invalid Google credential type")
-                                        }
-                                    }
-
-                                    else -> {
-                                        uiState = MainUiState.Error("Google credential missing")
-                                    }
-                                }
-                            } catch (e: GetCredentialException) {
-                                uiState = MainUiState.Error(e.message ?: "Unknown error")
-                            }
-                        }
+                        viewModel.signInWithGoogle(context, onNavigateToNextScreen)
                     }
                 ) {
                     Row(
@@ -132,29 +88,6 @@ fun LoginScreen(
                             color = CustomBlack,
                             fontSize = 20.sp,
                         )
-                    }
-                }
-            }
-
-            is MainUiState.Error -> {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "Error: ${(uiState as MainUiState.Error).message}.",
-                        color = CustomError
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button (
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Primary,
-                            contentColor = CustomWhite
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(
-                            horizontal = 16.dp,
-                            vertical = 8.dp),
-                        onClick = { viewModel.resetState() }
-                    ) {
-                        Text("Try again")
                     }
                 }
             }

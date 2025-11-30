@@ -40,8 +40,8 @@ class CitySelectorViewModel : ViewModel() {
             try {
                 val data = repository.getCountriesWithCities()
                 uiState = MainUiState.Success(data)
-            } catch (e: Exception) {
-                if (isInitial) uiState = MainUiState.Error(e.message ?: "Unknown error")
+            } catch (_: Exception) {
+                if (isInitial) uiState = MainUiState.Error("Couldn't load data")
             } finally {
                 isRefreshing = false
             }

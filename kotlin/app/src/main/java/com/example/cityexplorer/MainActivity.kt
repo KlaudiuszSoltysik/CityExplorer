@@ -37,12 +37,6 @@ class MainActivity : ComponentActivity() {
 
         val tokenManager = TokenManager(applicationContext)
 
-        val startDestination = if (tokenManager.getToken() != null) {
-            Screen.CitySelectorScreen.route
-        } else {
-            Screen.LoginScreen.route
-        }
-
         setContent {
             CityExplorerTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -51,7 +45,6 @@ class MainActivity : ComponentActivity() {
                             .background(CustomBlack)
                             .fillMaxSize(),
                         contentPadding = innerPadding,
-                        startDestination = startDestination,
                         tokenManager = tokenManager
                     )
                 }
@@ -64,7 +57,6 @@ class MainActivity : ComponentActivity() {
 fun CityExplorerAppHost(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues,
-    startDestination: String,
     tokenManager: TokenManager
 ) {
     val navController = rememberNavController()
@@ -72,18 +64,43 @@ fun CityExplorerAppHost(
     Surface(modifier = modifier.fillMaxSize()) {
         NavHost(
             navController = navController,
-            startDestination = startDestination,
+            startDestination = Screen.CitySelectorScreen.route,
             modifier = modifier
         ) {
             composable(Screen.LoginScreen.route) {
                 LoginScreen(
                     modifier = Modifier.padding(contentPadding),
                     tokenManager = tokenManager,
-                    onNavigateToCitySelectorScreen = {
+                    onNavigateToNextScreen = {
                         navController.navigate(Screen.CitySelectorScreen.route) {
                             popUpTo(Screen.LoginScreen.route) { inclusive = true }
                         }
                     },
+                )
+            }
+
+            composable(
+                route = Screen.LoginScreen.route,
+                arguments = listOf(
+                    navArgument("returnRoute") {
+                        nullable = true
+                        defaultValue = null
+                        type = NavType.StringType
+                    }
+                )
+            ) { backStackEntry ->
+                val returnRoute = backStackEntry.arguments?.getString("returnRoute")
+
+                LoginScreen(
+                    modifier = Modifier.padding(contentPadding),
+                    tokenManager = tokenManager,
+                    onNavigateToNextScreen = {
+                        val targetDestination = returnRoute ?: Screen.CitySelectorScreen.route
+
+                        navController.navigate(targetDestination) {
+                            popUpTo(Screen.LoginScreen.route) { inclusive = true }
+                        }
+                    }
                 )
             }
 
@@ -132,9 +149,14 @@ fun CityExplorerAppHost(
                     locationClient = locationClient,
                     tokenManager = tokenManager,
                     onNavigateToLogin = {
-                        navController.navigate(Screen.LoginScreen.route) {
-                            popUpTo(Screen.CitySelectorScreen.route)
+                        val currentRoute = Screen.MapScreen(city, mode).createRoute(city, mode)
+
+                        navController.navigate(Screen.LoginScreen.createRoute(returnRoute = currentRoute)) {
+                            popUpTo(Screen.MapScreen(city, mode).route) { inclusive = true }
                         }
+                    },
+                    onNavigateBack = {
+                        navController.popBackStack()
                     }
                 )
             }

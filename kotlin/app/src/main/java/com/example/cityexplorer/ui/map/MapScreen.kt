@@ -56,6 +56,9 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.example.cityexplorer.data.util.LocationService
 import com.example.cityexplorer.R
 import com.example.cityexplorer.data.util.TokenManager
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.mutableLongStateOf
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
@@ -66,16 +69,18 @@ fun MapScreen(
     locationClient: FusedLocationProviderClient,
     tokenManager: TokenManager,
     onNavigateToLogin: () -> Unit,
+    onNavigateBack: () -> Unit,
     viewModel: MapViewModel = viewModel(factory = MapViewModelFactory(city, mode, locationClient, tokenManager))
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val uiState = viewModel.uiState
     val isRefreshing = viewModel.isRefreshing
     val isUserInCity = viewModel.isUserInCity
-    val isExploringMode = viewModel.isExploringMode
     val arePermissionsGranted = viewModel.arePermissionsGranted
+    val isExploringMode = viewModel.isExploringMode
     var selectedHexId by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
+    var lastBackPressTime by remember { mutableLongStateOf(0L) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -84,6 +89,10 @@ fun MapScreen(
                 permissions[Manifest.permission.POST_NOTIFICATIONS] == true
 
         viewModel.updatePermissionStatus(isGranted)
+
+        if (isGranted) {
+            viewModel.onExplorerToggleClick()
+        }
     }
 
     fun toggleLocalizationService(enable: Boolean) {
@@ -109,7 +118,16 @@ fun MapScreen(
                         onNavigateToLogin()
                     }
                     is MapUiEvent.ShowError -> {
-                        // TODO: Handle error
+                        Toast.makeText(
+                            context,
+                            event.message,
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    is MapUiEvent.RequestPermissions -> {
+                        permissionLauncher.launch(
+                            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.POST_NOTIFICATIONS)
+                        )
                     }
                 }
             }
@@ -120,12 +138,18 @@ fun MapScreen(
         val hasLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         val hasNotification = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
-        if (hasLocation && hasNotification) {
-            viewModel.updatePermissionStatus(true)
+        viewModel.updatePermissionStatus(hasLocation && hasNotification)
+    }
+
+    BackHandler {
+        val currentTime = System.currentTimeMillis()
+        val timeDifference = currentTime - lastBackPressTime
+
+        if (timeDifference < 1500) {
+            onNavigateBack()
         } else {
-            permissionLauncher.launch(
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.POST_NOTIFICATIONS)
-            )
+            lastBackPressTime = currentTime
+            Toast.makeText(context, "Press back again to exit", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -188,23 +212,25 @@ fun MapScreen(
                         )
                     }
 
-                    if (arePermissionsGranted && isUserInCity) {
-                        Button(
-                            onClick = {
-                                viewModel.onExplorerToggleClick()
+                    Button(
+                        onClick = {
+                            viewModel.onExplorerToggleClick()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isUserInCity && arePermissionsGranted) {
+                                CustomBlack.copy(alpha = 0.6f)
+                            } else {
+                                CustomBlack.copy(alpha = 0.4f)
                             },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = CustomBlack.copy(alpha = 0.6f),
-                                contentColor = CustomWhite
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(bottom = 16.dp)
-                        ) {
-                            Text(text = if (isExploringMode) "Stop exploring!" else "Start exploring!")
-                        }
+                            contentColor = CustomWhite
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 16.dp)
+                    ) {
+                        Text(text = if (isExploringMode) "Stop exploring!" else "Start exploring!")
                     }
                 }
             }
