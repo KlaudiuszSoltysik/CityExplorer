@@ -20,6 +20,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import com.example.cityexplorer.data.util.TokenManager
 import com.example.cityexplorer.ui.cityselector.CitySelectorScreen
 import com.example.cityexplorer.ui.map.MapScreen
@@ -132,6 +133,11 @@ fun CityExplorerAppHost(
                 arguments = listOf(
                     navArgument("city") { type = NavType.StringType },
                     navArgument("mode") { type = NavType.StringType }
+                ),
+                deepLinks = listOf(
+                    navDeepLink {
+                        uriPattern = "cityexplorer://map/{city}/{mode}"
+                    }
                 )
             ) { backStackEntry ->
                 val city = backStackEntry.arguments?.getString("city")!!

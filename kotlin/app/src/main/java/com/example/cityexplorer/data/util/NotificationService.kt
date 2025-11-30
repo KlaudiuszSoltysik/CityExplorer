@@ -5,36 +5,50 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.example.cityexplorer.MainActivity
 import com.example.cityexplorer.R
 
-class LocationService : Service() {
+class NotificationService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_START -> startForegroundService()
+            ACTION_START -> {
+                val city = intent.getStringExtra("city") ?: ""
+                val mode = intent.getStringExtra("mode") ?: ""
+
+                startForegroundService(city, mode)
+            }
             ACTION_STOP -> stopSelf()
         }
         return START_STICKY
     }
 
-    private fun startForegroundService() {
+    private fun startForegroundService(city: String, mode: String) {
         createNotificationChannel()
 
-        val stopIntent = Intent(this, LocationService::class.java).apply {
+        val stopIntent = Intent(this, NotificationService::class.java).apply {
             action = ACTION_STOP
         }
         val stopPendingIntent = PendingIntent.getService(
             this, 0, stopIntent, PendingIntent.FLAG_IMMUTABLE
         )
 
-        val contentIntent = Intent(this, MainActivity::class.java)
+        val contentIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+
+            data = Uri.parse("cityexplorer://map/$city/$mode")
+        }
+
         val contentPendingIntent = PendingIntent.getActivity(
-            this, 0, contentIntent, PendingIntent.FLAG_IMMUTABLE
+            this,
+            1,
+            contentIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
         val deletePendingIntent = PendingIntent.getService(
@@ -43,7 +57,7 @@ class LocationService : Service() {
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("City explorer")
-            .setContentText("We are tracking your location.")
+            .setContentText("Tracking location in $city ($mode)")
             .setSmallIcon(R.drawable.baseline_explore_24)
             .setContentIntent(contentPendingIntent)
             .setOngoing(true)

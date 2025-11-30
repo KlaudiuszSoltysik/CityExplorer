@@ -58,9 +58,12 @@ fun CitySelectorScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState()),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.CenterStart
                 ) {
-                    Text(text = "Error: ${uiState.message}.")
+                    Text(
+                        text = uiState.message,
+                        modifier = Modifier.padding(16.dp)
+                    )
                 }
             }
         }

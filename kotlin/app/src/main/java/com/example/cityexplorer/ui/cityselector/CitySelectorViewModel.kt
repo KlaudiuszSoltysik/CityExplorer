@@ -33,7 +33,7 @@ class CitySelectorViewModel : ViewModel() {
         loadData(isInitial = false)
     }
 
-    private fun loadData(isInitial: Boolean) {
+    fun loadData(isInitial: Boolean) {
         viewModelScope.launch {
             if (isInitial) uiState = MainUiState.Loading else isRefreshing = true
 
@@ -41,7 +41,7 @@ class CitySelectorViewModel : ViewModel() {
                 val data = repository.getCountriesWithCities()
                 uiState = MainUiState.Success(data)
             } catch (_: Exception) {
-                if (isInitial) uiState = MainUiState.Error("Couldn't load data")
+                if (isInitial) uiState = MainUiState.Error("Couldn't load data.")
             } finally {
                 isRefreshing = false
             }

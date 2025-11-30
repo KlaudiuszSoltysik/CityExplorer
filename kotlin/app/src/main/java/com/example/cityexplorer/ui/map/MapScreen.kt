@@ -9,9 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -53,11 +51,14 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
-import com.example.cityexplorer.data.util.LocationService
+import com.example.cityexplorer.data.util.NotificationService
 import com.example.cityexplorer.R
 import com.example.cityexplorer.data.util.TokenManager
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.mutableLongStateOf
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -96,12 +97,16 @@ fun MapScreen(
     }
 
     fun toggleLocalizationService(enable: Boolean) {
-        Intent(context, LocationService::class.java).also { intent ->
+        Intent(context, NotificationService::class.java).also { intent ->
             if (enable) {
-                intent.action = LocationService.ACTION_START
+                intent.action = NotificationService.ACTION_START
+
+                intent.putExtra("city", city)
+                intent.putExtra("mode", mode)
+
                 context.startForegroundService(intent)
             } else {
-                intent.action = LocationService.ACTION_STOP
+                intent.action = NotificationService.ACTION_STOP
                 context.startService(intent)
             }
         }
@@ -156,12 +161,12 @@ fun MapScreen(
     DisposableEffect(Unit) {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action == LocationService.ACTION_STOPPED_FROM_NOTIFICATION) {
+                if (intent?.action == NotificationService.ACTION_STOPPED_FROM_NOTIFICATION) {
                     viewModel.onServiceStoppedExternal()
                 }
             }
         }
-        val filter = IntentFilter(LocationService.ACTION_STOPPED_FROM_NOTIFICATION)
+        val filter = IntentFilter(NotificationService.ACTION_STOPPED_FROM_NOTIFICATION)
         ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
 
         onDispose {
@@ -173,9 +178,9 @@ fun MapScreen(
     }
 
     PullToRefreshBox(
-        modifier = Modifier.fillMaxSize(),
         isRefreshing = isRefreshing,
         onRefresh = { viewModel.refreshData() },
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         when (uiState) {
@@ -183,7 +188,7 @@ fun MapScreen(
             is MainUiState.Success -> {
                 HexMap(
                     isUserInCity = isUserInCity,
-                    data = uiState.data,
+                    data = uiState.cityHexagonsDataDto,
                     selectedHexId = selectedHexId,
                     onHexClick = { id ->
                         selectedHexId = if (selectedHexId == id) null else id
@@ -194,7 +199,7 @@ fun MapScreen(
                     modifier = modifier
                         .fillMaxSize()
                 ) {
-                    val selectedHexagon = uiState.data.hexagons.find { it.id == selectedHexId }
+                    val selectedHexagon = uiState.cityHexagonsDataDto.hexagons.find { it.id == selectedHexId }
 
                     if (selectedHexagon != null) {
                         val displayText = "ID: ${selectedHexagon.id}   weight: ${"%.3f".format(selectedHexagon.weight * 100)}%"
@@ -235,12 +240,19 @@ fun MapScreen(
                 }
             }
             is MainUiState.Error -> {
-                Box(
-                    modifier = Modifier
-                        .verticalScroll(rememberScrollState()),
-                    contentAlignment = Alignment.Center
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(text = "Error: ${uiState.message}.")
+                    item {
+                        Text(
+                            text = uiState.message,
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth()
+                        )
+                    }
                 }
             }
         }

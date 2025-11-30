@@ -115,9 +115,11 @@ class LoginViewModel(
 
                     onNavigateNext()
                 } else {
+                    uiState = MainUiState.Waiting
                     _uiEvent.send(LoginUiEvent.ShowError("Login failed on server"))
                 }
             } catch (_: Exception) {
+                uiState = MainUiState.Waiting
                 _uiEvent.send(LoginUiEvent.ShowError("Login failed inside app"))
             }
         }

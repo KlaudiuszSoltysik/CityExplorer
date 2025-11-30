@@ -1,11 +1,15 @@
 package com.example.cityexplorer.ui.login
 
 import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -27,6 +31,8 @@ import androidx.compose.ui.unit.sp
 import com.example.cityexplorer.R
 import com.example.cityexplorer.ui.theme.CustomWhite
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -63,31 +69,47 @@ fun LoginScreen(
             is MainUiState.Loading -> CircularProgressIndicator()
 
             is MainUiState.Waiting -> {
-                Button(
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = CustomWhite,
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    onClick = {
-                        viewModel.signInWithGoogle(context, onNavigateToNextScreen)
-                    }
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(16.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
+                    Text(
+                        text = "You have to be logged to explore!",
+                        color = CustomWhite,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    Button(
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = CustomWhite,
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        onClick = {
+                            viewModel.signInWithGoogle(context, onNavigateToNextScreen)
+                        }
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_google_logo),
-                            contentDescription = "Google Logo",
-                            tint = Color.Unspecified,
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = "Login with Google",
-                            color = CustomBlack,
-                            fontSize = 20.sp,
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_google_logo),
+                                contentDescription = "Google Logo",
+                                tint = Color.Unspecified,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Login with Google",
+                                color = CustomBlack,
+                                fontSize = 20.sp,
+                            )
+                        }
                     }
                 }
             }

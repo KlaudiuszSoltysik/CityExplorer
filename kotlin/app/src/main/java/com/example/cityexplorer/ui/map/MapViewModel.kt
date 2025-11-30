@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 
 sealed interface MainUiState {
     data object Loading : MainUiState
-    data class Success(val data: GetCityHexagonsDataDto) : MainUiState
+    data class Success(val cityHexagonsDataDto: GetCityHexagonsDataDto) : MainUiState
     data class Error(val message: String) : MainUiState
 }
 
@@ -55,7 +55,7 @@ class MapViewModel(
         get() {
             val location = userLocation ?: return false
             val state = uiState as? MainUiState.Success ?: return false
-            val bbox = state.data.bbox
+            val bbox = state.cityHexagonsDataDto.bbox
 
             return location.latitude in bbox[0]..bbox[2] &&
                     location.longitude in bbox[1]..bbox[3]
@@ -106,7 +106,7 @@ class MapViewModel(
                     handleLogout()
                 }
             } catch (_: Exception) {
-                _uiEvent.send(MapUiEvent.ShowError("Server error"))
+                _uiEvent.send(MapUiEvent.ShowError("Server error."))
             }
         }
     }
@@ -128,7 +128,7 @@ class MapViewModel(
                 val data = hexagonRepository.getHexagonsFromCity(city, mode)
                 uiState = MainUiState.Success(data)
             } catch (_: Exception) {
-                if (isInitial) uiState = MainUiState.Error("Couldn't load data")
+                if (isInitial) uiState = MainUiState.Error("Couldn't load data.")
             } finally {
                 isRefreshing = false
             }
@@ -142,7 +142,7 @@ class MapViewModel(
                     userLocation = location
                 }
             } catch (_: Exception) {
-                uiState = MainUiState.Error("App error")
+                uiState = MainUiState.Error("App error.")
             }
         }
     }
