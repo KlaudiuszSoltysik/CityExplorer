@@ -3,60 +3,46 @@ import requests
 import json
 import h3
 import folium
-from unidecode import unidecode
 
 
-def build_overpass_query(bbox, receiver):
+def build_overpass_query(bbox):
     bbox_str = f"{bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}"
-    query = ""
 
-    if receiver == "tourist":
-        query = f"""
-            [out:json][timeout:100];
-            (
-            node["tourism"~"attraction|artwork|gallery|museum|viewpoint|zoo|aquarium|theme_park"]({bbox_str});
-            way["tourism"~"attraction|artwork|gallery|museum|viewpoint|zoo|aquarium|theme_park"]({bbox_str});
-            relation["tourism"~"attraction|artwork|gallery|museum|viewpoint|zoo|aquarium|theme_park"]({bbox_str});
-            node["historic"]({bbox_str});
-            way["historic"]({bbox_str});
-            relation["historic"]({bbox_str});
-            node["amenity"~"place_of_worship|arts_centre|theatre|planetarium|fountain|townhall"]({bbox_str});
-            way["amenity"~"place_of_worship|arts_centre|theatre|planetarium|fountain|townhall"]({bbox_str});
-            relation["amenity"~"place_of_worship|arts_centre|theatre|planetarium|fountain|townhall"]({bbox_str});
-            node["leisure"~"park|nature_reserve|water_park"]({bbox_str});
-            way["leisure"~"park|nature_reserve|water_park"]({bbox_str});
-            relation["leisure"~"park|nature_reserve|water_park"]({bbox_str});
-            node["man_made"~"lighthouse|windmill|watermill|tower|obelisk"]({bbox_str});
-            way["man_made"~"lighthouse|windmill|watermill|tower|obelisk"]({bbox_str});
-            node["natural"~"cave_entrance|beach"]({bbox_str});
-            node["waterway"="waterfall"]({bbox_str});
-            );
-            out center;
-        """
-    elif receiver == "local":
-        query = f"""
-            [out:json][timeout:100];
-            (
-            node["amenity"~"restaurant|cafe|bar|pub|ice_cream"]({bbox_str});
-            way["amenity"~"restaurant|cafe|bar|pub|ice_cream"]({bbox_str});
-            relation["amenity"~"restaurant|cafe|bar|pub|ice_cream"]({bbox_str});
-            node["amenity"~"cinema|nightclub|community_centre|library|public_bookcase|marketplace"]({bbox_str});
-            way["amenity"~"cinema|nightclub|community_centre|library|public_bookcase|marketplace"]({bbox_str});
-            relation["amenity"~"cinema|nightclub|community_centre|library|public_bookcase|marketplace"]({bbox_str});
-            node["leisure"~"sports_centre|fitness_centre|swimming_pool|pitch|ice_rink|bowling_alley"]({bbox_str});
-            way["leisure"~"sports_centre|fitness_centre|swimming_pool|pitch|ice_rink|bowling_alley"]({bbox_str});
-            relation["leisure"~"sports_centre|fitness_centre|swimming_pool|pitch|ice_rink|bowling_alley"]({bbox_str});
-            node["craft"~"brewery|winery"]({bbox_str});
-            way["craft"~"brewery|winery"]({bbox_str});
-            );
-            out center;
-        """
+    query = f"""
+        [out:json][timeout:100];
+        (
+        node["tourism"~"attraction|artwork|gallery|museum|viewpoint|zoo|aquarium|theme_park"]({bbox_str});
+        way["tourism"~"attraction|artwork|gallery|museum|viewpoint|zoo|aquarium|theme_park"]({bbox_str});
+        relation["tourism"~"attraction|artwork|gallery|museum|viewpoint|zoo|aquarium|theme_park"]({bbox_str});
+
+        node["historic"]({bbox_str});
+        way["historic"]({bbox_str});
+        relation["historic"]({bbox_str});
+
+        node["amenity"~"place_of_worship|arts_centre|theatre|planetarium|fountain|townhall|restaurant|cafe|bar|pub|ice_cream|cinema|nightclub|community_centre|library|public_bookcase|marketplace"]({bbox_str});
+        way["amenity"~"place_of_worship|arts_centre|theatre|planetarium|fountain|townhall|restaurant|cafe|bar|pub|ice_cream|cinema|nightclub|community_centre|library|public_bookcase|marketplace"]({bbox_str});
+        relation["amenity"~"place_of_worship|arts_centre|theatre|planetarium|fountain|townhall|restaurant|cafe|bar|pub|ice_cream|cinema|nightclub|community_centre|library|public_bookcase|marketplace"]({bbox_str});
+
+        node["leisure"~"park|nature_reserve|water_park|sports_centre|fitness_centre|swimming_pool|pitch|ice_rink|bowling_alley"]({bbox_str});
+        way["leisure"~"park|nature_reserve|water_park|sports_centre|fitness_centre|swimming_pool|pitch|ice_rink|bowling_alley"]({bbox_str});
+        relation["leisure"~"park|nature_reserve|water_park|sports_centre|fitness_centre|swimming_pool|pitch|ice_rink|bowling_alley"]({bbox_str});
+
+        node["man_made"~"lighthouse|windmill|watermill|tower|obelisk"]({bbox_str});
+        way["man_made"~"lighthouse|windmill|watermill|tower|obelisk"]({bbox_str});
+        node["natural"~"cave_entrance|beach"]({bbox_str});
+        node["waterway"="waterfall"]({bbox_str});
+
+        node["craft"~"brewery|winery"]({bbox_str});
+        way["craft"~"brewery|winery"]({bbox_str});
+        );
+        out center;
+    """
 
     return query
 
-def fetch_pois(bbox, receiver):
-    q = build_overpass_query(bbox, receiver)
-    resp = requests.post("https://overpass-api.de/api/interpreter", data={"data": q}, timeout=200)
+def fetch_pois(bbox):
+    q = build_overpass_query(bbox)
+    resp = requests.post("https://overpass-api.de/api/interpreter", data={"data": q}, timeout=500)
     resp.raise_for_status()
     data = resp.json()
     elements = data.get("elements", [])
@@ -66,7 +52,7 @@ def fetch_pois(bbox, receiver):
         tags = el.get("tags", {}) or {}
 
         poi_type = None
-        poi_keys = TOURIST_POI_KEYS.keys() if receiver == "tourist" else LOCAL_POI_KEYS.keys()
+        poi_keys = POI_KEYS.keys()
 
         for k in poi_keys:
             if k in tags:
@@ -78,9 +64,10 @@ def fetch_pois(bbox, receiver):
 
         poi = {
             "id": f"{el["type"]}/{el["id"]}",
+            "city": CITY,
             "name": tags.get("name", tags.get("name:en", None)),
             "poi_type": poi_type,
-            "poi_subtype": tags.get(poi_type) if poi_type else None,
+            "poi_subtype": tags.get(poi_type) if poi_type else None
         }
 
         if "lat" in el:
@@ -112,15 +99,14 @@ def hexagons_from_bbox(bbox):
     polygon_h3 = h3.LatLngPoly(coords_h3)
     return h3.polygon_to_cells(polygon_h3, RESOLUTION)
 
-def assign_pois_to_hexagons(hexagons, tourist_pois, local_pois):
+def assign_pois_to_hexagons(hexagons, pois):
     hexagons_with_pois = []
 
-    hex_tourist_poi_map = {hex: [] for hex in hexagons}
-    hex_local_poi_map = {hex: [] for hex in hexagons}
+    hex_poi_map = {hex: [] for hex in hexagons}
 
     valid_hex_set = set(hexagons)
 
-    for poi in tourist_pois:
+    for poi in pois:
         if poi.get("location"):
             poi_lat = poi["location"][0]
             poi_lon = poi["location"][1]
@@ -129,7 +115,7 @@ def assign_pois_to_hexagons(hexagons, tourist_pois, local_pois):
 
             if poi_hex in valid_hex_set:
                 poi["id"] += "#" + poi_hex
-                hex_tourist_poi_map[poi_hex].append(poi)
+                hex_poi_map[poi_hex].append(poi)
         else:
             poi_hexagons = hexagons_from_bbox(poi["boundary"])
 
@@ -137,32 +123,12 @@ def assign_pois_to_hexagons(hexagons, tourist_pois, local_pois):
                 if hex_id in valid_hex_set:
                     new_poi = dict(poi)
                     new_poi["id"] += "#" + hex_id
-                    hex_tourist_poi_map[hex_id].append(new_poi)
-
-    for poi in local_pois:
-        if poi.get("location"):
-            poi_lat = poi["location"][0]
-            poi_lon = poi["location"][1]
-
-            poi_hex = h3.latlng_to_cell(poi_lat, poi_lon, RESOLUTION)
-
-            if poi_hex in valid_hex_set:
-                poi["id"] += "#" + poi_hex
-                hex_local_poi_map[poi_hex].append(poi)
-        else:
-            poi_hexagons = hexagons_from_bbox(poi["boundary"])
-
-            for hex_id in poi_hexagons:
-                if hex_id in valid_hex_set:
-                    new_poi = dict(poi)
-                    new_poi["id"] += "#" + hex_id
-                    hex_local_poi_map[hex_id].append(new_poi)
+                    hex_poi_map[hex_id].append(new_poi)
 
     for hex in hexagons:
         hexagons_with_pois.append({
             "id": hex,
-            "tourist_pois": hex_tourist_poi_map[hex],
-            "local_pois": hex_local_poi_map[hex]
+            "pois": hex_poi_map[hex],
         })
 
     return hexagons_with_pois
@@ -172,32 +138,25 @@ def attach_boundaries(hexagons):
         temp_list = list(h3.cell_to_boundary(hex["id"]))
         temp_list.append(temp_list[0])
         hex["boundaries"] = temp_list
+        hex["center"] = h3.cell_to_latlng(hex["id"])
 
     return hexagons
 
 def calculate_weights(hexagons):
     for hex in hexagons:
-        hex["tourist_weight"] = 0
-        hex["local_weight"] = 0
+        hex["weight"] = 0
 
-        for poi in hex["tourist_pois"]:
-            hex["tourist_weight"] += TOURIST_POI_KEYS.get(poi["poi_type"], 0)
+        for poi in hex["pois"]:
+            hex["weight"] += POI_KEYS.get(poi["poi_type"], 0)
 
-        for poi in hex["tourist_pois"] + hex["local_pois"]:
-            hex["local_weight"] += {**TOURIST_POI_KEYS, **LOCAL_POI_KEYS}.get(poi["poi_type"], 0)
-
-    tourist_weight_sum = sum(hex["tourist_weight"] for hex in hexagons) or 1
-    local_weight_sum = sum(hex["local_weight"] for hex in hexagons) or 1
+    weight_sum = sum(hex["weight"] for hex in hexagons) or 1
 
     hex_count = len(hexagons)
     uniform_weight = 1.0 / hex_count if hex_count > 0 else 0
 
     for hex in hexagons:
-        poi_share_tourist = hex["tourist_weight"] / tourist_weight_sum
-        poi_share_local = hex["local_weight"] / local_weight_sum
-
-        hex["tourist_weight"] = (poi_share_tourist * 0.8) + (uniform_weight * 0.2)
-        hex["local_weight"] = (poi_share_local * 0.5) + (uniform_weight * 0.5)
+        poi_share = hex["weight"] / weight_sum
+        hex["weight"] = (poi_share * 0.5) + (uniform_weight * 0.5)
 
     return hexagons
 
@@ -216,40 +175,28 @@ def save_to_db(hexagons, bbox):
 
     for hex in hexagons:
         cursor.execute("""
-            INSERT INTO "Hexagons" ("Id", "Boundaries", "CityId", "TouristWeight", "LocalWeight")
+            INSERT INTO "Hexagons" ("Id", "Boundaries", "Center", "CityId", "Weight")
             VALUES (%s, %s, %s, %s, %s)
             ON CONFLICT ("Id") DO UPDATE SET
                 "Boundaries" = EXCLUDED."Boundaries",
+                "Center" = EXCLUDED."Center",
                 "CityId" = EXCLUDED."CityId",
-                "TouristWeight" = EXCLUDED."TouristWeight",
-                "LocalWeight" = EXCLUDED."LocalWeight";
-        """, (hex["id"], json.dumps(hex["boundaries"]), CITY, hex["tourist_weight"], hex["local_weight"]))
+                "Weight" = EXCLUDED."Weight";
+        """, (hex["id"], json.dumps(hex["boundaries"]), json.dumps(hex["center"]), CITY, hex["weight"]))
 
-        for poi in hex["tourist_pois"]:
+        for poi in hex["pois"]:
             cursor.execute("""
-                INSERT INTO "Pois" ("Id", "Name", "PoiType", "PoiSubtype", "Location", "Boundary", "TouristHexagonId")
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO "Pois" ("Id", "Name", "PoiType", "PoiSubtype", "Location", "Boundary", "HexagonId", "CityId")
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT ("Id") DO UPDATE SET
                     "Name" = EXCLUDED."Name",
                     "PoiType" = EXCLUDED."PoiType",
                     "PoiSubtype" = EXCLUDED."PoiSubtype",
                     "Location" = EXCLUDED."Location",
                     "Boundary" = EXCLUDED."Boundary",
-                    "TouristHexagonId" = EXCLUDED."TouristHexagonId";
-            """, (poi["id"], poi["name"], poi["poi_type"], poi["poi_subtype"], json.dumps(poi.get("location")), json.dumps(poi.get("boundary")), hex["id"]))
-
-        for poi in hex["local_pois"]:
-            cursor.execute("""
-                INSERT INTO "Pois" ("Id", "Name", "PoiType", "PoiSubtype", "Location", "Boundary", "LocalHexagonId")
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT ("Id") DO UPDATE SET
-                    "Name" = EXCLUDED."Name",
-                    "PoiType" = EXCLUDED."PoiType",
-                    "PoiSubtype" = EXCLUDED."PoiSubtype",
-                    "Location" = EXCLUDED."Location",
-                    "Boundary" = EXCLUDED."Boundary",
-                    "LocalHexagonId" = EXCLUDED."LocalHexagonId";
-            """, (poi["id"], poi["name"], poi["poi_type"], poi["poi_subtype"], json.dumps(poi.get("location")), json.dumps(poi.get("boundary")), hex["id"]))
+                    "HexagonId" = EXCLUDED."HexagonId",
+                    "CityId" = EXCLUDED."CityId";
+            """, (poi["id"], poi["name"], poi["poi_type"], poi["poi_subtype"], json.dumps(poi.get("location")), json.dumps(poi.get("boundary")), hex["id"], CITY))
 
     conn.commit()
     cursor.close()
@@ -258,12 +205,12 @@ def save_to_db(hexagons, bbox):
 def visualize_hexagons(hexagons):
     m = folium.Map(zoom_start=12, tiles="cartodbpositron")
 
-    max_weight = max([h["tourist_weight"] for h in hexagons])
+    max_weight = max([h["weight"] for h in hexagons])
 
     for hex in hexagons:
-        tourist_weight = hex["tourist_weight"]
+        weight = hex["weight"]
 
-        fill_opacity = float(tourist_weight/max_weight)
+        fill_opacity = float(weight/max_weight)
 
         color = "#3186cc"
 
@@ -276,7 +223,7 @@ def visualize_hexagons(hexagons):
             fill_opacity=fill_opacity,
             color=color,
             weight=0.5,
-            tooltip=f"Hex ID: {hex["id"]}<br>Tourist Weight: {tourist_weight:.4f}"
+            tooltip=f"Hex ID: {hex["id"]}<br>Weight: {weight:.4f}"
         ).add_to(m)
 
     m.save("hexagons.html")
@@ -285,8 +232,7 @@ def visualize_hexagons(hexagons):
 INPUT_FILENAME = "geojsons/berlin.geojson"
 CITY = "Berlin"
 COUNTRY = "Germany"
-TOURIST_POI_KEYS = {"tourism": 4, "historic": 4, "amenity": 2, "leisure": 2, "natural": 2, "waterway": 2}
-LOCAL_POI_KEYS = {"amenity": 1, "leisure": 1, "craft": 1}
+POI_KEYS = {"tourism": 4, "historic": 4, "amenity": 2, "leisure": 1, "natural": 3, "waterway": 3, "craft": 2}
 RESOLUTION = 9
 CONNECTION_STRING = "host=localhost port=6000 user=admin password=admin dbname=postgres"
 
@@ -299,9 +245,8 @@ lats = [p[0] for p in coords_h3]
 lons = [p[1] for p in coords_h3]
 bbox = (min(lats), min(lons), max(lats), max(lons))
 hexagons = hexagons_from_coords(coords_h3)
-tourist_pois = fetch_pois(bbox, "tourist")
-local_pois = fetch_pois(bbox, "local")
-hexagons = assign_pois_to_hexagons(hexagons, tourist_pois, local_pois)
+pois = fetch_pois(bbox)
+hexagons = assign_pois_to_hexagons(hexagons, pois)
 hexagons = attach_boundaries(hexagons)
 hexagons = calculate_weights(hexagons)
 save_to_db(hexagons, bbox)

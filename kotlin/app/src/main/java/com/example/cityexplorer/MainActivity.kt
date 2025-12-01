@@ -25,7 +25,6 @@ import com.example.cityexplorer.data.util.TokenManager
 import com.example.cityexplorer.ui.cityselector.CitySelectorScreen
 import com.example.cityexplorer.ui.map.MapScreen
 import com.example.cityexplorer.ui.login.LoginScreen
-import com.example.cityexplorer.ui.modeselector.ModeSelectorScreen
 import com.example.cityexplorer.ui.theme.CityExplorerTheme
 import com.example.cityexplorer.ui.theme.CustomBlack
 import com.google.android.gms.location.LocationServices
@@ -109,39 +108,23 @@ fun CityExplorerAppHost(
                 CitySelectorScreen(
                     modifier = Modifier.padding(contentPadding),
                     onNavigateToModeSelectorScreen = { city ->
-                        navController.navigate(Screen.ModeSelectorScreen("").createRoute(city))
+                        navController.navigate(Screen.MapScreen("").createRoute(city))
                     }
                 )
             }
 
             composable(
-                route = Screen.ModeSelectorScreen("").route,
-                arguments = listOf(navArgument("city") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val city = backStackEntry.arguments?.getString("city")!!
-                ModeSelectorScreen(
-                    modifier = Modifier.padding(contentPadding),
-                    city = city,
-                    onNavigateToMapScreen = { navigatedCity, navigatedMode ->
-                        navController.navigate(Screen.MapScreen(navigatedCity, navigatedMode).createRoute(navigatedCity, navigatedMode))
-                    }
-                )
-            }
-
-            composable(
-                route = Screen.MapScreen("", "").route,
+                route = Screen.MapScreen("").route,
                 arguments = listOf(
-                    navArgument("city") { type = NavType.StringType },
-                    navArgument("mode") { type = NavType.StringType }
+                    navArgument("city") { type = NavType.StringType }
                 ),
                 deepLinks = listOf(
                     navDeepLink {
-                        uriPattern = "cityexplorer://map/{city}/{mode}"
+                        uriPattern = "cityexplorer://map/{city}"
                     }
                 )
             ) { backStackEntry ->
                 val city = backStackEntry.arguments?.getString("city")!!
-                val mode = backStackEntry.arguments?.getString("mode")!!
                 val context = LocalContext.current
 
                 val locationClient = remember {
@@ -151,14 +134,13 @@ fun CityExplorerAppHost(
                 MapScreen(
                     modifier = Modifier.padding(contentPadding),
                     city = city,
-                    mode = mode,
                     locationClient = locationClient,
                     tokenManager = tokenManager,
                     onNavigateToLogin = {
-                        val currentRoute = Screen.MapScreen(city, mode).createRoute(city, mode)
+                        val currentRoute = Screen.MapScreen(city).createRoute(city)
 
                         navController.navigate(Screen.LoginScreen.createRoute(returnRoute = currentRoute)) {
-                            popUpTo(Screen.MapScreen(city, mode).route) { inclusive = true }
+                            popUpTo(Screen.MapScreen(city).route) { inclusive = true }
                         }
                     },
                     onNavigateBack = {

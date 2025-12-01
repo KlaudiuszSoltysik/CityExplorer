@@ -15,7 +15,7 @@ namespace csharp.Controllers;
 public class UserController(PostgresContext postgresContext, IConfiguration configuration) : ControllerBase
 {
     [HttpPost("validate-login-token")]
-    public async Task<IActionResult> ValidateLoginToken([FromBody] LoginRequestDto loginRequestDto)
+    public async Task<IActionResult> ValidateLoginToken([FromBody] string token)
     {
         try
         {
@@ -27,7 +27,7 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
                 }
             };
 
-            var payload = await GoogleJsonWebSignature.ValidateAsync(loginRequestDto.Token, settings);
+            var payload = await GoogleJsonWebSignature.ValidateAsync(token, settings);
             var userId = payload.Subject;
 
             var user = await postgresContext.Users
@@ -82,14 +82,14 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
 
     [HttpPost("get-logged-user")]
     public async Task<IActionResult> ValidateAuthorizationToken(
-        [FromBody] AuthorizationRequestDto authorizationRequestDto)
+        [FromBody] string token)
     {
         var session = await postgresContext.Sessions
-            .Where(s => s.Token == authorizationRequestDto.Token)
+            .Where(s => s.Token == token)
             .Include(s => s.User)
             .FirstOrDefaultAsync();
 
-        if (session == null || session.Token != authorizationRequestDto.Token)
+        if (session == null || session.Token != token)
             return Ok(new AuthorizationResponseDto
             {
                 IsAuthorized = false
@@ -99,7 +99,7 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
         return Ok(new AuthorizationResponseDto
         {
             IsAuthorized = true,
-            UserDto = new UserDto
+            UserDto = new GetUserResponseDto
             {
                 Id = user.Id
             }

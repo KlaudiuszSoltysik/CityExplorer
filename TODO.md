@@ -1,0 +1,12 @@
+- Cache'owanie map i listy miast (Wersjonowanie)
+- Obsługa wygaśnięcia tokena podczas eksploracji (Hiti)
+- Dependency Injection do fabryk czy chuj wie co ???
+- Ekran ustawień i usuwanie konta
+- Główna logika
+- Ekran profilu użytkownika, statystyki odznaki
+- aspekt społecznościowy
+- cachowanie eksploracji jak nie ma neta/lokalizacji
+- buy coffee button
+- github actions CI/CD pipeline
+- azure hosting
+- dockerizing

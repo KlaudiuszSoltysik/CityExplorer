@@ -57,7 +57,7 @@ class NotificationService : Service() {
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("City explorer")
-            .setContentText("Tracking location in $city ($mode)")
+            .setContentText("Tracking location in $city")
             .setSmallIcon(R.drawable.baseline_explore_24)
             .setContentIntent(contentPendingIntent)
             .setOngoing(true)

@@ -17,5 +17,13 @@ public class HexagonsDto
 {
     public required string Id { get; set; }
     public required List<List<double>> Boundaries { get; set; }
+    public required List<double> Center { get; set; }
     public double Weight { get; set; }
+}
+
+public class GetPoisFromHexagonDto
+{
+    public required string Name { get; set; }
+    public required string Type { get; set; }
+    public required bool IsPromoted { get; set; }
 }

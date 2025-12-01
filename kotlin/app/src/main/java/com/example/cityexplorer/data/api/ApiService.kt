@@ -53,7 +53,7 @@ fun getUnsafeOkHttpClient(): OkHttpClient {
         .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0])
         .hostnameVerifier(hostnameVerifier)
         .connectTimeout(5, TimeUnit.SECONDS)
-        .readTimeout(5, TimeUnit.SECONDS)
-        .writeTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .writeTimeout(10, TimeUnit.SECONDS)
         .build()
 }

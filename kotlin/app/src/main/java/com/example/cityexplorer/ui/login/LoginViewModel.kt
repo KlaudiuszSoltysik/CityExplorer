@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.cityexplorer.data.api.ApiClient
-import com.example.cityexplorer.data.dtos.LoginRequestDto
 import com.example.cityexplorer.data.util.TokenManager
 import com.example.cityexplorer.data.repositories.UserRepository
 import kotlinx.coroutines.launch
@@ -18,6 +17,7 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.CustomCredential
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.GetCredentialCancellationException
+import com.example.cityexplorer.data.util.Constants.WEB_CLIENT_ID
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.Companion.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
@@ -37,7 +37,6 @@ class LoginViewModel(
     private val repository = UserRepository(ApiClient.userApiService)
     private val _uiEvent = Channel<LoginUiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
-    private val WEB_CLIENT_ID = "357422343630-2v64co21drksl119p77bjhs642qk3cmd.apps.googleusercontent.com"
 
     var uiState: MainUiState by mutableStateOf(MainUiState.Waiting)
         private set
@@ -107,8 +106,7 @@ class LoginViewModel(
             uiState = MainUiState.Loading
 
             try {
-                val loginRequestDto = LoginRequestDto(token = token)
-                val loginResponseDto = repository.validateLoginToken(loginRequestDto)
+                val loginResponseDto = repository.validateLoginToken(token)
 
                 if (loginResponseDto.isSuccess && loginResponseDto.token != null) {
                     tokenManager.saveToken(loginResponseDto.token)

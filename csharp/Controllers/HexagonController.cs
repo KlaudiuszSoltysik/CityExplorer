@@ -28,11 +28,8 @@ public class HexagonController(PostgresContext postgresContext) : ControllerBase
     }
 
     [HttpGet("get-hexagons-from-city")]
-    public async Task<IActionResult> GetHexagonsFromCity([FromQuery] string mode, [FromQuery] string city)
+    public async Task<IActionResult> GetHexagonsFromCity([FromQuery] string city)
     {
-        if (mode != "tourist" && mode != "local")
-            return BadRequest("Invalid mode specified. Must be 'tourist' or 'local'.");
-
         var hexagonsData = await postgresContext.Hexagons
             .Include(h => h.City)
             .Where(h => h.City.City == city)
@@ -49,10 +46,31 @@ public class HexagonController(PostgresContext postgresContext) : ControllerBase
             {
                 Id = h.Id,
                 Boundaries = h.Boundaries,
-                Weight = mode == "tourist" ? h.TouristWeight : h.LocalWeight
+                Center = h.Center,
+                Weight = h.Weight
             }).ToList()
         };
 
         return Ok(resultDto);
+    }
+
+    [HttpGet("get-pois-from-hexagon")]
+    public async Task<IActionResult> GetPoisFromHexagon([FromQuery] string hexagonId)
+    {
+        var poisData = await postgresContext.Pois
+            .Where(p => p.HexagonId == hexagonId)
+            .Where(p => p.Name != null && p.Name.Length >= 2)
+            .OrderByDescending(p => p.IsPromoted)
+            .ThenBy(r => EF.Functions.Random())
+            .Select(p => new GetPoisFromHexagonDto
+            {
+                Name = p.Name ?? "",
+                Type = p.PoiType,
+                IsPromoted = p.IsPromoted
+            })
+            .Take(3)
+            .ToListAsync();
+
+        return Ok(poisData);
     }
 }

@@ -10,11 +10,14 @@ import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
 import com.example.cityexplorer.data.repositories.HexagonRepository
 import kotlinx.coroutines.launch
 import android.location.Location
-import com.example.cityexplorer.data.dtos.GetUserRequestDto
+import com.example.cityexplorer.data.dtos.HexagonsDto
+import com.example.cityexplorer.data.dtos.SelectedHexagonDto
 import com.example.cityexplorer.data.repositories.UserRepository
 import com.example.cityexplorer.data.util.TokenManager
 import com.example.cityexplorer.data.util.getLocationFlow
 import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.PolyUtil
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 
@@ -33,7 +36,6 @@ interface MapUiEvent {
 
 class MapViewModel(
     private val city: String,
-    private val mode: String,
     private val locationClient: FusedLocationProviderClient,
     private val tokenManager: TokenManager
 ) : ViewModel() {
@@ -50,6 +52,10 @@ class MapViewModel(
     var isExploringMode: Boolean by mutableStateOf(false)
         private set
     var arePermissionsGranted: Boolean by mutableStateOf(false)
+        private set
+    var hexagonsList: List<HexagonsDto> by mutableStateOf(emptyList())
+        private set
+    var hexagonPois: SelectedHexagonDto by mutableStateOf(SelectedHexagonDto())
         private set
     val isUserInCity: Boolean
         get() {
@@ -96,7 +102,7 @@ class MapViewModel(
             }
 
             try {
-                val getUserResponseDto = userRepository.getLoggedUser(GetUserRequestDto(token))
+                val getUserResponseDto = userRepository.getLoggedUser(token)
 
                 if (getUserResponseDto.isAuthorized) {
                     isExploringMode = !isExploringMode
@@ -125,12 +131,50 @@ class MapViewModel(
             if (isInitial) uiState = MainUiState.Loading else isRefreshing = true
 
             try {
-                val data = hexagonRepository.getHexagonsFromCity(city, mode)
+                val data = hexagonRepository.getHexagonsFromCity(city)
                 uiState = MainUiState.Success(data)
+                hexagonsList = data.hexagons
             } catch (_: Exception) {
                 if (isInitial) uiState = MainUiState.Error("Couldn't load data.")
             } finally {
                 isRefreshing = false
+            }
+        }
+    }
+
+    fun getPoisFromHexagon(hexagonId: String?, hexagonWeight: Double?) {
+        viewModelScope.launch {
+            var targetHexagonId = hexagonId
+            var targetHexagonWeight = hexagonWeight
+
+            if (targetHexagonId == null && userLocation != null) {
+                val userLatLng = LatLng(userLocation!!.latitude, userLocation!!.longitude)
+
+                val foundHexagon = hexagonsList.find { hex ->
+                    val rawBoundaries = hex.boundaries
+
+                    val polygonPath = rawBoundaries.map { point ->
+                        LatLng(point[0], point[1])
+                    }
+
+                    PolyUtil.containsLocation(userLatLng, polygonPath, true)
+                }
+
+                targetHexagonId = foundHexagon?.id
+                targetHexagonWeight = foundHexagon?.weight
+            }
+
+            if (targetHexagonId != null && targetHexagonWeight != null) {
+                try {
+                    val result = hexagonRepository.getPoisFromHexagon(targetHexagonId)
+
+                    hexagonPois = SelectedHexagonDto (
+                        weight = targetHexagonWeight,
+                        pois = result
+                    )
+                } catch (e: Exception) {
+                    println("Error fetching POIs: ${e.message}")
+                }
             }
         }
     }
@@ -151,13 +195,12 @@ class MapViewModel(
 @Suppress("UNCHECKED_CAST")
 class MapViewModelFactory(
     private val city: String,
-    private val mode: String,
     private val locationClient: FusedLocationProviderClient,
     private val tokenManager: TokenManager
 ) : androidx.lifecycle.ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(MapViewModel::class.java)) {
-            return MapViewModel(city, mode, locationClient, tokenManager) as T
+            return MapViewModel(city, locationClient, tokenManager) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

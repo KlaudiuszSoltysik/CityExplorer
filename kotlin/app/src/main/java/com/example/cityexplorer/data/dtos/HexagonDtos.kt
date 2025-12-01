@@ -18,5 +18,19 @@ data class GetCityHexagonsDataDto(
 data class HexagonsDto(
     val id: String,
     val boundaries: List<List<Double>>,
+    val center: List<Double>,
     val weight: Double
+)
+
+@Serializable
+data class GetPoisFromHexagonDto(
+    val name: String,
+    val type: String,
+    val isPromoted: Boolean
+)
+
+@Serializable
+data class SelectedHexagonDto(
+    val weight: Double = 0.0,
+    val pois: List<GetPoisFromHexagonDto> = emptyList()
 )

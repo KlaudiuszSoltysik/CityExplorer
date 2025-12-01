@@ -99,7 +99,7 @@ fun LoginScreen(
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_google_logo),
-                                contentDescription = "Google Logo",
+                                contentDescription = null,
                                 tint = Color.Unspecified,
                                 modifier = Modifier.size(32.dp)
                             )
