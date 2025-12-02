@@ -5,7 +5,7 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import androidx.core.content.edit
 
-class TokenManager(context: Context) {
+class TokenService(context: Context) {
     private val masterKey = MasterKey.Builder(context)
         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
         .build()

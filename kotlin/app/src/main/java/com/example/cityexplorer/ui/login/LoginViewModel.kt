@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.cityexplorer.data.api.ApiClient
-import com.example.cityexplorer.data.util.TokenManager
+import com.example.cityexplorer.data.util.TokenService
 import com.example.cityexplorer.data.repositories.UserRepository
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.channels.Channel
@@ -31,9 +31,7 @@ interface LoginUiEvent {
     data class ShowError(val message: String) : LoginUiEvent
 }
 
-class LoginViewModel(
-    private val tokenManager: TokenManager
-) : ViewModel() {
+class LoginViewModel(private val tokenService: TokenService) : ViewModel() {
     private val repository = UserRepository(ApiClient.userApiService)
     private val _uiEvent = Channel<LoginUiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
@@ -56,10 +54,7 @@ class LoginViewModel(
                     .addCredentialOption(googleIdOption)
                     .build()
 
-                val result = credentialManager.getCredential(
-                    request = request,
-                    context = context,
-                )
+                val result = credentialManager.getCredential(context, request)
 
                 handleCredentialResult(result.credential, onNavigateNext)
 
@@ -109,7 +104,7 @@ class LoginViewModel(
                 val loginResponseDto = repository.validateLoginToken(token)
 
                 if (loginResponseDto.isSuccess && loginResponseDto.token != null) {
-                    tokenManager.saveToken(loginResponseDto.token)
+                    tokenService.saveToken(loginResponseDto.token)
 
                     onNavigateNext()
                 } else {
@@ -124,11 +119,11 @@ class LoginViewModel(
     }
 }
 
-class LoginViewModelFactory(private val tokenManager: TokenManager) : ViewModelProvider.Factory {
+class LoginViewModelFactory(private val tokenService: TokenService) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(LoginViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return LoginViewModel(tokenManager) as T
+            return LoginViewModel(tokenService) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

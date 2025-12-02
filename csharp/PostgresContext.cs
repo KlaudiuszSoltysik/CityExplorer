@@ -12,7 +12,7 @@ public class PostgresContext(DbContextOptions<PostgresContext> options) : DbCont
     public DbSet<CityModel> Cities { get; set; }
     public DbSet<UserModel> Users { get; set; }
     public DbSet<SessionModel> Sessions { get; set; }
-    public DbSet<VersionsModel> Versions { get; set; }
+    public DbSet<VersionModel> Versions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

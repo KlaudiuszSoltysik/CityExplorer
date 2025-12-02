@@ -13,7 +13,7 @@ import android.location.Location
 import com.example.cityexplorer.data.dtos.HexagonsDto
 import com.example.cityexplorer.data.dtos.SelectedHexagonDto
 import com.example.cityexplorer.data.repositories.UserRepository
-import com.example.cityexplorer.data.util.TokenManager
+import com.example.cityexplorer.data.util.TokenService
 import com.example.cityexplorer.data.util.getLocationFlow
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.maps.model.LatLng
@@ -37,7 +37,7 @@ interface MapUiEvent {
 class MapViewModel(
     private val city: String,
     private val locationClient: FusedLocationProviderClient,
-    private val tokenManager: TokenManager
+    private val tokenService: TokenService
 ) : ViewModel() {
     private val hexagonRepository = HexagonRepository(ApiClient.hexagonApiService)
     private val userRepository = UserRepository(ApiClient.userApiService)
@@ -94,7 +94,7 @@ class MapViewModel(
                 return@launch
             }
 
-            val token = tokenManager.getToken()
+            val token = tokenService.getToken()
 
             if (token == null) {
                 _uiEvent.send(MapUiEvent.NavigateToLogin)
@@ -118,7 +118,7 @@ class MapViewModel(
     }
 
     suspend fun handleLogout() {
-        tokenManager.clearToken()
+        tokenService.clearToken()
         _uiEvent.send(MapUiEvent.NavigateToLogin)
     }
 
@@ -196,11 +196,11 @@ class MapViewModel(
 class MapViewModelFactory(
     private val city: String,
     private val locationClient: FusedLocationProviderClient,
-    private val tokenManager: TokenManager
+    private val tokenService: TokenService
 ) : androidx.lifecycle.ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(MapViewModel::class.java)) {
-            return MapViewModel(city, locationClient, tokenManager) as T
+            return MapViewModel(city, locationClient, tokenService) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

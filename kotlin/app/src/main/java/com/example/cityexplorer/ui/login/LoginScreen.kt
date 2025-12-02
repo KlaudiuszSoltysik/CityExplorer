@@ -36,14 +36,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
-import com.example.cityexplorer.data.util.TokenManager
+import com.example.cityexplorer.data.util.TokenService
 
 @Composable
 fun LoginScreen(
     modifier: Modifier = Modifier,
-    tokenManager: TokenManager,
+    tokenService: TokenService,
     onNavigateToNextScreen: () -> Unit,
-    viewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(tokenManager)),
+    viewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(tokenService)),
 ) {
     val uiState = viewModel.uiState
     val context = LocalContext.current

@@ -2,8 +2,8 @@
 
 namespace csharp.Models;
 
-public class VersionsModel
+public class VersionModel
 {
     [Key] [MaxLength(100)] public string Key { get; init; } = string.Empty;
-    public int VersionNumber { get; init; }
+    [MaxLength(10)] public required string VersionNumber { get; init; }
 }

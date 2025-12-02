@@ -53,7 +53,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.cityexplorer.data.util.NotificationService
 import com.example.cityexplorer.R
-import com.example.cityexplorer.data.util.TokenManager
+import com.example.cityexplorer.data.util.TokenService
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
@@ -90,10 +90,10 @@ fun MapScreen(
     modifier: Modifier = Modifier,
     city: String,
     locationClient: FusedLocationProviderClient,
-    tokenManager: TokenManager,
+    tokenService: TokenService,
     onNavigateToLogin: () -> Unit,
     onNavigateBack: () -> Unit,
-    viewModel: MapViewModel = viewModel(factory = MapViewModelFactory(city, locationClient, tokenManager))
+    viewModel: MapViewModel = viewModel(factory = MapViewModelFactory(city, locationClient, tokenService))
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val uiState = viewModel.uiState

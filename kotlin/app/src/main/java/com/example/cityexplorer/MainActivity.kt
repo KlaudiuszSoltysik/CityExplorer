@@ -21,7 +21,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
-import com.example.cityexplorer.data.util.TokenManager
+import com.example.cityexplorer.data.util.CacheService
+import com.example.cityexplorer.data.util.TokenService
 import com.example.cityexplorer.ui.cityselector.CitySelectorScreen
 import com.example.cityexplorer.ui.map.MapScreen
 import com.example.cityexplorer.ui.login.LoginScreen
@@ -35,7 +36,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val tokenManager = TokenManager(applicationContext)
+        val tokenService = TokenService(applicationContext)
+        val cacheService = CacheService(applicationContext)
 
         setContent {
             CityExplorerTheme {
@@ -45,7 +47,8 @@ class MainActivity : ComponentActivity() {
                             .background(CustomBlack)
                             .fillMaxSize(),
                         contentPadding = innerPadding,
-                        tokenManager = tokenManager
+                        tokenService = tokenService,
+                        cacheService = cacheService
                     )
                 }
             }
@@ -57,7 +60,8 @@ class MainActivity : ComponentActivity() {
 fun CityExplorerAppHost(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues,
-    tokenManager: TokenManager
+    tokenService: TokenService,
+    cacheService: CacheService
 ) {
     val navController = rememberNavController()
 
@@ -70,7 +74,7 @@ fun CityExplorerAppHost(
             composable(Screen.LoginScreen.route) {
                 LoginScreen(
                     modifier = Modifier.padding(contentPadding),
-                    tokenManager = tokenManager,
+                    tokenService = tokenService,
                     onNavigateToNextScreen = {
                         navController.navigate(Screen.CitySelectorScreen.route) {
                             popUpTo(Screen.LoginScreen.route) { inclusive = true }
@@ -93,7 +97,7 @@ fun CityExplorerAppHost(
 
                 LoginScreen(
                     modifier = Modifier.padding(contentPadding),
-                    tokenManager = tokenManager,
+                    tokenService = tokenService,
                     onNavigateToNextScreen = {
                         val targetDestination = returnRoute ?: Screen.CitySelectorScreen.route
 
@@ -107,6 +111,7 @@ fun CityExplorerAppHost(
             composable(Screen.CitySelectorScreen.route) {
                 CitySelectorScreen(
                     modifier = Modifier.padding(contentPadding),
+                    cacheService = cacheService,
                     onNavigateToModeSelectorScreen = { city ->
                         navController.navigate(Screen.MapScreen("").createRoute(city))
                     }
@@ -135,7 +140,7 @@ fun CityExplorerAppHost(
                     modifier = Modifier.padding(contentPadding),
                     city = city,
                     locationClient = locationClient,
-                    tokenManager = tokenManager,
+                    tokenService = tokenService,
                     onNavigateToLogin = {
                         val currentRoute = Screen.MapScreen(city).createRoute(city)
 

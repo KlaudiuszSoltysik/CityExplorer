@@ -11,6 +11,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.example.cityexplorer.MainActivity
 import com.example.cityexplorer.R
+import androidx.core.net.toUri
 
 class NotificationService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
@@ -40,8 +41,7 @@ class NotificationService : Service() {
 
         val contentIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-
-            data = Uri.parse("cityexplorer://map/$city/$mode")
+            data = "cityexplorer://map/$city/$mode".toUri()
         }
 
         val contentPendingIntent = PendingIntent.getActivity(

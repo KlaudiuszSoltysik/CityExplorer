@@ -19,7 +19,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.cityexplorer"
-        minSdk = 24
+        minSdk = 33
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -75,6 +75,7 @@ dependencies {
     implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.androidx.compose.ui.text)
     implementation(libs.androidx.compose.foundation)
+    implementation("com.google.code.gson:gson:2.13.2")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

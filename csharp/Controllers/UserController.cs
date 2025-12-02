@@ -81,8 +81,7 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
     }
 
     [HttpPost("get-logged-user")]
-    public async Task<IActionResult> ValidateAuthorizationToken(
-        [FromBody] string token)
+    public async Task<IActionResult> ValidateAuthorizationToken([FromBody] string token)
     {
         var session = await postgresContext.Sessions
             .Where(s => s.Token == token)
