@@ -5,7 +5,7 @@ import com.example.cityexplorer.data.dtos.LoginResponseDto
 import retrofit2.http.Body
 import retrofit2.http.POST
 
-interface UserApiService {
+interface UserApiClient {
     @POST("/user/validate-login-token")
     suspend fun validateLoginToken(
         @Body request: String

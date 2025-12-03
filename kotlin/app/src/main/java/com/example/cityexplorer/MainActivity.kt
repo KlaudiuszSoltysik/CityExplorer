@@ -21,6 +21,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import com.example.cityexplorer.data.api.ApiClient
+import com.example.cityexplorer.data.repositories.HexagonRepository
+import com.example.cityexplorer.data.repositories.UserRepository
+import com.example.cityexplorer.data.repositories.VersionRepository
 import com.example.cityexplorer.data.util.CacheService
 import com.example.cityexplorer.data.util.TokenService
 import com.example.cityexplorer.ui.cityselector.CitySelectorScreen
@@ -39,16 +43,24 @@ class MainActivity : ComponentActivity() {
         val tokenService = TokenService(applicationContext)
         val cacheService = CacheService(applicationContext)
 
+        val hexagonRepository = HexagonRepository(
+            ApiClient.hexagonApiClient,
+            ApiClient.versionApiClient,
+            cacheService
+        )
+        val userRepository = UserRepository(ApiClient.userApiClient)
+
         setContent {
             CityExplorerTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     CityExplorerAppHost(
+                        tokenService = tokenService,
+                        hexagonRepository = hexagonRepository,
+                        userRepository = userRepository,
                         modifier = Modifier
                             .background(CustomBlack)
                             .fillMaxSize(),
                         contentPadding = innerPadding,
-                        tokenService = tokenService,
-                        cacheService = cacheService
                     )
                 }
             }
@@ -58,46 +70,42 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun CityExplorerAppHost(
-    modifier: Modifier = Modifier,
-    contentPadding: PaddingValues,
     tokenService: TokenService,
-    cacheService: CacheService
+    hexagonRepository: HexagonRepository,
+    userRepository: UserRepository,
+    modifier: Modifier,
+    contentPadding: PaddingValues,
 ) {
     val navController = rememberNavController()
+    val context = LocalContext.current
 
-    Surface(modifier = modifier.fillMaxSize()) {
+    val locationClient = remember(context) {
+        LocationServices.getFusedLocationProviderClient(context)
+    }
+
+    Surface(modifier = modifier) {
         NavHost(
             navController = navController,
-            startDestination = Screen.CitySelectorScreen.route,
-            modifier = modifier
+            startDestination = Screen.CitySelectorScreen.route
         ) {
-            composable(Screen.LoginScreen.route) {
-                LoginScreen(
-                    modifier = Modifier.padding(contentPadding),
-                    tokenService = tokenService,
-                    onNavigateToNextScreen = {
-                        navController.navigate(Screen.CitySelectorScreen.route) {
-                            popUpTo(Screen.LoginScreen.route) { inclusive = true }
-                        }
-                    },
-                )
-            }
 
+            // --- 1. Login Screen ---
             composable(
                 route = Screen.LoginScreen.route,
                 arguments = listOf(
-                    navArgument("returnRoute") {
+                    navArgument(Screen.Args.RETURN_ROUTE) {
                         nullable = true
                         defaultValue = null
                         type = NavType.StringType
                     }
                 )
             ) { backStackEntry ->
-                val returnRoute = backStackEntry.arguments?.getString("returnRoute")
+                val returnRoute = backStackEntry.arguments?.getString(Screen.Args.RETURN_ROUTE)
 
                 LoginScreen(
-                    modifier = Modifier.padding(contentPadding),
                     tokenService = tokenService,
+                    userRepository = userRepository,
+                    modifier = Modifier.padding(contentPadding),
                     onNavigateToNextScreen = {
                         val targetDestination = returnRoute ?: Screen.CitySelectorScreen.route
 
@@ -108,45 +116,44 @@ fun CityExplorerAppHost(
                 )
             }
 
+            // --- 2. City Selector Screen ---
             composable(Screen.CitySelectorScreen.route) {
                 CitySelectorScreen(
+                    hexagonRepository = hexagonRepository,
                     modifier = Modifier.padding(contentPadding),
-                    cacheService = cacheService,
                     onNavigateToModeSelectorScreen = { city ->
-                        navController.navigate(Screen.MapScreen("").createRoute(city))
+                        navController.navigate(Screen.MapScreen.createRoute(city))
                     }
                 )
             }
 
+            // --- 3. Map Screen ---
             composable(
-                route = Screen.MapScreen("").route,
+                route = Screen.MapScreen.route,
                 arguments = listOf(
-                    navArgument("city") { type = NavType.StringType }
+                    navArgument(Screen.Args.CITY) { type = NavType.StringType }
                 ),
                 deepLinks = listOf(
                     navDeepLink {
-                        uriPattern = "cityexplorer://map/{city}"
+                        uriPattern = "cityexplorer://map/{${Screen.Args.CITY}}"
                     }
                 )
             ) { backStackEntry ->
-                val city = backStackEntry.arguments?.getString("city")!!
-                val context = LocalContext.current
-
-                val locationClient = remember {
-                    LocationServices.getFusedLocationProviderClient(context)
-                }
+                val city = backStackEntry.arguments?.getString(Screen.Args.CITY) ?: ""
 
                 MapScreen(
                     modifier = Modifier.padding(contentPadding),
                     city = city,
                     locationClient = locationClient,
                     tokenService = tokenService,
-                    cacheService = cacheService,
+                    hexagonRepository = hexagonRepository,
+                    userRepository = userRepository,
                     onNavigateToLogin = {
-                        val currentRoute = Screen.MapScreen(city).createRoute(city)
+                        val currentRoute = Screen.MapScreen.createRoute(city)
+                        val loginRoute = Screen.LoginScreen.createRoute(returnRoute = currentRoute)
 
-                        navController.navigate(Screen.LoginScreen.createRoute(returnRoute = currentRoute)) {
-                            popUpTo(Screen.MapScreen(city).route) { inclusive = true }
+                        navController.navigate(loginRoute) {
+                            popUpTo(Screen.MapScreen.route) { inclusive = true }
                         }
                     },
                     onNavigateBack = {

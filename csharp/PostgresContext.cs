@@ -7,6 +7,7 @@ namespace csharp;
 
 public class PostgresContext(DbContextOptions<PostgresContext> options) : DbContext(options)
 {
+    // Datasets
     public DbSet<HexagonModel> Hexagons { get; set; }
     public DbSet<PoiModel> Pois { get; set; }
     public DbSet<CityModel> Cities { get; set; }
@@ -17,40 +18,19 @@ public class PostgresContext(DbContextOptions<PostgresContext> options) : DbCont
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        var nullableDoubleListConverter = new ValueConverter<List<double>?, string?>(
-            v => v == null ? null : JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
-            v => v == null ? null : JsonSerializer.Deserialize<List<double>>(v, (JsonSerializerOptions?)null)
-        );
-
-        var nullableDoubleListListConverter = new ValueConverter<List<List<double>>?, string?>(
-            v => v == null ? null : JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
-            v => v == null ? null : JsonSerializer.Deserialize<List<List<double>>>(v, (JsonSerializerOptions?)null)
-        );
-
-        var requiredDoubleListListConverter = new ValueConverter<List<List<double>>, string>(
-            v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
-            v => string.IsNullOrEmpty(v)
-                ? new List<List<double>>()
-                : JsonSerializer.Deserialize<List<List<double>>>(v, (JsonSerializerOptions?)null) ??
-                  new List<List<double>>()
-        );
-
-        var requiredDoubleListConverter = new ValueConverter<List<double>, string>(
-            v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
-            v => string.IsNullOrEmpty(v)
-                ? new List<double>()
-                : JsonSerializer.Deserialize<List<double>>(v, (JsonSerializerOptions?)null) ?? new List<double>()
-        );
-
+        // 1. User & Session Configuration
         modelBuilder.Entity<UserModel>()
             .HasOne(u => u.ActiveSession)
             .WithOne(s => s.User)
             .HasForeignKey<SessionModel>(s => s.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // 2. City Configuration
         modelBuilder.Entity<CityModel>(entity =>
         {
-            entity.Property(x => x.Bbox).HasConversion(requiredDoubleListConverter);
+            // Stores Bbox as JSON array in DB
+            entity.Property(x => x.Bbox)
+                .HasConversion(JsonConverters.RequiredDoubleList);
 
             entity.HasMany(c => c.Hexagons)
                 .WithOne(h => h.City)
@@ -58,26 +38,14 @@ public class PostgresContext(DbContextOptions<PostgresContext> options) : DbCont
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<PoiModel>(entity =>
-        {
-            entity.Property(x => x.Location).HasConversion(nullableDoubleListConverter);
-            entity.Property(x => x.Boundary).HasConversion(nullableDoubleListListConverter);
-
-            entity.HasOne(p => p.TouristHexagon)
-                .WithMany(h => h.Pois)
-                .HasForeignKey(p => p.HexagonId);
-
-            entity.HasOne(p => p.City)
-                .WithMany()
-                .HasForeignKey(p => p.CityId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-
+        // 3. Hexagon Configuration
         modelBuilder.Entity<HexagonModel>(entity =>
         {
-            entity.Property(x => x.Boundaries).HasConversion(requiredDoubleListListConverter);
+            entity.Property(x => x.Boundaries)
+                .HasConversion(JsonConverters.RequiredDoubleListList);
 
-            entity.Property(x => x.Center).HasConversion(requiredDoubleListConverter);
+            entity.Property(x => x.Center)
+                .HasConversion(JsonConverters.RequiredDoubleList);
 
             entity.HasMany(x => x.Pois)
                 .WithOne(p => p.TouristHexagon)
@@ -85,6 +53,26 @@ public class PostgresContext(DbContextOptions<PostgresContext> options) : DbCont
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        // 4. POI Configuration
+        modelBuilder.Entity<PoiModel>(entity =>
+        {
+            entity.Property(x => x.Location)
+                .HasConversion(JsonConverters.NullableDoubleList);
+
+            entity.Property(x => x.Boundary)
+                .HasConversion(JsonConverters.NullableDoubleListList);
+
+            entity.HasOne(p => p.TouristHexagon)
+                .WithMany(h => h.Pois)
+                .HasForeignKey(p => p.HexagonId);
+
+            entity.HasOne(p => p.City)
+                .WithMany() // Uni-directional relationship
+                .HasForeignKey(p => p.CityId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // 5. User Progress Configuration
         modelBuilder.Entity<UserHexagonProgress>(entity =>
         {
             entity.HasKey(uh => new { uh.UserId, uh.HexagonId });
@@ -95,9 +83,39 @@ public class PostgresContext(DbContextOptions<PostgresContext> options) : DbCont
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(uh => uh.Hexagon)
-                .WithMany()
+                .WithMany() // Uni-directional
                 .HasForeignKey(uh => uh.HexagonId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+    }
+
+    // Helper class to encapsulate JSON serialization logic for EF Core
+    private static class JsonConverters
+    {
+        private static readonly JsonSerializerOptions? Options = null;
+
+        public static readonly ValueConverter<List<double>?, string?> NullableDoubleList = new(
+            v => v == null ? null : JsonSerializer.Serialize(v, Options),
+            v => v == null ? null : JsonSerializer.Deserialize<List<double>>(v, Options)
+        );
+
+        public static readonly ValueConverter<List<List<double>>?, string?> NullableDoubleListList = new(
+            v => v == null ? null : JsonSerializer.Serialize(v, Options),
+            v => v == null ? null : JsonSerializer.Deserialize<List<List<double>>>(v, Options)
+        );
+
+        public static readonly ValueConverter<List<double>, string> RequiredDoubleList = new(
+            v => JsonSerializer.Serialize(v, Options),
+            v => string.IsNullOrEmpty(v)
+                ? new List<double>()
+                : JsonSerializer.Deserialize<List<double>>(v, Options) ?? new List<double>()
+        );
+
+        public static readonly ValueConverter<List<List<double>>, string> RequiredDoubleListList = new(
+            v => JsonSerializer.Serialize(v, Options),
+            v => string.IsNullOrEmpty(v)
+                ? new List<List<double>>()
+                : JsonSerializer.Deserialize<List<List<double>>>(v, Options) ?? new List<List<double>>()
+        );
     }
 }

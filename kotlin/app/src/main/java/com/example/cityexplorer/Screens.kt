@@ -1,13 +1,29 @@
 package com.example.cityexplorer
 
 sealed class Screen(val route: String) {
-    data object LoginScreen : Screen("login?returnRoute={returnRoute}") {
+
+    // 1. Login Screen with optional return route
+    data object LoginScreen : Screen("login?${Args.RETURN_ROUTE}={${Args.RETURN_ROUTE}}") {
         fun createRoute(returnRoute: String? = null): String {
-            return if (returnRoute != null) "login?returnRoute=$returnRoute" else "login"
+            return if (returnRoute != null) {
+                "login?${Args.RETURN_ROUTE}=$returnRoute"
+            } else {
+                "login"
+            }
         }
     }
+
+    // 2. Simple screen without arguments
     data object CitySelectorScreen : Screen("city_selector")
-    data class MapScreen(val city: String) : Screen("map/{city}") {
-        fun createRoute(city: String) = "map/$city"
+
+    // 3. Map screen with a mandatory argument
+    data object MapScreen : Screen("map/{${Args.CITY}}") {
+        fun createRoute(city: String): String = "map/$city"
+    }
+
+    // Constants for argument keys to avoid magic strings throughout the app
+    object Args {
+        const val CITY = "city"
+        const val RETURN_ROUTE = "returnRoute"
     }
 }

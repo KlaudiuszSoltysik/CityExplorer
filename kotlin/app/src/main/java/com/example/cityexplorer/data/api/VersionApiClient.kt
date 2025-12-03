@@ -4,7 +4,7 @@ import okhttp3.ResponseBody
 import retrofit2.http.GET
 import retrofit2.http.Query
 
-interface VersionApiService {
+interface VersionApiClient {
     @GET("/version/get-current-version")
     suspend fun getCurrentVersion(
         @Query("key") key: String?

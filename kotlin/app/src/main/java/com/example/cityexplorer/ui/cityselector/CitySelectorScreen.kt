@@ -35,69 +35,77 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.cityexplorer.data.dtos.GetCountriesWithCitiesDto
-import com.example.cityexplorer.data.util.CacheService
+import com.example.cityexplorer.data.repositories.HexagonRepository
 
 @Composable
 fun CitySelectorScreen(
+    hexagonRepository: HexagonRepository,
     modifier: Modifier = Modifier,
-    cacheService: CacheService,
     onNavigateToModeSelectorScreen: (city: String) -> Unit,
-    viewModel: CitySelectorViewModel = viewModel(factory = CitySelectorViewModelFactory(cacheService)),
+    viewModel: CitySelectorViewModel = viewModel(
+        factory = CitySelectorViewModelFactory(hexagonRepository)
+    )
 ) {
     val uiState = viewModel.uiState
     val isRefreshing = viewModel.isRefreshing
 
-    fun handleCityClick(city: String) {
-        onNavigateToModeSelectorScreen(city)
-    }
+    CitySelectorContent(
+        uiState = uiState,
+        isRefreshing = isRefreshing,
+        modifier = modifier,
+        onRefresh = { viewModel.refreshData() },
+        onCityClick = onNavigateToModeSelectorScreen
+    )
+}
 
+@Composable
+fun CitySelectorContent(
+    uiState: CitySelectorUiState,
+    isRefreshing: Boolean,
+    modifier: Modifier = Modifier,
+    onRefresh: () -> Unit,
+    onCityClick: (String) -> Unit
+) {
     PullToRefreshBox(
         isRefreshing = isRefreshing,
-        onRefresh = { viewModel.refreshData() },
+        onRefresh = onRefresh,
         modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
         when (uiState) {
-            is MainUiState.Loading -> CircularProgressIndicator()
-            is MainUiState.Success -> {
-                CountriesWithCitiesList(
+            is CitySelectorUiState.Loading -> {
+                CircularProgressIndicator()
+            }
+            is CitySelectorUiState.Success -> {
+                CountriesList(
                     countries = uiState.countriesWithCities,
-                    onCityClick = { city ->
-                        handleCityClick(city)
-                    }
+                    modifier = Modifier.fillMaxSize(),
+                    onCityClick = onCityClick
                 )
             }
-
-            is MainUiState.Error -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    Text(
-                        text = uiState.message,
-                        modifier = Modifier.padding(16.dp)
-                    )
-                }
+            is CitySelectorUiState.Error -> {
+                ErrorMessage(
+                    message = uiState.message,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
         }
     }
 }
 
 @Composable
-fun CountriesWithCitiesList(
+fun CountriesList(
     countries: List<GetCountriesWithCitiesDto>,
+    modifier: Modifier = Modifier,
     onCityClick: (String) -> Unit
 ) {
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+        modifier = modifier.padding(16.dp)
     ) {
         items(countries) { dto ->
             CountryItem(
                 dto = dto,
+                modifier = Modifier.fillMaxWidth(),
                 onCityClick = onCityClick
             )
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
@@ -108,21 +116,18 @@ fun CountriesWithCitiesList(
 @Composable
 fun CountryItem(
     dto: GetCountriesWithCitiesDto,
+    modifier: Modifier = Modifier,
     onCityClick: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .animateContentSize()
+        modifier = modifier.animateContentSize()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable {
-                    expanded = !expanded
-                }
+                .clickable { expanded = !expanded }
                 .padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
@@ -134,7 +139,7 @@ fun CountryItem(
             )
             Icon(
                 imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                contentDescription = if (expanded) "Collapse" else "Expand"
+                contentDescription = null
             )
         }
 
@@ -144,16 +149,32 @@ fun CountryItem(
                     Text(
                         text = city,
                         style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
+                        modifier = Modifier.fillMaxWidth()
+                            .clickable(onClick = {
                                 onCityClick(city)
-                            }
+                            })
                             .padding(start = 24.dp, top = 8.dp, bottom = 8.dp)
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
+    }
+}
+
+@Composable
+fun ErrorMessage(
+    message: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Text(
+            text = message,
+            modifier = Modifier.padding(16.dp),
+            color = MaterialTheme.colorScheme.error
+        )
     }
 }

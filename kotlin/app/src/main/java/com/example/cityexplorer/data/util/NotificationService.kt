@@ -5,13 +5,11 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
-import android.net.Uri
-import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.net.toUri
 import com.example.cityexplorer.MainActivity
 import com.example.cityexplorer.R
-import androidx.core.net.toUri
 
 class NotificationService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
@@ -19,31 +17,31 @@ class NotificationService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START -> {
-                val city = intent.getStringExtra("city") ?: ""
-                val mode = intent.getStringExtra("mode") ?: ""
-
-                startForegroundService(city, mode)
+                val city = intent.getStringExtra(EXTRA_CITY) ?: ""
+                startForegroundService(city)
             }
             ACTION_STOP -> stopSelf()
         }
         return START_STICKY
     }
 
-    private fun startForegroundService(city: String, mode: String) {
+    private fun startForegroundService(city: String) {
         createNotificationChannel()
 
         val stopIntent = Intent(this, NotificationService::class.java).apply {
             action = ACTION_STOP
         }
         val stopPendingIntent = PendingIntent.getService(
-            this, 0, stopIntent, PendingIntent.FLAG_IMMUTABLE
+            this,
+            0,
+            stopIntent,
+            PendingIntent.FLAG_IMMUTABLE
         )
 
         val contentIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-            data = "cityexplorer://map/$city/$mode".toUri()
+            data = "cityexplorer://map/$city".toUri()
         }
-
         val contentPendingIntent = PendingIntent.getActivity(
             this,
             1,
@@ -51,24 +49,21 @@ class NotificationService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val deletePendingIntent = PendingIntent.getService(
-            this, 0, stopIntent, PendingIntent.FLAG_IMMUTABLE
-        )
-
+        // 3. Build Notification
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("City explorer")
+            .setContentTitle("City Explorer")
             .setContentText("Tracking location in $city")
             .setSmallIcon(R.drawable.baseline_explore_24)
             .setContentIntent(contentPendingIntent)
+            .setDeleteIntent(stopPendingIntent)
+            .addAction(android.R.drawable.ic_delete, "Stop exploring", stopPendingIntent)
             .setOngoing(true)
             .setAutoCancel(false)
             .setUsesChronometer(true)
-            .setDeleteIntent(deletePendingIntent)
-            .addAction(android.R.drawable.ic_delete, "Stop exploring", stopPendingIntent)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
 
-        startForeground(1, notification)
+        startForeground(NOTIFICATION_ID, notification)
     }
 
     override fun onDestroy() {
@@ -80,21 +75,21 @@ class NotificationService : Service() {
     }
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Location Tracking",
-                NotificationManager.IMPORTANCE_LOW
-            )
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
-        }
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            "Location Tracking",
+            NotificationManager.IMPORTANCE_LOW
+        )
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(channel)
     }
 
     companion object {
         const val CHANNEL_ID = "location_channel"
+        const val NOTIFICATION_ID = 1
         const val ACTION_START = "ACTION_START"
         const val ACTION_STOP = "ACTION_STOP"
         const val ACTION_STOPPED_FROM_NOTIFICATION = "ACTION_STOPPED_FROM_NOTIF"
+        const val EXTRA_CITY = "city"
     }
 }

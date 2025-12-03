@@ -36,19 +36,24 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
+import com.example.cityexplorer.data.repositories.UserRepository
 import com.example.cityexplorer.data.util.TokenService
 
 @Composable
 fun LoginScreen(
-    modifier: Modifier = Modifier,
     tokenService: TokenService,
+    userRepository: UserRepository,
+    modifier: Modifier = Modifier,
     onNavigateToNextScreen: () -> Unit,
-    viewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(tokenService)),
+    viewModel: LoginViewModel = viewModel(
+        factory = LoginViewModelFactory(tokenService, userRepository)
+    )
 ) {
-    val uiState = viewModel.uiState
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val uiState = viewModel.uiState
 
+    // Handle one-off UI side effects
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.uiEvent.collect { event ->
@@ -61,58 +66,106 @@ fun LoginScreen(
         }
     }
 
+    LoginContent(
+        uiState = uiState,
+        modifier = modifier,
+        onLoginClick = {
+            viewModel.onSignInClick(context, onNavigateToNextScreen)
+        }
+    )
+}
+
+@Composable
+private fun LoginContent(
+    uiState: LoginUiState,
+    modifier: Modifier,
+    onLoginClick: () -> Unit
+) {
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         when (uiState) {
-            is MainUiState.Loading -> CircularProgressIndicator()
-
-            is MainUiState.Waiting -> {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = "You have to be logged to explore!",
-                        color = CustomWhite,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    Button(
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = CustomWhite,
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        onClick = {
-                            viewModel.signInWithGoogle(context, onNavigateToNextScreen)
-                        }
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_google_logo),
-                                contentDescription = null,
-                                tint = Color.Unspecified,
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = "Login with Google",
-                                color = CustomBlack,
-                                fontSize = 20.sp,
-                            )
-                        }
-                    }
-                }
+            is LoginUiState.Loading -> {
+                CircularProgressIndicator(color = CustomWhite)
             }
+            is LoginUiState.Waiting -> {
+                LoginForm(
+                    onLoginClick = onLoginClick
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LoginForm(
+    modifier: Modifier = Modifier,
+    onLoginClick: () -> Unit
+) {
+    Column(
+        modifier = modifier.padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        LoginMessageText(
+            text = "You have to be logged in to explore!"
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        GoogleLoginButton(
+            onClick = onLoginClick
+        )
+    }
+}
+
+@Composable
+private fun LoginMessageText(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Text(
+        text = text,
+        color = CustomWhite,
+        fontSize = 18.sp,
+        fontWeight = FontWeight.Medium,
+        textAlign = TextAlign.Center,
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun GoogleLoginButton(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = CustomWhite,
+        ),
+        shape = RoundedCornerShape(8.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        modifier = modifier
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_google_logo),
+                contentDescription = null,
+                tint = Color.Unspecified,
+                modifier = Modifier.size(32.dp)
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Text(
+                text = "Login with Google",
+                color = CustomBlack,
+                fontSize = 20.sp,
+            )
         }
     }
 }

@@ -5,31 +5,29 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.cityexplorer.data.api.ApiClient
 import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
 import com.example.cityexplorer.data.repositories.HexagonRepository
 import kotlinx.coroutines.launch
 import android.location.Location
 import android.util.Log
-import com.example.cityexplorer.data.dtos.GetCountriesWithCitiesDto
+import androidx.lifecycle.ViewModelProvider
 import com.example.cityexplorer.data.dtos.HexagonsDto
 import com.example.cityexplorer.data.dtos.SelectedHexagonDto
 import com.example.cityexplorer.data.repositories.UserRepository
-import com.example.cityexplorer.data.repositories.VersionRepository
-import com.example.cityexplorer.data.util.CacheService
 import com.example.cityexplorer.data.util.TokenService
 import com.example.cityexplorer.data.util.getLocationFlow
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.maps.model.LatLng
-import com.google.gson.reflect.TypeToken
 import com.google.maps.android.PolyUtil
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.withContext
 
-sealed interface MainUiState {
-    data object Loading : MainUiState
-    data class Success(val cityHexagonsDataDto: GetCityHexagonsDataDto) : MainUiState
-    data class Error(val message: String) : MainUiState
+sealed interface MapUiState {
+    data object Loading : MapUiState
+    data class Success(val cityHexagonsDataDto: GetCityHexagonsDataDto) : MapUiState
+    data class Error(val message: String) : MapUiState
 }
 
 interface MapUiEvent {
@@ -39,190 +37,194 @@ interface MapUiEvent {
     data object RequestPermissions : MapUiEvent
 }
 
-class MapViewModel(
-    private val city: String,
-    private val locationClient: FusedLocationProviderClient,
-    private val tokenService: TokenService,
-    private val cacheService: CacheService
-) : ViewModel() {
-    private val hexagonRepository = HexagonRepository(ApiClient.hexagonApiService)
-    private val versionRepository = VersionRepository(ApiClient.versionApiService)
-    private val userRepository = UserRepository(ApiClient.userApiService)
-    private val _uiEvent = Channel<MapUiEvent>()
-    val uiEvent = _uiEvent.receiveAsFlow()
-    var uiState: MainUiState by mutableStateOf(MainUiState.Loading)
-        private set
-    var isRefreshing: Boolean by mutableStateOf(false)
-        private set
-    var userLocation: Location? by mutableStateOf(null)
-        private set
-    var isExploringMode: Boolean by mutableStateOf(false)
-        private set
-    var arePermissionsGranted: Boolean by mutableStateOf(false)
-        private set
-    var hexagonsList: List<HexagonsDto> by mutableStateOf(emptyList())
-        private set
-    var hexagonPois: SelectedHexagonDto by mutableStateOf(SelectedHexagonDto())
-        private set
+data class MapScreenState(
+    val dataState: MapUiState = MapUiState.Loading,
+    val isRefreshing: Boolean = false,
+    val userLocation: Location? = null,
+    val isExploringMode: Boolean = false,
+    val arePermissionsGranted: Boolean = false,
+    val selectedHexagonPois: SelectedHexagonDto = SelectedHexagonDto()
+) {
     val isUserInCity: Boolean
         get() {
             val location = userLocation ?: return false
-            val state = uiState as? MainUiState.Success ?: return false
-            val bbox = state.cityHexagonsDataDto.bbox
+            val successState = dataState as? MapUiState.Success ?: return false
+            val bbox = successState.cityHexagonsDataDto.bbox
+
+            if (bbox.size < 4) {
+                return false
+            }
 
             return location.latitude in bbox[0]..bbox[2] &&
                     location.longitude in bbox[1]..bbox[3]
         }
+}
+
+class MapViewModel(
+    private val city: String,
+    private val locationClient: FusedLocationProviderClient,
+    private val tokenService: TokenService,
+    private val hexagonRepository: HexagonRepository,
+    private val userRepository: UserRepository
+) : ViewModel() {
+    private val _uiEvent = Channel<MapUiEvent>()
+    val uiEvent = _uiEvent.receiveAsFlow()
+
+    var state by mutableStateOf(MapScreenState())
+        private set
+
+    private val currentHexagons: List<HexagonsDto>
+        get() = (state.dataState as? MapUiState.Success)?.cityHexagonsDataDto?.hexagons ?: emptyList()
 
     init {
-        loadData(isInitial = true)
+        loadData(city, isInitial = true)
     }
 
     fun refreshData() {
-        loadData(isInitial = false)
+        loadData(city, isInitial = false)
     }
 
     fun updatePermissionStatus(isGranted: Boolean) {
-        arePermissionsGranted = isGranted
+        state = state.copy(arePermissionsGranted = isGranted)
         if (isGranted) {
             startLocationTracking()
         }
     }
 
+    fun onServiceStoppedExternal() {
+        state = state.copy(isExploringMode = false)
+    }
+
+    // Toggles the exploration mode after validating requirements
     fun onExplorerToggleClick() {
         viewModelScope.launch {
-            if (!arePermissionsGranted) {
+            if (!state.arePermissionsGranted) {
                 _uiEvent.send(MapUiEvent.RequestPermissions)
                 return@launch
             }
 
-            if (!isUserInCity) {
+            if (!state.isUserInCity) {
                 _uiEvent.send(MapUiEvent.ShowError("You are not in the city!"))
                 return@launch
             }
 
             val token = tokenService.getToken()
-
             if (token == null) {
                 _uiEvent.send(MapUiEvent.NavigateToLogin)
                 return@launch
             }
 
+            val newMode = !state.isExploringMode
+            state = state.copy(isExploringMode = newMode)
+
+            _uiEvent.send(MapUiEvent.ToggleService(newMode))
+
             try {
-                val getUserResponseDto = userRepository.getLoggedUser(token)
+                val userResponse = userRepository.getLoggedUser(token)
 
-                if (getUserResponseDto.isAuthorized) {
-                    isExploringMode = !isExploringMode
-
-                    _uiEvent.send(MapUiEvent.ToggleService(isExploringMode))
-                } else {
+                if (!userResponse.isAuthorized) {
+                    state = state.copy(isExploringMode = !newMode)
                     handleLogout()
                 }
+
             } catch (_: Exception) {
-                _uiEvent.send(MapUiEvent.ShowError("Server error."))
+                state = state.copy(isExploringMode = !newMode)
+                _uiEvent.send(MapUiEvent.ToggleService(!newMode))
+                _uiEvent.send(MapUiEvent.ShowError("Server error"))
             }
         }
     }
 
-    suspend fun handleLogout() {
-        tokenService.clearToken()
-        _uiEvent.send(MapUiEvent.NavigateToLogin)
-    }
-
-    fun onServiceStoppedExternal() {
-        isExploringMode = false
-    }
-
-    fun loadData(isInitial: Boolean) {
+    // Fetches hexagon data with repo-managed fallback logic
+    fun loadData(city: String, isInitial: Boolean) {
         viewModelScope.launch {
-            val key = "get-hexagons-from-city-$city"
-            val dtoType = object : TypeToken<GetCityHexagonsDataDto>() {}.type
-
-            if (isInitial) uiState = MainUiState.Loading else isRefreshing = true
+            state = if (isInitial) {
+                state.copy(dataState = MapUiState.Loading)
+            } else {
+                state.copy(isRefreshing = true)
+            }
 
             try {
-                val remoteVersion = versionRepository.getCurrentVersion(key)
-                val cachedVersion = cacheService.getCachedVersion(key)
+                val result = hexagonRepository.getHexagonsFromCity(city, forceRefresh = !isInitial)
 
-                val cachedData = if (cachedVersion == remoteVersion) {
-                    cacheService.getCachedData<GetCityHexagonsDataDto>(key, dtoType)
-                } else {
-                    null
+                val data = when (result) {
+                    is HexagonRepository.RepoResult.Success -> result.data
+                    is HexagonRepository.RepoResult.Fallback -> {
+                        _uiEvent.send(MapUiEvent.ShowError("Offline mode!"))
+                        result.data
+                    }
                 }
 
-                val data = if (cachedData != null) {
-                    cachedData
-                } else {
-                    val networkData = hexagonRepository.getHexagonsFromCity(city)
-                    cacheService.saveToCache(key, remoteVersion, networkData)
-                    networkData
-                }
+                state = state.copy(
+                    dataState = MapUiState.Success(data)
+                )
 
-                uiState = MainUiState.Success(data)
-                hexagonsList = data.hexagons
-
-            } catch (_: Exception) {
-                val fallbackData = cacheService.getCachedData<GetCityHexagonsDataDto>(key, dtoType)
-
-                if (fallbackData != null) {
-                    uiState = MainUiState.Success(fallbackData)
-                    hexagonsList = fallbackData.hexagons
-                    _uiEvent.send(MapUiEvent.ShowError("Offline mode!"))
-                } else {
-                    if (isInitial) uiState = MainUiState.Error("Couldn't load data. Check internet connection.")
-                }
+            } catch (e: Exception) {
+                e.message?.let { Log.e("error", it) }
+                state = state.copy(
+                    dataState = MapUiState.Error("Couldn't load data. Check internet connection.")
+                )
             } finally {
-                isRefreshing = false
+                state = state.copy(isRefreshing = false)
             }
         }
     }
 
+    // Identifies target hexagon (by ID or Location) and fetches its POIs
     fun getPoisFromHexagon(hexagonId: String?, hexagonWeight: Double?) {
         viewModelScope.launch {
-            var targetHexagonId = hexagonId
-            var targetHexagonWeight = hexagonWeight
+            var targetHexId = hexagonId
+            var targetWeight = hexagonWeight
 
-            if (targetHexagonId == null && userLocation != null) {
-                val userLatLng = LatLng(userLocation!!.latitude, userLocation!!.longitude)
+            if (targetHexId == null && state.userLocation != null) {
+                val userLatLng = LatLng(state.userLocation!!.latitude, state.userLocation!!.longitude)
+                val hexList = currentHexagons
 
-                val foundHexagon = hexagonsList.find { hex ->
-                    val rawBoundaries = hex.boundaries
-
-                    val polygonPath = rawBoundaries.map { point ->
-                        LatLng(point[0], point[1])
+                val foundHexagon = withContext(Dispatchers.Default) {
+                    hexList.find { hex ->
+                        val polygonPath = hex.boundaries.map { point -> LatLng(point[0], point[1]) }
+                        PolyUtil.containsLocation(userLatLng, polygonPath, true)
                     }
-
-                    PolyUtil.containsLocation(userLatLng, polygonPath, true)
                 }
 
-                targetHexagonId = foundHexagon?.id
-                targetHexagonWeight = foundHexagon?.weight
+                targetHexId = foundHexagon?.id
+                targetWeight = foundHexagon?.weight
             }
 
-            if (targetHexagonId != null && targetHexagonWeight != null) {
+            if (targetHexId != null && targetWeight != null) {
                 try {
-                    val result = hexagonRepository.getPoisFromHexagon(targetHexagonId)
+                    val pois = hexagonRepository.getPoisFromHexagon(targetHexId)
 
-                    hexagonPois = SelectedHexagonDto (
-                        weight = targetHexagonWeight,
-                        pois = result
-                    )
-                } catch (e: Exception) {
+                    state = state.copy(selectedHexagonPois = SelectedHexagonDto(
+                        weight = targetWeight,
+                        pois = pois
+                    ))
+                } catch (_: Exception) {
+                    _uiEvent.send(MapUiEvent.ShowError("Failed to load POIs."))
                 }
             }
         }
     }
 
-    fun startLocationTracking() {
+    // Starts observing location updates flow
+    private fun startLocationTracking() {
         viewModelScope.launch {
             try {
-                getLocationFlow(locationClient).collect { location ->
-                    userLocation = location
-                }
+                locationClient.getLocationFlow()
+                    .collect { location ->
+                        state = state.copy(userLocation = location)
+                    }
+            } catch (_: SecurityException) {
+                state = state.copy(dataState = MapUiState.Error("Missing location permissions."))
             } catch (_: Exception) {
-                uiState = MainUiState.Error("App error.")
+                state = state.copy(dataState = MapUiState.Error("Location error"))
             }
         }
+    }
+
+    private suspend fun handleLogout() {
+        tokenService.clearToken()
+        _uiEvent.send(MapUiEvent.NavigateToLogin)
     }
 }
 
@@ -231,11 +233,18 @@ class MapViewModelFactory(
     private val city: String,
     private val locationClient: FusedLocationProviderClient,
     private val tokenService: TokenService,
-    private val cacheService: CacheService
-) : androidx.lifecycle.ViewModelProvider.Factory {
+    private val hexagonRepository: HexagonRepository,
+    private val userRepository: UserRepository
+) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(MapViewModel::class.java)) {
-            return MapViewModel(city, locationClient, tokenService, cacheService) as T
+            return MapViewModel(
+                city,
+                locationClient,
+                tokenService,
+                hexagonRepository,
+                userRepository
+            ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

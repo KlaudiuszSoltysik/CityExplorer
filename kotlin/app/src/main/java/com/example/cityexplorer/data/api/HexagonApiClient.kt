@@ -6,7 +6,7 @@ import com.example.cityexplorer.data.dtos.GetPoisFromHexagonDto
 import retrofit2.http.GET
 import retrofit2.http.Query
 
-interface HexagonApiService {
+interface HexagonApiClient {
     @GET("/hexagon/get-countries-with-cities")
     suspend fun getCountriesWithCities(): List<GetCountriesWithCitiesDto>
 

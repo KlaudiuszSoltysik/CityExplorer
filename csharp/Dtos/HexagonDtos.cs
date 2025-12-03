@@ -9,7 +9,6 @@ public class GetCountriesWithCitiesDto
 public class GetCityHexagonsDataDto
 {
     public required List<double> Bbox { get; set; }
-
     public List<HexagonsDto> Hexagons { get; set; } = [];
 }
 

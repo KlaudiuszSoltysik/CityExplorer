@@ -1,12 +1,9 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using csharp.Dtos;
+﻿using csharp.Dtos;
 using csharp.Models;
+using csharp.Utils;
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 
 namespace csharp.Controllers;
 
@@ -14,21 +11,25 @@ namespace csharp.Controllers;
 [ApiController]
 public class UserController(PostgresContext postgresContext, IConfiguration configuration) : ControllerBase
 {
+    // Handles Google Sign-In verification and creates a local application session
     [HttpPost("validate-login-token")]
-    public async Task<IActionResult> ValidateLoginToken([FromBody] string token)
+    public async Task<IActionResult> ValidateLoginToken([FromBody] string googleToken)
     {
         try
         {
-            var settings = new GoogleJsonWebSignature.ValidationSettings
+            var validationSettings = new GoogleJsonWebSignature.ValidationSettings
             {
                 Audience = new List<string>
                 {
-                    configuration["GoogleAuth:ClientId"] ?? throw new InvalidOperationException()
+                    configuration["GoogleAuth:ClientId"] ??
+                    throw new InvalidOperationException("Google ClientId missing in config")
                 }
             };
 
-            var payload = await GoogleJsonWebSignature.ValidateAsync(token, settings);
-            var userId = payload.Subject;
+            var googlePayload = await GoogleJsonWebSignature.ValidateAsync(googleToken, validationSettings);
+            var userId = googlePayload.Subject;
+
+            var newAppToken = JwtTokenService.CreateAppJwtToken(googlePayload, configuration);
 
             var user = await postgresContext.Users
                 .Include(u => u.ActiveSession)
@@ -40,16 +41,14 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
                 postgresContext.Users.Add(user);
             }
 
-            var newAppToken = CreateAppJwtToken(payload);
-            Console.WriteLine(newAppToken.Length);
-
             if (user.ActiveSession == null)
             {
                 var newSession = new SessionModel
                 {
                     Token = newAppToken,
                     User = user,
-                    UserId = user.Id
+                    UserId = user.Id,
+                    ExpiresAt = DateTime.UtcNow.AddDays(30)
                 };
                 postgresContext.Sessions.Add(newSession);
             }
@@ -69,10 +68,7 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
         }
         catch (InvalidJwtException)
         {
-            return Unauthorized(new LoginResponseDto
-            {
-                IsSuccess = false
-            });
+            return Unauthorized(new LoginResponseDto { IsSuccess = false });
         }
         catch (Exception)
         {
@@ -80,53 +76,25 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
         }
     }
 
+    // Validates if the provided session token is active and valid
     [HttpPost("get-logged-user")]
     public async Task<IActionResult> ValidateAuthorizationToken([FromBody] string token)
     {
         var session = await postgresContext.Sessions
-            .Where(s => s.Token == token)
+            .AsNoTracking()
             .Include(s => s.User)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(s => s.Token == token);
 
-        if (session == null || session.Token != token)
-            return Ok(new AuthorizationResponseDto
-            {
-                IsAuthorized = false
-            });
-        var user = session.User;
+        if (session == null || session.ExpiresAt < DateTime.UtcNow)
+            return Ok(new AuthorizationResponseDto { IsAuthorized = false });
 
         return Ok(new AuthorizationResponseDto
         {
             IsAuthorized = true,
             UserDto = new GetUserResponseDto
             {
-                Id = user.Id
+                Id = session.User.Id
             }
         });
-    }
-
-    private string CreateAppJwtToken(GoogleJsonWebSignature.Payload payload)
-    {
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.UTF8.GetBytes(
-            configuration["JwtSettings:SecretKey"] ?? throw new InvalidOperationException());
-
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity([
-                new Claim(ClaimTypes.Email, payload.Email),
-                new Claim(ClaimTypes.NameIdentifier, payload.Subject),
-                new Claim("GooglePictureUrl", payload.Picture)
-            ]),
-            Expires = DateTime.UtcNow.AddDays(30),
-            Issuer = configuration["JwtSettings:Issuer"],
-            Audience = configuration["JwtSettings:Audience"],
-            SigningCredentials =
-                new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-        };
-
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        var appToken = tokenHandler.WriteToken(token);
-        return appToken;
     }
 }

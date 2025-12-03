@@ -12,10 +12,17 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 
+private const val LOCATION_UPDATE_INTERVAL_MS = 10_000L
+private const val MIN_UPDATE_DISTANCE_METERS = 20f
+
 @SuppressLint("MissingPermission")
-fun getLocationFlow(client: FusedLocationProviderClient): Flow<Location> = callbackFlow {
-    val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000L).apply {
-        setMinUpdateDistanceMeters(20f)
+fun FusedLocationProviderClient.getLocationFlow(): Flow<Location> = callbackFlow {
+
+    val request = LocationRequest.Builder(
+        Priority.PRIORITY_HIGH_ACCURACY,
+        LOCATION_UPDATE_INTERVAL_MS
+    ).apply {
+        setMinUpdateDistanceMeters(MIN_UPDATE_DISTANCE_METERS)
     }.build()
 
     val callback = object : LocationCallback() {
@@ -26,9 +33,9 @@ fun getLocationFlow(client: FusedLocationProviderClient): Flow<Location> = callb
         }
     }
 
-    client.requestLocationUpdates(request, callback, Looper.getMainLooper())
+    requestLocationUpdates(request, callback, Looper.getMainLooper())
 
     awaitClose {
-        client.removeLocationUpdates(callback)
+        removeLocationUpdates(callback)
     }
 }

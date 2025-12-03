@@ -5,32 +5,52 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddOpenApi();
+// --- 1. Service Registration ---
+
+// API & Controllers
 builder.Services.AddControllers();
+builder.Services.AddOpenApi();
+
+// Database
 builder.Services.AddDbContext<PostgresContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresConnection")));
+
+// Background Workers
+builder.Services.AddHostedService<SessionCleanupService>();
+
+// CORS Configuration
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.SetIsOriginAllowed(_ => true)
+        policy
+            .SetIsOriginAllowed(_ => true)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
     });
 });
-builder.Services.AddHostedService<SessionCleanupService>();
 
-// builder.WebHost.UseUrls("http://localhost:6101");
+// Host Configuration
 builder.WebHost.UseUrls("http://0.0.0.0:6101");
 
 var app = builder.Build();
 
-app.UseHttpsRedirection();
+// --- 2. HTTP Request Pipeline ---
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
+
 app.MapOpenApi();
 app.MapScalarApiReference();
-app.UseCors();
-app.MapControllers();
 
+app.UseHttpsRedirection();
+
+app.UseCors();
+
+app.MapControllers();
 
 app.Run();

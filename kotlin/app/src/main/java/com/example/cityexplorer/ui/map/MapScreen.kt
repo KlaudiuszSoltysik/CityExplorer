@@ -44,9 +44,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.location.Location
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.runtime.DisposableEffect
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -73,62 +70,61 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import com.example.cityexplorer.data.util.CacheService
+import com.example.cityexplorer.data.dtos.SelectedHexagonDto
+import com.example.cityexplorer.data.repositories.HexagonRepository
+import com.example.cityexplorer.data.repositories.UserRepository
 import com.example.cityexplorer.ui.theme.CustomError
 import com.example.cityexplorer.ui.theme.CustomSuccess
 import com.example.cityexplorer.ui.theme.CustomWarning
 import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.tasks.Task
 import com.google.maps.android.compose.CameraMoveStartedReason
-import kotlinx.coroutines.launch
 
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun MapScreen(
-    modifier: Modifier = Modifier,
     city: String,
     locationClient: FusedLocationProviderClient,
     tokenService: TokenService,
-    cacheService: CacheService,
+    hexagonRepository: HexagonRepository,
+    userRepository: UserRepository,
+    modifier: Modifier,
     onNavigateToLogin: () -> Unit,
     onNavigateBack: () -> Unit,
-    viewModel: MapViewModel = viewModel(factory = MapViewModelFactory(city, locationClient, tokenService, cacheService))
+    viewModel: MapViewModel = viewModel(
+        factory = MapViewModelFactory(city, locationClient, tokenService, hexagonRepository, userRepository)
+    )
 ) {
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val uiState = viewModel.uiState
-    val isRefreshing = viewModel.isRefreshing
-    val isUserInCity = viewModel.isUserInCity
-    val hexagonPois = viewModel.hexagonPois
-    val arePermissionsGranted = viewModel.arePermissionsGranted
-    val isExploringMode = viewModel.isExploringMode
-    var selectedHexagonId by remember { mutableStateOf<String?>(null) }
+    val state = viewModel.state
+
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Local state for back press handling
     var lastBackPressTime by remember { mutableLongStateOf(0L) }
 
+    // Local state for map interaction
+    var selectedHexagonId by remember { mutableStateOf<String?>(null) }
+
+    // Permission handling
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        val isGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true &&
-                permissions[Manifest.permission.POST_NOTIFICATIONS] == true
+        val isFineLocationGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
+        val isNotificationGranted =
+            permissions[Manifest.permission.POST_NOTIFICATIONS] == true
 
+        val isGranted = isFineLocationGranted && isNotificationGranted
         viewModel.updatePermissionStatus(isGranted)
-
-        if (isGranted) {
-            viewModel.onExplorerToggleClick()
-        }
     }
 
+    // Localization service control
     fun toggleLocalizationService(enable: Boolean) {
         Intent(context, NotificationService::class.java).also { intent ->
             if (enable) {
                 intent.action = NotificationService.ACTION_START
-
                 intent.putExtra("city", city)
-
-                context.startForegroundService(intent)
+                ContextCompat.startForegroundService(context, intent)
             } else {
                 intent.action = NotificationService.ACTION_STOP
                 context.startService(intent)
@@ -136,6 +132,7 @@ fun MapScreen(
         }
     }
 
+    // One-off UI events
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.uiEvent.collect { event ->
@@ -144,44 +141,32 @@ fun MapScreen(
                         toggleLocalizationService(event.shouldStart)
                     }
                     is MapUiEvent.NavigateToLogin -> {
+                        toggleLocalizationService(false)
                         onNavigateToLogin()
                     }
                     is MapUiEvent.ShowError -> {
-                        Toast.makeText(
-                            context,
-                            event.message,
-                            Toast.LENGTH_LONG
-                        ).show()
+                        Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
                     }
                     is MapUiEvent.RequestPermissions -> {
-                        permissionLauncher.launch(
-                            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.POST_NOTIFICATIONS)
-                        )
+                        val permissionsToRequest = mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION)
+                        permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
+                        permissionLauncher.launch(permissionsToRequest.toTypedArray())
                     }
                 }
             }
         }
     }
 
+    // Initial checks
     LaunchedEffect(Unit) {
         val hasLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        val hasNotification = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        val hasNotification =
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
         viewModel.updatePermissionStatus(hasLocation && hasNotification)
     }
 
-    BackHandler {
-        val currentTime = System.currentTimeMillis()
-        val timeDifference = currentTime - lastBackPressTime
-
-        if (timeDifference < 1500) {
-            onNavigateBack()
-        } else {
-            lastBackPressTime = currentTime
-            Toast.makeText(context, "Press back again to return", Toast.LENGTH_SHORT).show()
-        }
-    }
-
+    // External service events
     DisposableEffect(Unit) {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
@@ -195,178 +180,165 @@ fun MapScreen(
 
         onDispose {
             context.unregisterReceiver(receiver)
-            if (isExploringMode) {
-                toggleLocalizationService(false)
-            }
         }
     }
 
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
+    // Navigation control (back press)
+    BackHandler {
+        val currentTime = System.currentTimeMillis()
+        val timeDifference = currentTime - lastBackPressTime
+
+        if (timeDifference < 1500) {
+            toggleLocalizationService(false)
+            onNavigateBack()
+        } else {
+            lastBackPressTime = currentTime
+            Toast.makeText(context, "Press back again to return", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // UI content
+    MapScreenContent(
+        state = state,
+        selectedHexagonId = selectedHexagonId,
+        modifier = modifier,
         onRefresh = { viewModel.refreshData() },
-        modifier = Modifier.fillMaxSize(),
+        onExplorerToggle = { viewModel.onExplorerToggleClick() },
+        onHexagonClick = { id, weight ->
+            selectedHexagonId = if (selectedHexagonId == id) { null } else { id }
+
+            viewModel.getPoisFromHexagon(selectedHexagonId, weight)
+        },
+        onMyLocationClick = {
+            viewModel.getPoisFromHexagon(null, null)
+            selectedHexagonId = null
+        }
+    )
+}
+
+@Composable
+fun MapScreenContent(
+    state: MapScreenState,
+    selectedHexagonId: String?,
+    modifier: Modifier = Modifier,
+    onRefresh: () -> Unit,
+    onExplorerToggle: () -> Unit,
+    onHexagonClick: (String, Double) -> Unit,
+    onMyLocationClick: () -> Unit
+) {
+    PullToRefreshBox(
+        isRefreshing = state.isRefreshing,
+        onRefresh = onRefresh,
+        modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
-        when (uiState) {
-            is MainUiState.Loading -> CircularProgressIndicator()
-            is MainUiState.Success -> {
-                HexagonMap(
-                    isUserInCity = isUserInCity,
-                    userLocationTask = locationClient.lastLocation,
-                    data = uiState.cityHexagonsDataDto,
-                    selectedHexagonId = selectedHexagonId,
-                    onHexagonClick = { id, weight ->
-                        selectedHexagonId = if (selectedHexagonId == id) null else id
-                        viewModel.getPoisFromHexagon(selectedHexagonId, weight)
-                    },
-                    onMyLocationClick = {
-                        viewModel.getPoisFromHexagon(
-                            hexagonId = null,
-                            hexagonWeight = null
-                        )
-                        selectedHexagonId = null
-                    }
-                )
-
-                Box (
-                    modifier = modifier
-                        .fillMaxSize()
-                ) {
-                    if (hexagonPois.pois.isNotEmpty() || hexagonPois.weight != 0.0) {
-                        Column(
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .padding(16.dp)
-                                .background(
-                                    color = CustomBlack.copy(alpha = 0.6f),
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .padding(vertical = 8.dp, horizontal = 16.dp)
-                        ) {
-                            Text(
-                                text = "%.3f%%".format(hexagonPois.weight * 100),
-                                color = CustomSuccess,
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 8.dp)
-                            )
-
-                            hexagonPois.pois.forEach { poi ->
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 2.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Place,
-                                        contentDescription = null,
-                                        tint = if (poi.isPromoted) CustomWarning else CustomWhite,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-
-                                    Spacer(modifier = Modifier.width(8.dp))
-
-                                    Text(
-                                        text = "${poi.name} - ${poi.type}",
-                                        color = if (poi.isPromoted) CustomWarning else CustomWhite,
-                                        textAlign = TextAlign.Start
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Button(
-                        onClick = {
-                            viewModel.onExplorerToggleClick()
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isUserInCity && arePermissionsGranted) {
-                                (if (isExploringMode) CustomError else CustomSuccess).copy(alpha = 0.6f)
-                            } else {
-                                CustomBlack.copy(alpha = 0.6f)
-                            },
-                            contentColor = CustomBlack
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 16.dp)
-                    ) {
-                        Text(text = if (isExploringMode) "Stop exploring!" else "Start exploring!")
-                    }
-                }
+        when (val dataState = state.dataState) {
+            is MapUiState.Loading -> {
+                MapLoadingContent()
             }
-            is MainUiState.Error -> {
-                LazyColumn(
+            is MapUiState.Success -> {
+                MapSuccessContent(
+                    data = dataState.cityHexagonsDataDto,
+                    state = state,
+                    selectedHexagonId = selectedHexagonId,
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    item {
-                        Text(
-                            text = uiState.message,
-                            modifier = Modifier
-                                .padding(16.dp)
-                                .fillMaxWidth()
-                        )
-                    }
-                }
+                    onHexagonClick = onHexagonClick,
+                    onMyLocationClick = onMyLocationClick,
+                    onExplorerToggle = onExplorerToggle
+                )
+            }
+            is MapUiState.Error -> {
+                MapErrorContent(
+                    message = dataState.message
+                )
             }
         }
     }
 }
 
 @Composable
+private fun MapSuccessContent(
+    data: GetCityHexagonsDataDto,
+    state: MapScreenState,
+    selectedHexagonId: String?,
+    modifier: Modifier = Modifier,
+    onHexagonClick: (String, Double) -> Unit,
+    onMyLocationClick: () -> Unit,
+    onExplorerToggle: () -> Unit
+) {
+    HexagonMap(
+        state = state,
+        data = data,
+        selectedHexagonId = selectedHexagonId,
+        onHexagonClick = onHexagonClick,
+        onMyLocationClick = onMyLocationClick
+    )
+
+    MapUiOverlays(
+        hexagonPois = state.selectedHexagonPois,
+        isExploringMode = state.isExploringMode,
+        isUserInCity = state.isUserInCity,
+        arePermissionsGranted = state.arePermissionsGranted,
+        modifier = modifier,
+        onExplorerToggle = onExplorerToggle
+    )
+}
+
+@Composable
 fun HexagonMap(
-    isUserInCity: Boolean,
-    userLocationTask: Task<Location?>,
+    state: MapScreenState,
     data: GetCityHexagonsDataDto,
     selectedHexagonId: String?,
     onHexagonClick: (String, Double) -> Unit,
     onMyLocationClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
-    val bounds = LatLngBounds(
-        LatLng(data.bbox[0], data.bbox[1]),
-        LatLng(data.bbox[2], data.bbox[3])
-    )
+    val userLatLng = remember(state.userLocation) {
+        state.userLocation?.let { LatLng(it.latitude, it.longitude) }
+    }
 
-    val mapProperties = remember(isUserInCity) {
-        MapProperties(
-            mapStyleOptions = MapStyleOptions.loadRawResourceStyle(context, R.raw.custom_map),
-            latLngBoundsForCameraTarget = bounds,
-            maxZoomPreference = 16f,
-            minZoomPreference = 12f,
-            isMyLocationEnabled = isUserInCity
+    val cityBounds = remember(data.bbox) {
+        LatLngBounds(
+            LatLng(data.bbox[0], data.bbox[1]),
+            LatLng(data.bbox[2], data.bbox[3])
         )
     }
 
-    val mapUiSettings = MapUiSettings(
-        zoomControlsEnabled = false,
-        compassEnabled = false,
-        rotationGesturesEnabled = false,
-        tiltGesturesEnabled = false,
-        myLocationButtonEnabled = false
-    )
+    val cityCenter = remember(data.bbox) {
+        LatLng(
+            (data.bbox[0] + data.bbox[2]) / 2,
+            (data.bbox[1] + data.bbox[3]) / 2
+        )
+    }
 
-    var visibleBounds by remember { mutableStateOf<LatLngBounds?>(null) }
+    val mapProperties = remember(state.isUserInCity) {
+        MapProperties(
+            mapStyleOptions = MapStyleOptions.loadRawResourceStyle(context, R.raw.custom_map),
+            latLngBoundsForCameraTarget = cityBounds,
+            maxZoomPreference = 16f,
+            minZoomPreference = 12f,
+            isMyLocationEnabled = state.isUserInCity
+        )
+    }
 
-    var currentUserLocation by remember { mutableStateOf<LatLng?>(null) }
-
-    val cityCenter = LatLng((data.bbox[0] + data.bbox[2]) / 2, (data.bbox[1] + data.bbox[3]) / 2)
+    val mapUiSettings = remember {
+        MapUiSettings(
+            zoomControlsEnabled = false,
+            compassEnabled = false,
+            rotationGesturesEnabled = false,
+            tiltGesturesEnabled = false,
+            myLocationButtonEnabled = false
+        )
+    }
 
     var isAutoTracking by remember { mutableStateOf(true) }
+    var shouldAnimateZoom by remember { mutableStateOf(false) }
+    var visibleBounds by remember { mutableStateOf<LatLngBounds?>(null) }
 
     val cameraPositionState = rememberCameraPositionState {
-        val startPos = if (isUserInCity && currentUserLocation != null) currentUserLocation!! else cityCenter
-        val startZoom = if (isUserInCity) 15f else 12f
+        val startPos = if (state.isUserInCity && userLatLng != null) userLatLng else cityCenter
+        val startZoom = if (state.isUserInCity) 15f else 12f
         position = CameraPosition.fromLatLngZoom(startPos, startZoom)
     }
 
@@ -381,31 +353,50 @@ fun HexagonMap(
         }
     }
 
-    LaunchedEffect(userLocationTask) {
-        userLocationTask.addOnSuccessListener { location ->
-            if (location != null) {
-                currentUserLocation = LatLng(location.latitude, location.longitude)
-            }
-        }
-    }
 
+    // Turn off auto-tracking when camera moves
     LaunchedEffect(cameraPositionState.isMoving) {
         if (cameraPositionState.isMoving && cameraPositionState.cameraMoveStartedReason == CameraMoveStartedReason.GESTURE) {
             isAutoTracking = false
         }
     }
 
+    // Update visible bounds when camera changes
     LaunchedEffect(cameraPositionState.position, cameraPositionState.isMoving) {
         if (!cameraPositionState.isMoving) {
             visibleBounds = cameraPositionState.projection?.visibleRegion?.latLngBounds
         }
     }
 
-    LaunchedEffect(currentUserLocation) {
-        if (isUserInCity && currentUserLocation != null && isAutoTracking) {
-            cameraPositionState.animate(
-                CameraUpdateFactory.newLatLng(currentUserLocation!!)
-            )
+    // Aim at user on map initial load
+    LaunchedEffect(state.isUserInCity) {
+        if (state.isUserInCity) {
+            isAutoTracking = true
+            if (userLatLng != null) {
+                cameraPositionState.animate(
+                    CameraUpdateFactory.newCameraPosition(
+                        CameraPosition.fromLatLngZoom(userLatLng, 15f)
+                    )
+                )
+            }
+        }
+    }
+
+    // Camera controller
+    LaunchedEffect(userLatLng, isAutoTracking, shouldAnimateZoom) {
+        if (state.isUserInCity && userLatLng != null && isAutoTracking) {
+            if (shouldAnimateZoom) {
+                cameraPositionState.animate(
+                    CameraUpdateFactory.newCameraPosition(
+                        CameraPosition.fromLatLngZoom(userLatLng, 15f)
+                    )
+                )
+                shouldAnimateZoom = false
+            } else {
+                cameraPositionState.animate(
+                    CameraUpdateFactory.newLatLng(userLatLng)
+                )
+            }
         }
     }
 
@@ -416,7 +407,8 @@ fun HexagonMap(
             uiSettings = mapUiSettings
         ) {
             visibleHexagons.forEach { hexagon ->
-                val fillAlpha = if (hexagon.id == selectedHexagonId) 0.15f else 0.08f
+                val isSelected = hexagon.id == selectedHexagonId
+                val fillAlpha = if (isSelected) 0.15f else 0.08f
 
                 Polygon(
                     points = hexagon.boundaries.map { point ->
@@ -433,7 +425,7 @@ fun HexagonMap(
             }
         }
 
-        if (isUserInCity) {
+        if (state.isUserInCity) {
             FloatingActionButton(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -441,26 +433,175 @@ fun HexagonMap(
                     .padding(bottom = 16.dp, end = 16.dp),
                 onClick = {
                     isAutoTracking = true
-
-                    if (currentUserLocation != null) {
-                        scope.launch {
-                            onMyLocationClick()
-
-                            cameraPositionState.animate(
-                                CameraUpdateFactory.newCameraPosition(CameraPosition.fromLatLngZoom(currentUserLocation!!, 15f))
-
-                            )
-                        }
-                    }
+                    shouldAnimateZoom = true
+                    onMyLocationClick()
                 },
                 containerColor = CustomBlack,
                 contentColor = CustomWhite
             ) {
                 Icon(
                     imageVector = if (isAutoTracking) Icons.Default.MyLocation else Icons.Default.LocationSearching,
-                    contentDescription = null
+                    contentDescription = "Recenter Map"
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun MapUiOverlays(
+    hexagonPois: SelectedHexagonDto,
+    isExploringMode: Boolean,
+    isUserInCity: Boolean,
+    arePermissionsGranted: Boolean,
+    modifier: Modifier = Modifier,
+    onExplorerToggle: () -> Unit
+) {
+    Box(
+        modifier = modifier.fillMaxSize()
+    ) {
+        if (hexagonPois.pois.isNotEmpty() || hexagonPois.weight != 0.0) {
+            HexagonInfoPanel(
+                hexagonPois = hexagonPois,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(16.dp)
+            )
+        }
+
+        ExplorerControlButton(
+            isExploringMode = isExploringMode,
+            isUserInCity = isUserInCity,
+            arePermissionsGranted = arePermissionsGranted,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp),
+            onClick = onExplorerToggle
+        )
+    }
+}
+
+@Composable
+private fun HexagonInfoPanel(
+    hexagonPois: SelectedHexagonDto,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .background(
+                color = CustomBlack.copy(alpha = 0.6f),
+                shape = RoundedCornerShape(8.dp)
+            )
+            .padding(vertical = 8.dp, horizontal = 16.dp)
+    ) {
+        Text(
+            text = "%.3f%%".format(hexagonPois.weight * 100),
+            color = CustomSuccess,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+        )
+
+        hexagonPois.pois.forEach { poi ->
+            PoiInfoItem(
+                name = poi.name,
+                type = poi.type,
+                isPromoted = poi.isPromoted,
+                modifier = Modifier.padding(vertical = 2.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun PoiInfoItem(
+    name: String,
+    type: String,
+    isPromoted: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val contentColor = if (isPromoted) CustomWarning else CustomWhite
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Icon(
+            imageVector = Icons.Default.Place,
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(16.dp)
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Text(
+            text = "$name - $type",
+            color = contentColor,
+            textAlign = TextAlign.Start
+        )
+    }
+}
+
+@Composable
+private fun ExplorerControlButton(
+    isExploringMode: Boolean,
+    isUserInCity: Boolean,
+    arePermissionsGranted: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val containerColor = if (isUserInCity && arePermissionsGranted) {
+        if (isExploringMode) CustomError else CustomSuccess
+    } else {
+        CustomBlack
+    }
+
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = containerColor.copy(alpha = 0.6f),
+            contentColor = CustomBlack
+        ),
+        shape = RoundedCornerShape(8.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        modifier = modifier
+    ) {
+        Text(text = if (isExploringMode) "Stop exploring!" else "Start exploring!")
+    }
+}
+
+@Composable
+private fun MapLoadingContent(
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun MapErrorContent(
+    message: String,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        item {
+            Text(
+                text = message,
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth()
+            )
         }
     }
 }

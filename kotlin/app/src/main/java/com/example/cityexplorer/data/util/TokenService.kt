@@ -5,28 +5,39 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import androidx.core.content.edit
 
-class TokenService(context: Context) {
-    private val masterKey = MasterKey.Builder(context)
-        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-        .build()
+class TokenService(private val context: Context) {
+    private val sharedPreferences by lazy {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
 
-    private val sharedPreferences = EncryptedSharedPreferences.create(
-        context,
-        "secure_prefs",
-        masterKey,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
+        EncryptedSharedPreferences.create(
+            context,
+            PREFS_FILENAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
 
     fun saveToken(token: String) {
-        sharedPreferences.edit { putString("jwt_token", token) }
+        sharedPreferences.edit {
+            putString(KEY_JWT_TOKEN, token)
+        }
     }
 
     fun getToken(): String? {
-        return sharedPreferences.getString("jwt_token", null)
+        return sharedPreferences.getString(KEY_JWT_TOKEN, null)
     }
 
     fun clearToken() {
-        sharedPreferences.edit { remove("jwt_token") }
+        sharedPreferences.edit {
+            remove(KEY_JWT_TOKEN)
+        }
+    }
+
+    companion object {
+        private const val PREFS_FILENAME = "secure_prefs"
+        private const val KEY_JWT_TOKEN = "jwt_token"
     }
 }

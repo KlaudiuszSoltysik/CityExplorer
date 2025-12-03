@@ -1,10 +1,10 @@
 package com.example.cityexplorer.data.repositories
 
-import com.example.cityexplorer.data.api.UserApiService
+import com.example.cityexplorer.data.api.UserApiClient
 import com.example.cityexplorer.data.dtos.GetUserResponseDto
 import com.example.cityexplorer.data.dtos.LoginResponseDto
 
-class UserRepository(private val apiService: UserApiService) {
+class UserRepository(private val apiService: UserApiClient) {
     suspend fun validateLoginToken(token: String): LoginResponseDto {
         return apiService.validateLoginToken(token)
     }
