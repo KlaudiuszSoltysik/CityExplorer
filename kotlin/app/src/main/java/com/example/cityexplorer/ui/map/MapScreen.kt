@@ -76,6 +76,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import com.example.cityexplorer.data.util.CacheService
 import com.example.cityexplorer.ui.theme.CustomError
 import com.example.cityexplorer.ui.theme.CustomSuccess
 import com.example.cityexplorer.ui.theme.CustomWarning
@@ -91,9 +92,10 @@ fun MapScreen(
     city: String,
     locationClient: FusedLocationProviderClient,
     tokenService: TokenService,
+    cacheService: CacheService,
     onNavigateToLogin: () -> Unit,
     onNavigateBack: () -> Unit,
-    viewModel: MapViewModel = viewModel(factory = MapViewModelFactory(city, locationClient, tokenService))
+    viewModel: MapViewModel = viewModel(factory = MapViewModelFactory(city, locationClient, tokenService, cacheService))
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val uiState = viewModel.uiState

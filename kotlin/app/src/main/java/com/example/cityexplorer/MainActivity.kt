@@ -141,6 +141,7 @@ fun CityExplorerAppHost(
                     city = city,
                     locationClient = locationClient,
                     tokenService = tokenService,
+                    cacheService = cacheService,
                     onNavigateToLogin = {
                         val currentRoute = Screen.MapScreen(city).createRoute(city)
 

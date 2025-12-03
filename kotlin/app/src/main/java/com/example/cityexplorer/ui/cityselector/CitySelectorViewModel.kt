@@ -47,10 +47,10 @@ class CitySelectorViewModel(private val cacheService: CacheService) : ViewModel(
                 val remoteVersion = versionRepository.getCurrentVersion(key)
                 val cachedVersion = cacheService.getCachedVersion(key)
 
-                val listType = object : TypeToken<List<GetCountriesWithCitiesDto>>() {}.type
+                val dtoType = object : TypeToken<List<GetCountriesWithCitiesDto>>() {}.type
 
                 val cachedData = if (cachedVersion == remoteVersion) {
-                    cacheService.getCachedData<List<GetCountriesWithCitiesDto>>(key, listType)
+                    cacheService.getCachedData<List<GetCountriesWithCitiesDto>>(key, dtoType)
                 } else {
                     null
                 }

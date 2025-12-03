@@ -1,12 +1,19 @@
-- Cache'owanie map i listy miast (Wersjonowanie)
-- Obsługa wygaśnięcia tokena podczas eksploracji (Hiti)
-- Dependency Injection do fabryk czy chuj wie co ???
-- Ekran ustawień i usuwanie konta
+## Mandatory:
+
 - Główna logika
 - Ekran profilu użytkownika, statystyki odznaki
-- aspekt społecznościowy
+- Ekran ustawień i usuwanie konta
+
+## Nice to have:
+
 - cachowanie eksploracji jak nie ma neta/lokalizacji
 - buy coffee button
-- github actions CI/CD pipeline
-- azure hosting
+- Obsługa wygaśnięcia tokena podczas eksploracji
+- aspekt społecznościowy
+- Dependency Injection do fabryk czy chuj wie co (Hiti) ???
+
+## Deployment:
+
 - dockerizing
+- azure hosting
+- github actions CI/CD pipeline

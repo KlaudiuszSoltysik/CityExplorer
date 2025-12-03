@@ -10,13 +10,18 @@ import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
 import com.example.cityexplorer.data.repositories.HexagonRepository
 import kotlinx.coroutines.launch
 import android.location.Location
+import android.util.Log
+import com.example.cityexplorer.data.dtos.GetCountriesWithCitiesDto
 import com.example.cityexplorer.data.dtos.HexagonsDto
 import com.example.cityexplorer.data.dtos.SelectedHexagonDto
 import com.example.cityexplorer.data.repositories.UserRepository
+import com.example.cityexplorer.data.repositories.VersionRepository
+import com.example.cityexplorer.data.util.CacheService
 import com.example.cityexplorer.data.util.TokenService
 import com.example.cityexplorer.data.util.getLocationFlow
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.maps.model.LatLng
+import com.google.gson.reflect.TypeToken
 import com.google.maps.android.PolyUtil
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -37,9 +42,11 @@ interface MapUiEvent {
 class MapViewModel(
     private val city: String,
     private val locationClient: FusedLocationProviderClient,
-    private val tokenService: TokenService
+    private val tokenService: TokenService,
+    private val cacheService: CacheService
 ) : ViewModel() {
     private val hexagonRepository = HexagonRepository(ApiClient.hexagonApiService)
+    private val versionRepository = VersionRepository(ApiClient.versionApiService)
     private val userRepository = UserRepository(ApiClient.userApiService)
     private val _uiEvent = Channel<MapUiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
@@ -128,13 +135,36 @@ class MapViewModel(
 
     fun loadData(isInitial: Boolean) {
         viewModelScope.launch {
+            val key = "get-hexagons-from-city-$city"
+
             if (isInitial) uiState = MainUiState.Loading else isRefreshing = true
 
             try {
-                val data = hexagonRepository.getHexagonsFromCity(city)
+                val remoteVersion = versionRepository.getCurrentVersion(key)
+                val cachedVersion = cacheService.getCachedVersion(key)
+
+                val dtoType = object : TypeToken<GetCityHexagonsDataDto>() {}.type
+
+                val cachedData = if (cachedVersion == remoteVersion) {
+                    cacheService.getCachedData<GetCityHexagonsDataDto>(key, dtoType)
+                } else {
+                    null
+                }
+
+                val data = if (cachedData != null) {
+                    cachedData
+                } else {
+                    val networkData = hexagonRepository.getHexagonsFromCity(city)
+
+                    cacheService.saveToCache(key, remoteVersion, networkData)
+
+                    networkData
+                }
+
                 uiState = MainUiState.Success(data)
                 hexagonsList = data.hexagons
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                e.message?.let { Log.e("MapViewModel", it) }
                 if (isInitial) uiState = MainUiState.Error("Couldn't load data.")
             } finally {
                 isRefreshing = false
@@ -196,11 +226,12 @@ class MapViewModel(
 class MapViewModelFactory(
     private val city: String,
     private val locationClient: FusedLocationProviderClient,
-    private val tokenService: TokenService
+    private val tokenService: TokenService,
+    private val cacheService: CacheService
 ) : androidx.lifecycle.ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(MapViewModel::class.java)) {
-            return MapViewModel(city, locationClient, tokenService) as T
+            return MapViewModel(city, locationClient, tokenService, cacheService) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
