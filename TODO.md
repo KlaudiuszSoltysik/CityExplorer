@@ -14,6 +14,10 @@
 
 ## Deployment:
 
+- dev git branch
 - dockerizing
-- azure hosting
+- terraform
+- amazon lightsail
+- sklep play
 - github actions CI/CD pipeline
+- monitoring

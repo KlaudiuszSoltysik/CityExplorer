@@ -43,11 +43,11 @@ class CitySelectorViewModel(private val cacheService: CacheService) : ViewModel(
             if (isInitial) uiState = MainUiState.Loading else isRefreshing = true
             val key = "get-countries-with-cities"
 
+            val dtoType = object : TypeToken<List<GetCountriesWithCitiesDto>>() {}.type
+
             try {
                 val remoteVersion = versionRepository.getCurrentVersion(key)
                 val cachedVersion = cacheService.getCachedVersion(key)
-
-                val dtoType = object : TypeToken<List<GetCountriesWithCitiesDto>>() {}.type
 
                 val cachedData = if (cachedVersion == remoteVersion) {
                     cacheService.getCachedData<List<GetCountriesWithCitiesDto>>(key, dtoType)
@@ -59,15 +59,20 @@ class CitySelectorViewModel(private val cacheService: CacheService) : ViewModel(
                     cachedData
                 } else {
                     val networkData = hexagonRepository.getCountriesWithCities()
-
                     cacheService.saveToCache(key, remoteVersion, networkData)
-
                     networkData
                 }
 
                 uiState = MainUiState.Success(data)
             } catch (_: Exception) {
-                if (isInitial) uiState = MainUiState.Error("Couldn't load data.")
+
+                val fallbackData = cacheService.getCachedData<List<GetCountriesWithCitiesDto>>(key, dtoType)
+
+                if (fallbackData != null) {
+                    uiState = MainUiState.Success(fallbackData)
+                } else {
+                    if (isInitial) uiState = MainUiState.Error("Couldn't load data.")
+                }
             } finally {
                 isRefreshing = false
             }

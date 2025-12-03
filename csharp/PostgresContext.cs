@@ -13,6 +13,7 @@ public class PostgresContext(DbContextOptions<PostgresContext> options) : DbCont
     public DbSet<UserModel> Users { get; set; }
     public DbSet<SessionModel> Sessions { get; set; }
     public DbSet<VersionModel> Versions { get; set; }
+    public DbSet<UserHexagonProgress> Progresses { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -81,6 +82,21 @@ public class PostgresContext(DbContextOptions<PostgresContext> options) : DbCont
             entity.HasMany(x => x.Pois)
                 .WithOne(p => p.TouristHexagon)
                 .HasForeignKey(p => p.HexagonId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserHexagonProgress>(entity =>
+        {
+            entity.HasKey(uh => new { uh.UserId, uh.HexagonId });
+
+            entity.HasOne(uh => uh.User)
+                .WithMany(u => u.HexagonProgresses)
+                .HasForeignKey(uh => uh.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(uh => uh.Hexagon)
+                .WithMany()
+                .HasForeignKey(uh => uh.HexagonId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

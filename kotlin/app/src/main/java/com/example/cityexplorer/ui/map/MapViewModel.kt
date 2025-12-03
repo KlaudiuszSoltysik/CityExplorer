@@ -136,14 +136,13 @@ class MapViewModel(
     fun loadData(isInitial: Boolean) {
         viewModelScope.launch {
             val key = "get-hexagons-from-city-$city"
+            val dtoType = object : TypeToken<GetCityHexagonsDataDto>() {}.type
 
             if (isInitial) uiState = MainUiState.Loading else isRefreshing = true
 
             try {
                 val remoteVersion = versionRepository.getCurrentVersion(key)
                 val cachedVersion = cacheService.getCachedVersion(key)
-
-                val dtoType = object : TypeToken<GetCityHexagonsDataDto>() {}.type
 
                 val cachedData = if (cachedVersion == remoteVersion) {
                     cacheService.getCachedData<GetCityHexagonsDataDto>(key, dtoType)
@@ -155,17 +154,23 @@ class MapViewModel(
                     cachedData
                 } else {
                     val networkData = hexagonRepository.getHexagonsFromCity(city)
-
                     cacheService.saveToCache(key, remoteVersion, networkData)
-
                     networkData
                 }
 
                 uiState = MainUiState.Success(data)
                 hexagonsList = data.hexagons
-            } catch (e: Exception) {
-                e.message?.let { Log.e("MapViewModel", it) }
-                if (isInitial) uiState = MainUiState.Error("Couldn't load data.")
+
+            } catch (_: Exception) {
+                val fallbackData = cacheService.getCachedData<GetCityHexagonsDataDto>(key, dtoType)
+
+                if (fallbackData != null) {
+                    uiState = MainUiState.Success(fallbackData)
+                    hexagonsList = fallbackData.hexagons
+                    _uiEvent.send(MapUiEvent.ShowError("Offline mode!"))
+                } else {
+                    if (isInitial) uiState = MainUiState.Error("Couldn't load data. Check internet connection.")
+                }
             } finally {
                 isRefreshing = false
             }
@@ -203,7 +208,6 @@ class MapViewModel(
                         pois = result
                     )
                 } catch (e: Exception) {
-                    println("Error fetching POIs: ${e.message}")
                 }
             }
         }

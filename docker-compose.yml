@@ -9,26 +9,33 @@ services:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - ./docker/postgres/data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+        reservations:
+          memory: 64M
 
-  app:
-    image: nginx
-    container_name: city_explorer_app
-    ports:
-      - "8000:80"
-    networks:
-      - app-network
-    restart: unless-stopped
-
-  cloudflared:
-    image: cloudflare/cloudflared
-    container_name: city_explorer_cloudflared
-    command: tunnel --config /etc/cloudflared/config.yml run
-    volumes:
-      - ./cloudflared:/etc/cloudflared
-    networks:
-      - app-network
-    restart: unless-stopped
-
-networks:
-  app-network:
-    driver: bridge
+#   app:
+#     image: nginx
+#     container_name: city_explorer_app
+#     ports:
+#       - "8000:80"
+#     networks:
+#       - app-network
+#     restart: unless-stopped
+# 
+#   cloudflared:
+#     image: cloudflare/cloudflared
+#     container_name: city_explorer_cloudflared
+#     command: tunnel --config /etc/cloudflared/config.yml run
+#     volumes:
+#       - ./cloudflared:/etc/cloudflared
+#     networks:
+#       - app-network
+#     restart: unless-stopped
+# 
+# networks:
+#   app-network:
+#     driver: bridge
