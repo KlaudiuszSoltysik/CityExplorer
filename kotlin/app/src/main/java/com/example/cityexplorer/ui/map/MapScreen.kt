@@ -294,31 +294,42 @@ fun HexagonMap(
 ) {
     val context = LocalContext.current
 
+    var isMapLoaded by remember { mutableStateOf(false) }
+
     val userLatLng = remember(state.userLocation) {
         state.userLocation?.let { LatLng(it.latitude, it.longitude) }
     }
 
+    val isValidBbox = data.bbox.size >= 4
     val cityBounds = remember(data.bbox) {
-        LatLngBounds(
-            LatLng(data.bbox[0], data.bbox[1]),
-            LatLng(data.bbox[2], data.bbox[3])
-        )
+        if (isValidBbox) {
+            try {
+                val sw = LatLng(data.bbox[0], data.bbox[1])
+                val ne = LatLng(data.bbox[2], data.bbox[3])
+                LatLngBounds(sw, ne)
+            } catch (_: Exception) { null }
+        } else null
     }
 
     val cityCenter = remember(data.bbox) {
-        LatLng(
-            (data.bbox[0] + data.bbox[2]) / 2,
-            (data.bbox[1] + data.bbox[3]) / 2
-        )
+        if (isValidBbox) {
+            LatLng((data.bbox[0] + data.bbox[2]) / 2, (data.bbox[1] + data.bbox[3]) / 2)
+        } else LatLng(0.0, 0.0)
     }
 
-    val mapProperties = remember(state.isUserInCity) {
+    var isAutoTracking by remember { mutableStateOf(true) }
+    var shouldAnimateZoom by remember { mutableStateOf(false) }
+    var visibleBounds by remember { mutableStateOf<LatLngBounds?>(null) }
+
+    val mapProperties = remember(state.isUserInCity, state.arePermissionsGranted, cityBounds, isAutoTracking, isMapLoaded) {
+        val activeBounds = if (isMapLoaded && !isAutoTracking) cityBounds else null
+
         MapProperties(
             mapStyleOptions = MapStyleOptions.loadRawResourceStyle(context, R.raw.custom_map),
-            latLngBoundsForCameraTarget = cityBounds,
+            latLngBoundsForCameraTarget = activeBounds,
             maxZoomPreference = 16f,
             minZoomPreference = 12f,
-            isMyLocationEnabled = state.isUserInCity
+            isMyLocationEnabled = isMapLoaded && state.isUserInCity && state.arePermissionsGranted
         )
     }
 
@@ -332,10 +343,6 @@ fun HexagonMap(
         )
     }
 
-    var isAutoTracking by remember { mutableStateOf(true) }
-    var shouldAnimateZoom by remember { mutableStateOf(false) }
-    var visibleBounds by remember { mutableStateOf<LatLngBounds?>(null) }
-
     val cameraPositionState = rememberCameraPositionState {
         val startPos = if (state.isUserInCity && userLatLng != null) userLatLng else cityCenter
         val startZoom = if (state.isUserInCity) 15f else 12f
@@ -345,46 +352,35 @@ fun HexagonMap(
     val visibleHexagons by remember(data.hexagons, visibleBounds) {
         derivedStateOf {
             val bounds = visibleBounds ?: return@derivedStateOf emptyList()
-
-            data.hexagons.filter { hexagon ->
-                val center = LatLng(hexagon.center[0], hexagon.center[1])
-                bounds.contains(center)
-            }
+            data.hexagons.filter { bounds.contains(LatLng(it.center[0], it.center[1])) }
         }
     }
 
-
-    // Turn off auto-tracking when camera moves
+    // Stop auto-tracking when user manipulates map
     LaunchedEffect(cameraPositionState.isMoving) {
         if (cameraPositionState.isMoving && cameraPositionState.cameraMoveStartedReason == CameraMoveStartedReason.GESTURE) {
             isAutoTracking = false
         }
     }
 
-    // Update visible bounds when camera changes
+    // Update visible bounds when camera moves to draw only visible hexagons
     LaunchedEffect(cameraPositionState.position, cameraPositionState.isMoving) {
         if (!cameraPositionState.isMoving) {
             visibleBounds = cameraPositionState.projection?.visibleRegion?.latLngBounds
         }
     }
 
-    // Aim at user on map initial load
+    // Initial camera zoom on user in user is in the city
     LaunchedEffect(state.isUserInCity) {
         if (state.isUserInCity) {
             isAutoTracking = true
-            if (userLatLng != null) {
-                cameraPositionState.animate(
-                    CameraUpdateFactory.newCameraPosition(
-                        CameraPosition.fromLatLngZoom(userLatLng, 15f)
-                    )
-                )
-            }
+            shouldAnimateZoom = true
         }
     }
 
-    // Camera controller
-    LaunchedEffect(userLatLng, isAutoTracking, shouldAnimateZoom) {
-        if (state.isUserInCity && userLatLng != null && isAutoTracking) {
+    // User location tracking
+    LaunchedEffect(userLatLng, isAutoTracking, shouldAnimateZoom, isMapLoaded) {
+        if (isMapLoaded && state.isUserInCity && userLatLng != null && isAutoTracking) {
             if (shouldAnimateZoom) {
                 cameraPositionState.animate(
                     CameraUpdateFactory.newCameraPosition(
@@ -404,24 +400,24 @@ fun HexagonMap(
         GoogleMap(
             cameraPositionState = cameraPositionState,
             properties = mapProperties,
-            uiSettings = mapUiSettings
+            uiSettings = mapUiSettings,
+            onMapLoaded = {
+                isMapLoaded = true
+            }
         ) {
-            visibleHexagons.forEach { hexagon ->
-                val isSelected = hexagon.id == selectedHexagonId
-                val fillAlpha = if (isSelected) 0.15f else 0.08f
-
-                Polygon(
-                    points = hexagon.boundaries.map { point ->
-                        LatLng(point[0], point[1])
-                    },
-                    strokeWidth = 1f,
-                    strokeColor = CustomBlack,
-                    fillColor = CustomError.copy(alpha = fillAlpha),
-                    clickable = true,
-                    onClick = {
-                        onHexagonClick(hexagon.id, hexagon.weight)
-                    }
-                )
+            if (isMapLoaded) {
+                visibleHexagons.forEach { hexagon ->
+                    val isSelected = hexagon.id == selectedHexagonId
+                    val fillAlpha = if (isSelected) 0.15f else 0.08f
+                    Polygon(
+                        points = hexagon.boundaries.map { LatLng(it[0], it[1]) },
+                        strokeWidth = 1f,
+                        strokeColor = CustomBlack,
+                        fillColor = CustomError.copy(alpha = fillAlpha),
+                        clickable = true,
+                        onClick = { onHexagonClick(hexagon.id, hexagon.weight) }
+                    )
+                }
             }
         }
 
