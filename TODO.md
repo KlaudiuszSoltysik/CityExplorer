@@ -1,23 +1,23 @@
-## Mandatory:
+# 🚀 Project Roadmap
 
-- Główna logika
-- Ekran profilu użytkownika, statystyki odznaki
-- Ekran ustawień i usuwanie konta
+## 🔴 Mandatory (MVP Core)
 
-## Nice to have:
+- **Core Logic** – Implementation of primary application features.
+- **User Profile** – Statistics, badges, and user details view.
+- **Settings & Privacy** – Configuration screen including **Account Deletion**.
 
-- cachowanie eksploracji jak nie ma neta/lokalizacji
-- buy coffee button
-- Obsługa wygaśnięcia tokena podczas eksploracji
-- aspekt społecznościowy
-- Dependency Injection do fabryk czy chuj wie co (Hiti) ???
+## 🟡 Nice to Have (Enhancements)
 
-## Deployment:
+- **Offline Caching** – Exploration mode support without internet/GPS.
+- **Monetization** – "Buy Me a Coffee" button integration.
+- **Token Management** – Handling token expiration during active exploration.
+- **Social Features** – Community and interaction aspects.
+- **Refactoring** – Dependency Injection implementation (Hilt migration).
 
-- dev git branch
-- dockerizing
-- terraform
-- amazon lightsail
-- sklep play
-- github actions CI/CD pipeline
-- monitoring
+## 🔵 Deployment & DevOps
+
+- **Git Workflow** – Establish `dev` branch strategy.
+- **Dockerization** – Containerize the application.
+- **CI/CD Pipeline** – Setup GitHub Actions.
+- **Infrastructure** – Terraform implementation.
+- **Observability** – Monitoring and logging setup.

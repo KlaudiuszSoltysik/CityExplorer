@@ -1,4 +1,5 @@
 .env
 .idea
-docker/postgres/data/
+docker/*
 cloudflared/*
+docker-compose.yml
