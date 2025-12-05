@@ -48,7 +48,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
-import com.example.cityexplorer.data.util.NotificationService
+import com.example.cityexplorer.data.util.LocationTrackingService
 import com.example.cityexplorer.R
 import com.example.cityexplorer.data.util.TokenService
 import android.widget.Toast
@@ -111,22 +111,27 @@ fun MapScreen(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val isFineLocationGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
-        val isNotificationGranted =
-            permissions[Manifest.permission.POST_NOTIFICATIONS] == true
+        val isCoarseLocationGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        val isNotificationGranted = permissions[Manifest.permission.POST_NOTIFICATIONS] == true
 
         val isGranted = isFineLocationGranted && isNotificationGranted
+
+        if (isCoarseLocationGranted && !isFineLocationGranted) {
+            viewModel.showPermissionToast()
+        }
+
         viewModel.updatePermissionStatus(isGranted)
     }
 
     // Localization service control
     fun toggleLocalizationService(enable: Boolean) {
-        Intent(context, NotificationService::class.java).also { intent ->
+        Intent(context, LocationTrackingService::class.java).also { intent ->
             if (enable) {
-                intent.action = NotificationService.ACTION_START
+                intent.action = LocationTrackingService.ACTION_START
                 intent.putExtra("city", city)
                 ContextCompat.startForegroundService(context, intent)
             } else {
-                intent.action = NotificationService.ACTION_STOP
+                intent.action = LocationTrackingService.ACTION_STOP
                 context.startService(intent)
             }
         }
@@ -144,12 +149,16 @@ fun MapScreen(
                         toggleLocalizationService(false)
                         onNavigateToLogin()
                     }
-                    is MapUiEvent.ShowError -> {
+                    is MapUiEvent.ShowToast -> {
                         Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
                     }
                     is MapUiEvent.RequestPermissions -> {
-                        val permissionsToRequest = mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION)
+                        val permissionsToRequest = mutableListOf<String>()
+
+                        permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION)
+                        permissionsToRequest.add(Manifest.permission.ACCESS_COARSE_LOCATION)
                         permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
+
                         permissionLauncher.launch(permissionsToRequest.toTypedArray())
                     }
                 }
@@ -159,23 +168,23 @@ fun MapScreen(
 
     // Initial checks
     LaunchedEffect(Unit) {
-        val hasLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        val hasNotification =
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        val hasFineLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val hasNotification = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
-        viewModel.updatePermissionStatus(hasLocation && hasNotification)
+        viewModel.updatePermissionStatus(hasFineLocation && hasNotification)
     }
 
     // External service events
     DisposableEffect(Unit) {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action == NotificationService.ACTION_STOPPED_FROM_NOTIFICATION) {
+                if (intent?.action == LocationTrackingService.ACTION_STOPPED_FROM_NOTIFICATION) {
                     viewModel.onServiceStoppedExternal()
                 }
             }
         }
-        val filter = IntentFilter(NotificationService.ACTION_STOPPED_FROM_NOTIFICATION)
+        val filter = IntentFilter(LocationTrackingService.ACTION_STOPPED_FROM_NOTIFICATION)
         ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
 
         onDispose {
@@ -408,12 +417,14 @@ fun HexagonMap(
             if (isMapLoaded) {
                 visibleHexagons.forEach { hexagon ->
                     val isSelected = hexagon.id == selectedHexagonId
+                    val fillColor = if (hexagon.progress == 0.0) {CustomError} else if (hexagon.progress == 1.0) {CustomSuccess} else {CustomWarning}
                     val fillAlpha = if (isSelected) 0.15f else 0.08f
+
                     Polygon(
                         points = hexagon.boundaries.map { LatLng(it[0], it[1]) },
                         strokeWidth = 1f,
                         strokeColor = CustomBlack,
-                        fillColor = CustomError.copy(alpha = fillAlpha),
+                        fillColor = fillColor.copy(alpha = fillAlpha),
                         clickable = true,
                         onClick = { onHexagonClick(hexagon.id, hexagon.weight) }
                     )

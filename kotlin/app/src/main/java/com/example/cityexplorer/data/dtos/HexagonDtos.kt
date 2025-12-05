@@ -19,7 +19,8 @@ data class HexagonsDto(
     val id: String,
     val boundaries: List<List<Double>>,
     val center: List<Double>,
-    val weight: Double
+    val weight: Double,
+    val progress: Double = 0.0
 )
 
 @Serializable

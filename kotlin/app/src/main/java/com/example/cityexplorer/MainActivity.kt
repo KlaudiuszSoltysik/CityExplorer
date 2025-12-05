@@ -1,5 +1,6 @@
 package com.example.cityexplorer
 
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,18 +25,20 @@ import androidx.navigation.navDeepLink
 import com.example.cityexplorer.data.api.ApiClient
 import com.example.cityexplorer.data.repositories.HexagonRepository
 import com.example.cityexplorer.data.repositories.UserRepository
-import com.example.cityexplorer.data.repositories.VersionRepository
 import com.example.cityexplorer.data.util.CacheService
+import com.example.cityexplorer.data.util.LocationTrackingService
 import com.example.cityexplorer.data.util.TokenService
 import com.example.cityexplorer.ui.cityselector.CitySelectorScreen
-import com.example.cityexplorer.ui.map.MapScreen
 import com.example.cityexplorer.ui.login.LoginScreen
+import com.example.cityexplorer.ui.map.MapScreen
 import com.example.cityexplorer.ui.theme.CityExplorerTheme
 import com.example.cityexplorer.ui.theme.CustomBlack
 import com.google.android.gms.location.LocationServices
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -50,10 +53,19 @@ class MainActivity : ComponentActivity() {
         )
         val userRepository = UserRepository(ApiClient.userApiClient)
 
+        val runningCity = LocationTrackingService.activeCity
+
+        val startDestination = if (runningCity != null) {
+            "map/$runningCity"
+        } else {
+            "city_selector"
+        }
+
         setContent {
             CityExplorerTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     CityExplorerAppHost(
+                        startDestination = startDestination,
                         tokenService = tokenService,
                         hexagonRepository = hexagonRepository,
                         userRepository = userRepository,
@@ -70,6 +82,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun CityExplorerAppHost(
+    startDestination: String,
     tokenService: TokenService,
     hexagonRepository: HexagonRepository,
     userRepository: UserRepository,
@@ -86,10 +99,10 @@ fun CityExplorerAppHost(
     Surface(modifier = modifier) {
         NavHost(
             navController = navController,
-            startDestination = Screen.CitySelectorScreen.route
+            startDestination = startDestination
         ) {
 
-            // --- 1. Login Screen ---
+            // Login Screen
             composable(
                 route = Screen.LoginScreen.route,
                 arguments = listOf(
@@ -116,7 +129,7 @@ fun CityExplorerAppHost(
                 )
             }
 
-            // --- 2. City Selector Screen ---
+            // City Selector Screen
             composable(Screen.CitySelectorScreen.route) {
                 CitySelectorScreen(
                     hexagonRepository = hexagonRepository,
@@ -127,7 +140,7 @@ fun CityExplorerAppHost(
                 )
             }
 
-            // --- 3. Map Screen ---
+            // Map Screen
             composable(
                 route = Screen.MapScreen.route,
                 arguments = listOf(

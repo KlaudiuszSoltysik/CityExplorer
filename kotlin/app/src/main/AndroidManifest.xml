@@ -29,7 +29,7 @@
             android:value="@integer/google_play_services_version" />
 
         <service
-            android:name=".data.util.NotificationService"
+            android:name=".data.util.LocationTrackingService"
             android:foregroundServiceType="location"
             android:exported="false" />
 
