@@ -1,6 +1,5 @@
 package com.example.cityexplorer.data.repositories
 
-import android.util.Log
 import com.example.cityexplorer.data.api.HexagonApiClient
 import com.example.cityexplorer.data.api.VersionApiClient
 import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
@@ -88,16 +87,13 @@ class HexagonRepository(
             if (response.isSuccessful) {
                 val responseBody = response.body()
                 val changes = responseBody?.updatedHexagons ?: emptyList()
-                Log.d("ServiceLogs", "Changes: $changes")
                 // TODO: Zapisz 'changes' do lokalnej bazy danych (Room)
 
                 return true
             } else {
-                Log.d("ServiceLogs", "Changes dupa")
                 return false
             }
-        } catch (e: Exception) {
-              Log.d("ServiceLogs", "Changes dupa ${e.message}")
+        } catch (_: Exception) {
             return false
         }
     }

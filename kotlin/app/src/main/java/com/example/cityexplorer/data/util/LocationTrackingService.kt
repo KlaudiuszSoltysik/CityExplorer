@@ -23,7 +23,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 const val MAX_SPEED_KMH = 15.0f
-const val MIN_ACCURACY_METERS = 30.0f
+const val MIN_ACCURACY_METERS = 20.0f
 const val SEND_BATCH_INTERVAL_MS = 60_000L
 
 class LocationTrackingService : Service() {
@@ -38,7 +38,6 @@ class LocationTrackingService : Service() {
     private val locationBuffer = mutableListOf<Location>()
     private val bufferMutex = Mutex()
     private lateinit var locationClient: FusedLocationProviderClient
-    private var currentCity: String = ""
     private var lastLocation: Location? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -56,8 +55,6 @@ class LocationTrackingService : Service() {
             ACTION_START -> {
                 val city = intent.getStringExtra(EXTRA_CITY) ?: ""
                 activeCity = city
-
-                currentCity = city
 
                 startForegroundService(city)
                 startTrackingLogic()
@@ -221,19 +218,34 @@ class LocationTrackingService : Service() {
 
     // Saves all data when service is stopped
     private suspend fun saveAll() {
-        val finalPoints = bufferMutex.withLock {
-            val copy = ArrayList(locationBuffer)
-            locationBuffer.clear()
-            copy
+        val pointsToSend = bufferMutex.withLock {
+            if (locationBuffer.isEmpty()) return@withLock emptyList<Location>()
+            ArrayList(locationBuffer)
         }
 
-        if (finalPoints.isNotEmpty()) {
-            Log.w("ServiceLogs", "STOPPING: Saving final ${finalPoints.size} points...")
+        val token = tokenService.getToken()
+        if (pointsToSend.isNotEmpty() && token != null) {
             try {
-                // TODO: Synchroniczny strzał do API na pożegnanie
+                val locations = pointsToSend.map { it.toDto() }
+                Log.d("ServiceLogs", "Sending batch of ${pointsToSend.size} points...")
+                val success = hexagonRepository.postLocationBatch(
+                    PostLocationBatchDto(
+                        token,
+                        locations
+                    )
+                )
+
+                if (success) {
+                    bufferMutex.withLock {
+                        locationBuffer.removeAll(pointsToSend)
+                    }
+                } else {
+                    // TODO: Save to cache
+                    Log.e("ServiceLogs", "Failed to exit save")
+                }
             } catch (e: Exception) {
-                // TODO: Zapisać do cache
-                Log.e("ServiceLogs", "Failed to save final data", e)
+                // TODO: Save to cache
+                Log.e("ServiceLogs", "Failed to exit save: ${e.message}")
             }
         }
     }

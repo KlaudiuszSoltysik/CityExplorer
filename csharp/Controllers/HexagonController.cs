@@ -113,13 +113,6 @@ public class HexagonController(PostgresContext postgresContext) : ControllerBase
 
             var duration = (next.Timestamp - current.Timestamp).TotalSeconds;
 
-            switch (duration)
-            {
-                case > 120:
-                case < 0:
-                    continue;
-            }
-
             var latRad = current.Lat * (Math.PI / 180.0);
             var lonRad = current.Lon * (Math.PI / 180.0);
 
