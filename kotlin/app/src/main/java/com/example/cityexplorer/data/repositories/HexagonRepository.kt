@@ -1,10 +1,12 @@
 package com.example.cityexplorer.data.repositories
 
+import android.util.Log
 import com.example.cityexplorer.data.api.HexagonApiClient
 import com.example.cityexplorer.data.api.VersionApiClient
 import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
 import com.example.cityexplorer.data.dtos.GetCountriesWithCitiesDto
 import com.example.cityexplorer.data.dtos.GetPoisFromHexagonDto
+import com.example.cityexplorer.data.dtos.PostLocationBatchDto
 import com.example.cityexplorer.data.util.CacheService
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
@@ -17,8 +19,7 @@ class HexagonRepository(
 ) {
     private val countriesKey = "get-countries-with-cities"
 
-    suspend fun getCountriesWithCities(forceRefresh: Boolean = false): List<GetCountriesWithCitiesDto> = withContext(
-        Dispatchers.IO) {
+    suspend fun getCountriesWithCities(forceRefresh: Boolean = false): List<GetCountriesWithCitiesDto> = withContext(Dispatchers.IO) {
         val dtoType = object : TypeToken<List<GetCountriesWithCitiesDto>>() {}.type
 
         try {
@@ -78,6 +79,27 @@ class HexagonRepository(
 
     suspend fun getPoisFromHexagon(hexagonId: String): List<GetPoisFromHexagonDto> {
         return hexagonApiClient.getPoisFromHexagon(hexagonId)
+    }
+
+    suspend fun postLocationBatch(locationDto: PostLocationBatchDto): Boolean {
+          try {
+            val response = hexagonApiClient.postLocationBatch(locationDto)
+
+            if (response.isSuccessful) {
+                val responseBody = response.body()
+                val changes = responseBody?.updatedHexagons ?: emptyList()
+                Log.d("ServiceLogs", "Changes: $changes")
+                // TODO: Zapisz 'changes' do lokalnej bazy danych (Room)
+
+                return true
+            } else {
+                Log.d("ServiceLogs", "Changes dupa")
+                return false
+            }
+        } catch (e: Exception) {
+              Log.d("ServiceLogs", "Changes dupa ${e.message}")
+            return false
+        }
     }
 
     sealed interface RepoResult<out T> {

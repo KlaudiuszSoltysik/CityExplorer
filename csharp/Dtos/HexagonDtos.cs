@@ -26,3 +26,22 @@ public class GetPoisFromHexagonDto
     public required string Type { get; set; }
     public required bool IsPromoted { get; set; }
 }
+
+public class PostLocationBatchDto
+{
+    public required string Token { get; set; }
+    public required List<LocationDto> Locations { get; set; }
+}
+
+public class LocationDto
+{
+    public double Lat { get; set; }
+    public double Lon { get; set; }
+    public DateTime Timestamp  { get; set; }
+}
+
+public class HexagonUpdateDto
+{
+    public string HexagonId { get; set; } = string.Empty;
+    public double Progress { get; set; }
+}

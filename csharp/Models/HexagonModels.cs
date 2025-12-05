@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace csharp.Models;
 
@@ -35,4 +36,14 @@ public class CityModel
     [MaxLength(50)] public string Country { get; init; } = string.Empty;
     public required List<double> Bbox { get; init; }
     public ICollection<HexagonModel> Hexagons { get; init; } = [];
+}
+
+[PrimaryKey(nameof(UserId), nameof(HexagonId))]
+public class UserHexagonProgress
+{
+    [MaxLength(200)] public string UserId { get; init; } = string.Empty;
+    [ForeignKey(nameof(UserId))] public UserModel? User { get; init; }
+    [MaxLength(50)] public string HexagonId { get; init; } = string.Empty;
+    [ForeignKey(nameof(HexagonId))] public HexagonModel? Hexagon { get; init; }
+    public double Progress { get; set; }
 }

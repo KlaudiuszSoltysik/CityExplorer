@@ -22,10 +22,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
-import com.example.cityexplorer.data.api.ApiClient
 import com.example.cityexplorer.data.repositories.HexagonRepository
 import com.example.cityexplorer.data.repositories.UserRepository
-import com.example.cityexplorer.data.util.CacheService
 import com.example.cityexplorer.data.util.LocationTrackingService
 import com.example.cityexplorer.data.util.TokenService
 import com.example.cityexplorer.ui.cityselector.CitySelectorScreen
@@ -43,15 +41,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val tokenService = TokenService(applicationContext)
-        val cacheService = CacheService(applicationContext)
-
-        val hexagonRepository = HexagonRepository(
-            ApiClient.hexagonApiClient,
-            ApiClient.versionApiClient,
-            cacheService
-        )
-        val userRepository = UserRepository(ApiClient.userApiClient)
+        val app = applicationContext as CityExplorerApp
 
         val runningCity = LocationTrackingService.activeCity
 
@@ -66,9 +56,9 @@ class MainActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     CityExplorerAppHost(
                         startDestination = startDestination,
-                        tokenService = tokenService,
-                        hexagonRepository = hexagonRepository,
-                        userRepository = userRepository,
+                        tokenService = app.tokenService,
+                        hexagonRepository = app.hexagonRepository,
+                        userRepository = app.userRepository,
                         modifier = Modifier
                             .background(CustomBlack)
                             .fillMaxSize(),

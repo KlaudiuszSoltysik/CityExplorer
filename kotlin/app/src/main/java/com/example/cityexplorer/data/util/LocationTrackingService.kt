@@ -12,6 +12,10 @@ import com.example.cityexplorer.MainActivity
 import com.example.cityexplorer.R
 import android.location.Location
 import android.util.Log
+import com.example.cityexplorer.CityExplorerApp
+import com.example.cityexplorer.data.dtos.PostLocationBatchDto
+import com.example.cityexplorer.data.dtos.toDto
+import com.example.cityexplorer.data.repositories.HexagonRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.*
@@ -20,8 +24,16 @@ import kotlinx.coroutines.sync.withLock
 
 const val MAX_SPEED_KMH = 15.0f
 const val MIN_ACCURACY_METERS = 30.0f
+const val SEND_BATCH_INTERVAL_MS = 60_000L
 
 class LocationTrackingService : Service() {
+    private val hexagonRepository: HexagonRepository by lazy {
+        (applicationContext as CityExplorerApp).hexagonRepository
+    }
+
+    private val tokenService: TokenService by lazy {
+        (applicationContext as CityExplorerApp).tokenService
+    }
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val locationBuffer = mutableListOf<Location>()
     private val bufferMutex = Mutex()
@@ -128,7 +140,7 @@ class LocationTrackingService : Service() {
 
         serviceScope.launch {
             while (isActive) {
-                delay(10_000)
+                delay(SEND_BATCH_INTERVAL_MS)
                 sendBatchData()
             }
         }
@@ -141,16 +153,24 @@ class LocationTrackingService : Service() {
             ArrayList(locationBuffer)
         }
 
-        if (pointsToSend.isNotEmpty()) {
+        val token = tokenService.getToken()
+        if (pointsToSend.isNotEmpty() && token != null) {
             try {
-                // TODO: Tutaj wstaw swój Call do API (np. repository.syncLocations(currentCity, pointsToSend))
+                val locations = pointsToSend.map { it.toDto() }
                 Log.d("ServiceLogs", "Sending batch of ${pointsToSend.size} points...")
-                val success = true
+                val success = hexagonRepository.postLocationBatch(
+                    PostLocationBatchDto(
+                        token,
+                        locations
+                    )
+                )
 
                 if (success) {
                     bufferMutex.withLock {
                         locationBuffer.removeAll(pointsToSend)
                     }
+                } else {
+                    Log.e("ServiceLogs", "Failed to sync batch")
                 }
             } catch (e: Exception) {
                 Log.e("ServiceLogs", "Failed to sync batch: ${e.message}")

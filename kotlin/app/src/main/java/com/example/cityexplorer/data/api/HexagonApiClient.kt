@@ -1,9 +1,15 @@
 package com.example.cityexplorer.data.api
 
+import android.location.Location
 import com.example.cityexplorer.data.dtos.GetCountriesWithCitiesDto
 import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
 import com.example.cityexplorer.data.dtos.GetPoisFromHexagonDto
+import com.example.cityexplorer.data.dtos.PostLocationBatchDto
+import com.example.cityexplorer.data.dtos.SyncResponseDto
+import retrofit2.Response
+import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.POST
 import retrofit2.http.Query
 
 interface HexagonApiClient {
@@ -19,4 +25,9 @@ interface HexagonApiClient {
     suspend fun getPoisFromHexagon(
         @Query("hexagonId") hexagonId: String
     ): List<GetPoisFromHexagonDto>
+
+    @POST("/hexagon/post-location-batch")
+    suspend fun postLocationBatch(
+        @Body locationDto: PostLocationBatchDto
+    ): Response<SyncResponseDto>
 }
