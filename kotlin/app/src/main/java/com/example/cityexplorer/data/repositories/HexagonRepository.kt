@@ -16,9 +16,8 @@ class HexagonRepository(
     private val versionApiClient: VersionApiClient,
     private val cacheService: CacheService
 ) {
-    private val countriesKey = "get-countries-with-cities"
-
     suspend fun getCountriesWithCities(forceRefresh: Boolean = false): List<GetCountriesWithCitiesDto> = withContext(Dispatchers.IO) {
+        val countriesKey = "get-countries-with-cities"
         val dtoType = object : TypeToken<List<GetCountriesWithCitiesDto>>() {}.type
 
         try {

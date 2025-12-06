@@ -6,9 +6,9 @@ import h3
 import folium
 
 # Configuration
-INPUT_FILENAME = "geojsons/gdansk.geojson"
+INPUT_FILENAME = "geojsons/poznan.geojson"
 OUTPUT_FILENAME = "hexagons.json"
-CITY = "Gdańsk"
+CITY = "Poznań"
 COUNTRY = "Poland"
 RESOLUTION = 9
 POI_FACTOR = 0.5
@@ -223,14 +223,15 @@ def save_to_db(hexagons: List[Dict[str, Any]], bbox: Tuple[float, float, float, 
     """
 
     upsert_poi = """
-        INSERT INTO "Pois" ("Id", "Name", "PoiType", "PoiSubtype", "Location", "Boundary", "HexagonId", "CityId")
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO "Pois" ("Id", "Name", "PoiType", "PoiSubtype", "Location", "Boundary", "IsPromoted", "HexagonId", "CityId")
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT ("Id") DO UPDATE SET
             "Name" = EXCLUDED."Name",
             "PoiType" = EXCLUDED."PoiType",
             "PoiSubtype" = EXCLUDED."PoiSubtype",
             "Location" = EXCLUDED."Location",
             "Boundary" = EXCLUDED."Boundary",
+            "IsPromoted" = EXCLUDED."IsPromoted",
             "HexagonId" = EXCLUDED."HexagonId",
             "CityId" = EXCLUDED."CityId";
     """
@@ -257,6 +258,7 @@ def save_to_db(hexagons: List[Dict[str, Any]], bbox: Tuple[float, float, float, 
                         poi["poi_subtype"],
                         json.dumps(poi.get("location")),
                         json.dumps(poi.get("boundary")),
+                        False,
                         hexagon["id"],
                         CITY
                     ))

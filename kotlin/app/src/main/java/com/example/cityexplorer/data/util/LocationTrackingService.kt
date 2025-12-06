@@ -30,7 +30,6 @@ class LocationTrackingService : Service() {
     private val hexagonRepository: HexagonRepository by lazy {
         (applicationContext as CityExplorerApp).hexagonRepository
     }
-
     private val tokenService: TokenService by lazy {
         (applicationContext as CityExplorerApp).tokenService
     }
