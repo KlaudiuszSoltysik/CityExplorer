@@ -2,7 +2,6 @@ package com.example.cityexplorer.data.dtos
 
 import android.location.Location
 import kotlinx.serialization.Serializable
-import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -50,8 +49,8 @@ data class PostLocationBatchDto(
 
 @Serializable
 data class LocationDto(
-    val lat: Double,
-    val lon: Double,
+    val latitude: Double,
+    val longitude: Double,
     val timestamp: String
 )
 
@@ -66,14 +65,25 @@ data class HexagonUpdateDto(
     val progress: Double
 )
 
-private val iso8601Format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
-    timeZone = TimeZone.getTimeZone("UTC")
-}
+@Serializable
+data class SimpleLocation(
+    val latitude: Double,
+    val longitude: Double,
+    val timestamp: Long
+) {
+    fun toDto(): LocationDto {
+        val isoDate = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }.format(Date(timestamp))
 
-fun Location.toDto(): LocationDto {
-    return LocationDto(
-        lat = this.latitude,
-        lon = this.longitude,
-        timestamp = iso8601Format.format(Date(this.time))
-    )
+        return LocationDto(latitude, longitude, isoDate)
+    }
+
+    fun toAndroidLocation(): Location {
+        val loc = Location("memory")
+        loc.latitude = latitude
+        loc.longitude = longitude
+        loc.time = timestamp
+        return loc
+    }
 }

@@ -1,5 +1,6 @@
 package com.example.cityexplorer.data.repositories
 
+import android.util.Log
 import com.example.cityexplorer.data.api.HexagonApiClient
 import com.example.cityexplorer.data.api.VersionApiClient
 import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
@@ -17,26 +18,26 @@ class HexagonRepository(
     private val cacheService: CacheService
 ) {
     suspend fun getCountriesWithCities(forceRefresh: Boolean = false): List<GetCountriesWithCitiesDto> = withContext(Dispatchers.IO) {
-        val countriesKey = "get-countries-with-cities"
+        val key = "get-countries-with-cities"
         val dtoType = object : TypeToken<List<GetCountriesWithCitiesDto>>() {}.type
 
         try {
-            val remoteVersion = versionApiClient.getCurrentVersion(countriesKey).string()
-            val cachedVersion = cacheService.getCachedVersion(countriesKey)
+            val remoteVersion = versionApiClient.getCurrentVersion(key).string()
+            val cachedVersion = cacheService.getCachedVersion(key)
 
             if (!forceRefresh && cachedVersion == remoteVersion) {
-                val cachedData = cacheService.getCachedData<List<GetCountriesWithCitiesDto>>(countriesKey, dtoType)
+                val cachedData = cacheService.getCachedData<List<GetCountriesWithCitiesDto>>(key, dtoType)
                 if (cachedData != null) return@withContext cachedData
             }
 
             val networkData = hexagonApiClient.getCountriesWithCities()
 
-            cacheService.saveToCache(countriesKey, remoteVersion, networkData)
+            cacheService.saveToCache(key, remoteVersion, networkData)
 
             return@withContext networkData
 
         } catch (e: Exception) {
-            val fallbackData = cacheService.getCachedData<List<GetCountriesWithCitiesDto>>(countriesKey, dtoType)
+            val fallbackData = cacheService.getCachedData<List<GetCountriesWithCitiesDto>>(key, dtoType)
 
             if (fallbackData != null) {
                 return@withContext fallbackData
@@ -90,9 +91,11 @@ class HexagonRepository(
 
                 return true
             } else {
+                Log.e("ServiceLogs", "Failed to sync batch with server: ${response.code()}")
                 return false
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+              Log.e("ServiceLogs", "Failed to sync batch with server: ${e.message}")
             return false
         }
     }

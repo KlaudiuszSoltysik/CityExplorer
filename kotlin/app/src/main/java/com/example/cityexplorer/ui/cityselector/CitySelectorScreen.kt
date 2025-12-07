@@ -173,8 +173,7 @@ fun ErrorMessage(
     ) {
         Text(
             text = message,
-            modifier = Modifier.padding(16.dp),
-            color = MaterialTheme.colorScheme.error
+            modifier = Modifier.padding(16.dp)
         )
     }
 }

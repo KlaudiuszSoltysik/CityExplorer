@@ -35,8 +35,8 @@ public class PostLocationBatchDto
 
 public class LocationDto
 {
-    public double Lat { get; set; }
-    public double Lon { get; set; }
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
     public DateTime Timestamp  { get; set; }
 }
 

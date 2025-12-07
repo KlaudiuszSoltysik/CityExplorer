@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using H3;
 using H3.Model;
+using Microsoft.Extensions.Logging;
 
 namespace csharp.Controllers;
 
@@ -84,97 +85,101 @@ public class HexagonController(PostgresContext postgresContext) : ControllerBase
 
     // Saves batch locations to database and returns progress
     [HttpPost("post-location-batch")]
-    public async Task<IActionResult> PostLocationBatch([FromBody] PostLocationBatchDto locationsDto)
+    public async Task<IActionResult> PostLocationBatch([FromBody] PostLocationBatchDto postLocationBatchDto)
     {
-        const int h3Res = 9;
+       const int h3Res = 9;
 
-        if (locationsDto.Locations.Count == 0)
+        if (postLocationBatchDto.Locations.Count == 0)
         {
             return BadRequest("No locations provided.");
         }
 
         var session = await postgresContext.Sessions
             .Include(s => s.User)
-            .FirstOrDefaultAsync(s => s.Token == locationsDto.Token);
+            .FirstOrDefaultAsync(s => s.Token == postLocationBatchDto.Token);
 
         if (session == null || session.ExpiresAt < DateTime.UtcNow)
         {
             return Unauthorized("Invalid or expired token.");
         }
 
-        var sortedLocationsWithHex = locationsDto.Locations
+        var sortedLocationsWithHexagonId = postLocationBatchDto.Locations
             .OrderBy(l => l.Timestamp)
             .Select(l =>
             {
-                var latRad = l.Lat * (Math.PI / 180.0);
-                var lonRad = l.Lon * (Math.PI / 180.0);
-                var hexId = H3Index.FromLatLng(new LatLng(latRad, lonRad), h3Res).ToString();
+                var latitudeRad = l.Latitude * (Math.PI / 180.0);
+                var longitudeRad = l.Longitude * (Math.PI / 180.0);
+                var hexagonId = H3Index.FromLatLng(new LatLng(latitudeRad, longitudeRad), h3Res).ToString();
 
-                return new { LocationObj = l, HexId = hexId };
+                return new { LocationObject = l, HexagonId = hexagonId };
             })
             .ToList();
 
-        var uniqueHexIds = sortedLocationsWithHex
-            .Select(x => x.HexId)
+        var uniqueHexagonIds = sortedLocationsWithHexagonId
+            .Select(x => x.HexagonId)
             .Distinct()
             .ToList();
 
-        var hexDataMap = await postgresContext.Hexagons
+        var hexagonDataMap = await postgresContext.Hexagons
             .AsNoTracking()
-            .Where(h => uniqueHexIds.Contains(h.Id))
+            .Where(h => uniqueHexagonIds.Contains(h.Id))
             .Select(h => new { h.Id, h.CityId, h.Weight })
             .ToDictionaryAsync(x => x.Id, x => new { x.CityId, x.Weight });
 
-        if (uniqueHexIds.Any(id => !hexDataMap.ContainsKey(id)))
+        var locationsInSupportedArea = sortedLocationsWithHexagonId
+            .Where(x => hexagonDataMap.ContainsKey(x.HexagonId))
+            .ToList();
+
+        if (locationsInSupportedArea.Count == 0)
         {
-            return BadRequest("One or more locations are outside supported areas.");
+            return Ok(new { updatedHexagons = new List<HexagonUpdateDto>() });
         }
 
-        var firstCityId = hexDataMap[sortedLocationsWithHex[0].HexId].CityId;
+        var firstLocationHexId = locationsInSupportedArea[0].HexagonId;
+        var targetCityId = hexagonDataMap[firstLocationHexId].CityId;
 
-        if (uniqueHexIds.Any(id => hexDataMap[id].CityId != firstCityId))
-        {
-            return BadRequest("Invalid location. All locations must be in the same city.");
-        }
+        var finalLocationsToProcess = locationsInSupportedArea
+            .Where(x => hexagonDataMap[x.HexagonId].CityId == targetCityId)
+            .ToList();
 
         var totalHexagonsInCity = await postgresContext.Hexagons
-            .CountAsync(h => h.CityId == firstCityId);
+            .CountAsync(h => h.CityId == targetCityId);
 
         if (totalHexagonsInCity == 0) return BadRequest("City appears to be empty.");
 
         var secondsToComplete = 60.0 * totalHexagonsInCity;
 
-        var hexDurationMap = new Dictionary<string, double>();
+        var hexagonDurationMap = new Dictionary<string, double>();
 
-        for (var i = 0; i < sortedLocationsWithHex.Count - 1; i++)
+        for (var i = 0; i < finalLocationsToProcess.Count - 1; i++)
         {
-            var current = sortedLocationsWithHex[i];
-            var next = sortedLocationsWithHex[i + 1];
+            var current = finalLocationsToProcess[i];
+            var next = finalLocationsToProcess[i + 1];
 
-            var duration = (next.LocationObj.Timestamp - current.LocationObj.Timestamp).TotalSeconds;
+            var duration = (next.LocationObject.Timestamp - current.LocationObject.Timestamp).TotalSeconds;
 
-            hexDurationMap.TryAdd(current.HexId, 0);
-            hexDurationMap[current.HexId] += duration;
+            hexagonDurationMap.TryAdd(current.HexagonId, 0);
+            hexagonDurationMap[current.HexagonId] += duration;
         }
 
-        var affectedHexIds = hexDurationMap.Keys.ToList();
+        var affectedHexagonIds = hexagonDurationMap.Keys.ToList();
         var userId = session.UserId;
 
         var existingProgresses = await postgresContext.Progresses
-            .Where(u => u.UserId == userId && affectedHexIds.Contains(u.HexagonId))
+            .Where(u => u.UserId == userId && affectedHexagonIds.Contains(u.HexagonId))
             .ToListAsync();
 
         var changesToReturn = new List<HexagonUpdateDto>();
 
-        foreach (var hexId in affectedHexIds)
+        foreach (var hexagonId in affectedHexagonIds)
         {
-            var secondsSpent = hexDurationMap[hexId];
+            var secondsSpent = hexagonDurationMap[hexagonId];
 
-            var weight = hexDataMap[hexId].Weight > 0 ? hexDataMap[hexId].Weight : 1.0;
+            var weight = hexagonDataMap[hexagonId].Weight > 0 ? hexagonDataMap[hexagonId].Weight : 1.0;
 
             var progressGained = secondsSpent / (secondsToComplete * weight);
 
-            var record = existingProgresses.FirstOrDefault(x => x.HexagonId == hexId);
+            var record = existingProgresses.FirstOrDefault(x => x.HexagonId == hexagonId);
 
             if (record != null)
             {
@@ -186,7 +191,7 @@ public class HexagonController(PostgresContext postgresContext) : ControllerBase
                 record = new UserHexagonProgress
                 {
                     UserId = userId,
-                    HexagonId = hexId,
+                    HexagonId = hexagonId,
                     Progress = Math.Min(progressGained, 1.0)
                 };
                 postgresContext.Progresses.Add(record);
@@ -194,7 +199,7 @@ public class HexagonController(PostgresContext postgresContext) : ControllerBase
 
             changesToReturn.Add(new HexagonUpdateDto
             {
-                HexagonId = hexId,
+                HexagonId = hexagonId,
                 Progress = record.Progress
             });
         }

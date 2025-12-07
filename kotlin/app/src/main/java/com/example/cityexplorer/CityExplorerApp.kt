@@ -8,6 +8,8 @@ import com.example.cityexplorer.data.util.CacheService
 import com.example.cityexplorer.data.util.TokenService
 
 class CityExplorerApp : Application() {
+    lateinit var cacheService: CacheService
+        private set
     lateinit var tokenService: TokenService
         private set
     lateinit var hexagonRepository: HexagonRepository
@@ -18,8 +20,8 @@ class CityExplorerApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        cacheService = CacheService(applicationContext)
         tokenService = TokenService(applicationContext)
-        val cacheService = CacheService(applicationContext)
 
         hexagonRepository = HexagonRepository(
             ApiClient.hexagonApiClient,

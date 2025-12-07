@@ -40,7 +40,7 @@ class CitySelectorViewModel(
             try {
                 val data = hexagonRepository.getCountriesWithCities(forceRefresh)
                 uiState = CitySelectorUiState.Success(data)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 uiState = CitySelectorUiState.Error("Couldn't load data")
             } finally {
                 isRefreshing = false

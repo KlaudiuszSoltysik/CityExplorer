@@ -14,10 +14,11 @@ import android.location.Location
 import android.util.Log
 import com.example.cityexplorer.CityExplorerApp
 import com.example.cityexplorer.data.dtos.PostLocationBatchDto
-import com.example.cityexplorer.data.dtos.toDto
+import com.example.cityexplorer.data.dtos.SimpleLocation
 import com.example.cityexplorer.data.repositories.HexagonRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -30,17 +31,21 @@ class LocationTrackingService : Service() {
     private val hexagonRepository: HexagonRepository by lazy {
         (applicationContext as CityExplorerApp).hexagonRepository
     }
+    private val cacheService: CacheService by lazy {
+        (applicationContext as CityExplorerApp).cacheService
+    }
     private val tokenService: TokenService by lazy {
         (applicationContext as CityExplorerApp).tokenService
     }
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val locationBuffer = mutableListOf<Location>()
+    private val locationBuffer = mutableListOf<SimpleLocation>()
     private val bufferMutex = Mutex()
     private lateinit var locationClient: FusedLocationProviderClient
     private var lastLocation: Location? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    // Initializes service
     override fun onCreate() {
         super.onCreate()
         locationClient = LocationServices.getFusedLocationProviderClient(this)
@@ -69,24 +74,18 @@ class LocationTrackingService : Service() {
         activeCity = null
 
         runBlocking {
-            saveAll()
+            saveAndStop()
         }
 
         serviceScope.cancel()
-
         super.onDestroy()
-
-        val intent = Intent(ACTION_STOPPED_FROM_NOTIFICATION).apply {
-            setPackage(packageName)
-        }
-        sendBroadcast(intent)
     }
 
-    // Stops service when app is removed from recent apps
+    // Manages service lifecycle
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
         runBlocking {
-            saveAll()
+            saveAndStop()
         }
         stopSelf()
     }
@@ -101,36 +100,55 @@ class LocationTrackingService : Service() {
     // Triggers localization stream
     private fun startTrackingLogic() {
         serviceScope.launch {
-            // TODO: wrzucić z cache do buforu
+            val typeToken = object : TypeToken<List<SimpleLocation>>() {}.type
+            val cachedData = cacheService.getCachedData<List<SimpleLocation>>("location-buffer", typeToken)
+
+            if (cachedData != null && cachedData.isNotEmpty()) {
+                bufferMutex.withLock {
+                    locationBuffer.addAll(cachedData)
+                }
+                Log.d("ServiceLogs", "Restored ${cachedData.size} points from cache")
+                cacheService.saveToCache("location-buffer", "0", emptyList<SimpleLocation>())
+            }
+
             locationClient.getLocationFlow()
-                .collect { location ->
+                .collect { androidLocation ->
+                    if (!androidLocation.hasAccuracy() || androidLocation.accuracy > MIN_ACCURACY_METERS) {
+                        return@collect
+                    }
+
                     bufferMutex.withLock {
-                        if (location.hasAccuracy() && location.accuracy > MIN_ACCURACY_METERS) {
-                            return@withLock
-                        }
+                        val currentLast = lastLocation
 
-                        val currentLastLocation = lastLocation
-
-                        if (currentLastLocation != null) {
-                            val timeDeltaMs = location.time - currentLastLocation.time
-
+                        if (currentLast != null) {
+                            val timeDeltaMs = androidLocation.time - currentLast.time
                             if (timeDeltaMs > 0) {
-                                val maxAllowedDistance = calculateMaxDistance(timeDeltaMs)
-                                val actualDistance = location.distanceTo(currentLastLocation)
+                                val maxDist = calculateMaxDistance(timeDeltaMs)
+                                val actualDist = androidLocation.distanceTo(currentLast)
 
-                                if (actualDistance <= maxAllowedDistance) {
-                                    locationBuffer.add(location)
-                                    lastLocation = location
+                                if (actualDist <= maxDist) {
+                                    val simpleLoc = SimpleLocation(
+                                        androidLocation.latitude,
+                                        androidLocation.longitude,
+                                        androidLocation.time
+                                    )
+                                    locationBuffer.add(simpleLoc)
+                                    lastLocation = androidLocation
+                                    Log.d("ServiceLogs", "Point added ${locationBuffer.size}")
                                 } else {
-                                    Log.d("ServiceLogs", "Odrzucono punkt: ${actualDistance}m w ${timeDeltaMs}ms (za szybko)")
+                                    Log.d("ServiceLogs", "Point rejected: too fast")
                                 }
                             }
                         } else {
-                            locationBuffer.add(location)
-                            lastLocation = location
+                            val simpleLoc = SimpleLocation(
+                                androidLocation.latitude,
+                                androidLocation.longitude,
+                                androidLocation.time
+                            )
+                            locationBuffer.add(simpleLoc)
+                            lastLocation = androidLocation
                         }
                     }
-                    Log.d("ServiceLogs", "New location buffered. Count: ${locationBuffer.size}")
                 }
         }
 
@@ -138,38 +156,6 @@ class LocationTrackingService : Service() {
             while (isActive) {
                 delay(SEND_BATCH_INTERVAL_MS)
                 sendBatchData()
-            }
-        }
-    }
-
-    // Sends data to backend periodically
-    private suspend fun sendBatchData() {
-        val pointsToSend = bufferMutex.withLock {
-            if (locationBuffer.isEmpty()) return@withLock emptyList<Location>()
-            ArrayList(locationBuffer)
-        }
-
-        val token = tokenService.getToken()
-        if (pointsToSend.isNotEmpty() && token != null) {
-            try {
-                val locations = pointsToSend.map { it.toDto() }
-                Log.d("ServiceLogs", "Sending batch of ${pointsToSend.size} points...")
-                val success = hexagonRepository.postLocationBatch(
-                    PostLocationBatchDto(
-                        token,
-                        locations
-                    )
-                )
-
-                if (success) {
-                    bufferMutex.withLock {
-                        locationBuffer.removeAll(pointsToSend)
-                    }
-                } else {
-                    Log.e("ServiceLogs", "Failed to sync batch")
-                }
-            } catch (e: Exception) {
-                Log.e("ServiceLogs", "Failed to sync batch: ${e.message}")
             }
         }
     }
@@ -215,37 +201,57 @@ class LocationTrackingService : Service() {
         startForeground(NOTIFICATION_ID, notification)
     }
 
-    // Saves all data when service is stopped
-    private suspend fun saveAll() {
+    // Saves data during exploring
+    private suspend fun sendBatchData() {
         val pointsToSend = bufferMutex.withLock {
-            if (locationBuffer.isEmpty()) return@withLock emptyList<Location>()
+            if (locationBuffer.isEmpty()) return@withLock emptyList<SimpleLocation>()
             ArrayList(locationBuffer)
         }
 
-        val token = tokenService.getToken()
-        if (pointsToSend.isNotEmpty() && token != null) {
-            try {
-                val locations = pointsToSend.map { it.toDto() }
-                Log.d("ServiceLogs", "Sending batch of ${pointsToSend.size} points...")
-                val success = hexagonRepository.postLocationBatch(
-                    PostLocationBatchDto(
-                        token,
-                        locations
-                    )
-                )
+        if (pointsToSend.isEmpty()) return
 
-                if (success) {
-                    bufferMutex.withLock {
-                        locationBuffer.removeAll(pointsToSend)
-                    }
-                } else {
-                    // TODO: Save to cache
-                    Log.e("ServiceLogs", "Failed to exit save")
-                }
+        val token = tokenService.getToken()
+        var uploadSuccess = false
+
+        if (token != null) {
+            try {
+                val locationsDto = pointsToSend.map { it.toDto() }
+                Log.d("ServiceLogs", "Loop: Sending batch of ${pointsToSend.size} points...")
+
+                uploadSuccess = hexagonRepository.postLocationBatch(
+                    PostLocationBatchDto(token, locationsDto)
+                )
             } catch (e: Exception) {
-                // TODO: Save to cache
-                Log.e("ServiceLogs", "Failed to exit save: ${e.message}")
+                Log.e("ServiceLogs", "Loop: Upload failed: ${e.message}")
             }
+        }
+
+        if (uploadSuccess) {
+            bufferMutex.withLock {
+                locationBuffer.removeAll(pointsToSend)
+            }
+            Log.d("ServiceLogs", "Loop: Upload success, buffer cleared (RAM)")
+        } else {
+            Log.d("ServiceLogs", "Loop: Upload failed, keeping data in RAM for next try")
+        }
+    }
+
+    // Saves all data when service is stopped
+    private suspend fun saveAndStop() {
+        Log.d("ServiceLogs", "Stopping service: starting final save procedure...")
+
+        sendBatchData()
+
+        val remainingPoints = bufferMutex.withLock {
+            if (locationBuffer.isEmpty()) return@withLock emptyList<SimpleLocation>()
+            ArrayList(locationBuffer)
+        }
+
+        if (remainingPoints.isNotEmpty()) {
+            Log.d("ServiceLogs", "Stopping: Saving ${remainingPoints.size} remaining points to Cache")
+            cacheService.saveToCache("location-buffer", "0", remainingPoints)
+        } else {
+            Log.d("ServiceLogs", "Stopping: Buffer empty, nothing to cache")
         }
     }
 
