@@ -12,8 +12,8 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 
-const val UPDATE_INTERVAL_MS = 10_000L
-const val MIN_UPDATE_INTERVAL_MS = 10_000L
+const val UPDATE_INTERVAL_MS = 1_000L
+const val MIN_UPDATE_INTERVAL_MS = 1_000L
 const val MIN_DIST_METERS = 0.0f
 
 @SuppressLint("MissingPermission")

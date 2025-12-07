@@ -25,7 +25,7 @@ import kotlinx.coroutines.sync.withLock
 
 const val MAX_SPEED_KMH = 15.0f
 const val MIN_ACCURACY_METERS = 20.0f
-const val SEND_BATCH_INTERVAL_MS = 60_000L
+const val SEND_BATCH_INTERVAL_MS = 15_000L
 
 class LocationTrackingService : Service() {
     private val hexagonRepository: HexagonRepository by lazy {
@@ -63,7 +63,15 @@ class LocationTrackingService : Service() {
                 startForegroundService(city)
                 startTrackingLogic()
             }
-            ACTION_STOP -> stopSelf()
+            ACTION_STOP -> {
+                val stopIntent = Intent(ACTION_STOPPED_FROM_NOTIFICATION)
+
+                stopIntent.setPackage(packageName)
+
+                sendBroadcast(stopIntent)
+
+                stopSelf()
+            }
         }
         return START_STICKY
     }
