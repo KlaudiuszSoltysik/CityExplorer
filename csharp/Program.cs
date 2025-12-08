@@ -5,7 +5,7 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- 1. Service Registration ---
+// Service Registration
 
 // API & Controllers
 builder.Services.AddControllers();
@@ -31,12 +31,9 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Host Configuration
-builder.WebHost.UseUrls("http://0.0.0.0:6101");
-
 var app = builder.Build();
 
-// --- 2. HTTP Request Pipeline ---
+// HTTP Request Pipeline
 
 if (app.Environment.IsDevelopment())
 {
@@ -46,8 +43,6 @@ if (app.Environment.IsDevelopment())
 
 app.MapOpenApi();
 app.MapScalarApiReference();
-
-app.UseHttpsRedirection();
 
 app.UseCors();
 

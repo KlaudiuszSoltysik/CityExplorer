@@ -1,0 +1,59 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: city_explorer_postgres_prod
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./docker/postgres/prod_data:/var/lib/postgresql/data
+    networks:
+      - city_explorer_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    container_name: city_explorer_csharp_prod
+    # ZMIANA KRYTYCZNA: Nie budujemy lokalnie. Pobieramy obraz zbudowany przez GitHub Actions!
+    # Pamiętaj: Zmień 'twoj_nick' i 'nazwa_repo' na małe litery, dokładnie jak w GitHubie.
+    image: ghcr.io/twoj_nick/nazwa_repo/backend:latest
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__PostgresConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - city_explorer_net
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: city_explorer_tunnel
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - city_explorer_net
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: city_explorer_watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 30 --cleanup city_explorer_csharp_prod
+    environment:
+      - DOCKER_API_VERSION=1.45
+    networks:
+      - city_explorer_net
+
+networks:
+  city_explorer_net:
+    driver: bridge

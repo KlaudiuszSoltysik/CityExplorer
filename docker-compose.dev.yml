@@ -1,0 +1,46 @@
+services:
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: city_explorer_postgres_dev
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "${POSTGRES_PORT_DEV}:5432"
+    volumes:
+      - ./docker/postgres/dev_data:/var/lib/postgresql/data
+    networks:
+      - city_explorer_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend-dev:
+    container_name: city_explorer_csharp_dev
+    build:
+      context: ./csharp
+      dockerfile: Dockerfile.dev
+    environment:
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__PostgresConnection=Host=postgres-dev;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+    ports:
+      - "${CSHARP_PORT_DEV}:8080"
+    volumes:
+      - ./csharp:/app
+      - /app/obj
+      - /app/bin
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+    networks:
+      - city_explorer_net
+
+networks:
+  city_explorer_net:
+    driver: bridge
