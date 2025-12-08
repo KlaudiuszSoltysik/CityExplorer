@@ -21,8 +21,6 @@
 
 ## 🔵 Deployment & DevOps
 
-- **Dockerization** – Containerize the application.
-- **CI/CD Pipeline** – Setup GitHub Actions.
 - **Infrastructure** – Terraform implementation.
-- **Git Workflow** – Establish `dev` branch strategy.
+- **Sign in APK**
 - **Observability** – Monitoring and logging setup.

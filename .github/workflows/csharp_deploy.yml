@@ -1,4 +1,4 @@
-name: Build and Publish Backend
+name: Build and publish backend
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
     paths:
       - "csharp/**"
       - "docker-compose.yml"
-      - ".github/workflows/**"
+      - ".github/workflows/csharp_deploy.yml"
 
 env:
   REGISTRY: ghcr.io
