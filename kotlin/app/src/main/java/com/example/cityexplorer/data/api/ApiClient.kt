@@ -1,7 +1,7 @@
 package com.example.cityexplorer.data.api
 
 import android.annotation.SuppressLint
-import com.example.cityexplorer.data.util.Constants
+import com.example.cityexplorer.BuildConfig
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -18,7 +18,7 @@ object ApiClient {
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
-            .baseUrl(Constants.BASE_URL)
+            .baseUrl(BuildConfig.BASE_URL)
             .client(getUnsafeOkHttpClient())
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
