@@ -8,6 +8,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT_PROD}:5432"
     volumes:
       - ./docker/postgres/prod_data:/var/lib/postgresql/data
     networks:
@@ -20,9 +22,7 @@ services:
 
   backend:
     container_name: city_explorer_csharp_prod
-    # ZMIANA KRYTYCZNA: Nie budujemy lokalnie. Pobieramy obraz zbudowany przez GitHub Actions!
-    # Pamiętaj: Zmień 'twoj_nick' i 'nazwa_repo' na małe litery, dokładnie jak w GitHubie.
-    image: ghcr.io/twoj_nick/nazwa_repo/backend:latest
+    image: ghcr.io/klaudiuszsoltysik/city-explorer/backend:latest
     restart: unless-stopped
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
