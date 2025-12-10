@@ -22,5 +22,5 @@
 ## 🔵 Deployment & DevOps
 
 - **Infrastructure** – Terraform implementation.
-- **Sign in APK**
 - **Observability** – Monitoring and logging setup.
+- **README file**
