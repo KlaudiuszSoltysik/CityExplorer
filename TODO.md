@@ -9,7 +9,7 @@
   - **Auto-Resume:** Upon the first successful API response (`200 OK`), reset the error counter to 0 and re-enable GPS updates (`client.requestLocationUpdates()`).
   - **Reactive UI Updates:** Ensure the `ViewModel` observes the Repository (via `Flow`). The UI should automatically reflect changes (e.g., hexagon color change) when the Repository is updated by the Service, without manual triggers.
   - **Provider State Monitoring:** Register a `BroadcastReceiver` or callback to detect if the user disables GPS system-wide during gameplay. Pause the game and notify the user if this happens.
-- **User Screen:** Screen woth user stats, badges, ranking, logout, delete account
+- **User Screen:** Screen with user stats, badges, ranking, logout, delete account option etc.
 
 ## 🟡 Nice to Have (Enhancements)
 
