@@ -21,6 +21,5 @@
 
 ## 🔵 Deployment & DevOps
 
-- **Infrastructure** – Terraform implementation.
 - **Observability** – Monitoring and logging setup.
 - **README file**
