@@ -56,11 +56,11 @@ data class LocationDto(
 
 @Serializable
 data class SyncResponseDto(
-    val updatedHexagons: List<HexagonUpdateDto>
+    val updatedHexagons: List<HexagonProgressDto>
 )
 
 @Serializable
-data class HexagonUpdateDto(
+data class HexagonProgressDto(
     val hexagonId: String,
     val progress: Double
 )

@@ -9,10 +9,10 @@ import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
 import com.example.cityexplorer.data.repositories.HexagonRepository
 import kotlinx.coroutines.launch
 import android.location.Location
-import android.util.Log
 import androidx.lifecycle.ViewModelProvider
 import com.example.cityexplorer.data.dtos.HexagonsDto
 import com.example.cityexplorer.data.dtos.SelectedHexagonDto
+import com.example.cityexplorer.data.repositories.InvalidTokenException
 import com.example.cityexplorer.data.repositories.UserRepository
 import com.example.cityexplorer.data.util.LocationTrackingService
 import com.example.cityexplorer.data.util.TokenService
@@ -83,7 +83,8 @@ class MapViewModel(
         val serviceActive = LocationTrackingService.isRunning
         state = state.copy(isExploringMode = serviceActive)
 
-        loadData(city, isInitial = true)
+        loadHexagonData(city, isInitial = true)
+        loadProgressesData(city)
     }
 
     // Stops location tracking service on view model clear
@@ -98,7 +99,8 @@ class MapViewModel(
 
     // Refreshes data from the server
     fun refreshData() {
-        loadData(city, isInitial = false)
+        loadHexagonData(city, isInitial = false)
+        loadProgressesData(city)
     }
 
     // Show toast if user doesn't grant location permissions
@@ -173,7 +175,7 @@ class MapViewModel(
     }
 
     // Fetches hexagon data with repo-managed fallback logic
-    fun loadData(city: String, isInitial: Boolean) {
+    fun loadHexagonData(city: String, isInitial: Boolean) {
         viewModelScope.launch {
             state = if (isInitial) {
                 state.copy(dataState = MapUiState.Loading)
@@ -185,8 +187,8 @@ class MapViewModel(
                 val result = hexagonRepository.getHexagonsFromCity(city, forceRefresh = !isInitial)
 
                 val data = when (result) {
-                    is HexagonRepository.RepoResult.Success -> result.data
-                    is HexagonRepository.RepoResult.Fallback -> {
+                    is HexagonRepository.GetHexagonsFromCityResult.Success -> result.data
+                    is HexagonRepository.GetHexagonsFromCityResult.Fallback -> {
                         _uiEvent.send(MapUiEvent.ShowToast("Offline mode!"))
                         result.data
                     }
@@ -196,13 +198,57 @@ class MapViewModel(
                     dataState = MapUiState.Success(data)
                 )
 
-            } catch (e: Exception) {
-                e.message?.let { Log.e("error", it) }
+            } catch (_: Exception) {
                 state = state.copy(
                     dataState = MapUiState.Error("Couldn't load data. Check internet connection.")
                 )
             } finally {
                 state = state.copy(isRefreshing = false)
+            }
+        }
+    }
+
+    fun loadProgressesData(city: String) {
+        viewModelScope.launch {
+            try {
+                val progressList = hexagonRepository.getHexagonProgresses(city)
+
+                // 2. Pobieramy obecny stan danych mapy
+                val currentUiState = state.dataState
+
+                // 3. Aktualizujemy TYLKO jeśli mamy już załadowaną mapę (Success)
+                if (currentUiState is MapUiState.Success) {
+
+                    // A. Tworzymy mapę dla szybkiego wyszukiwania: [HexagonId -> Progress]
+                    // Dzięki temu wyszukiwanie to O(1) zamiast O(N) dla każdego elementu
+                    val progressMap = progressList.associate { it.hexagonId to it.progress }
+
+                    // B. Bierzemy obecne dane (GetCityHexagonsDataDto)
+                    val currentCityData = currentUiState.data
+
+                    // C. Tworzymy nową listę heksagonów z zaktualizowanym progresem
+                    val updatedHexagons = currentCityData.hexagons.map { hexagon ->
+                        // Szukamy progresu dla danego ID. Jeśli brak, zostawiamy 0.0 lub obecną wartość
+                        val newProgress = progressMap[hexagon.id] ?: 0.0
+
+                        // Kopiujemy obiekt (immutability) ze zmianą pola progress
+                        hexagon.copy(progress = newProgress)
+                    }
+
+                    // D. Nadpisujemy stan, kopiując strukturę w górę
+                    state = state.copy(
+                        dataState = MapUiState.Success(
+                            data = currentCityData.copy(
+                                hexagons = updatedHexagons
+                            )
+                        )
+                    )
+                }
+
+            } catch (_: InvalidTokenException) {
+                _uiEvent.send(MapUiEvent.ShowToast("Login to see progress"))
+            } catch (_: Exception) {
+                _uiEvent.send(MapUiEvent.ShowToast("Couldn't load data. Check internet connection."))
             }
         }
     }

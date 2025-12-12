@@ -3,6 +3,7 @@
 ## 🔴 Mandatory (MVP Core)
 
 - **Core Logic** – Implementation of primary application features.
+  - **Prevent user token from expiration during exploration**
   - **Handle API Response:** Implement logic to parse the batch upload response (which contains updated hexagon data) and update cache.
   - **Implement "3-Strike" Rule:** Introduce a failure counter in the Service. If 3 consecutive batch uploads fail, transition the Service state to `SUSPENDED`.
   - **Battery Optimization:** When in `SUSPENDED` state, physically stop GPS updates (`client.removeLocationUpdates()`) to save battery, but keep the network retry loop active.

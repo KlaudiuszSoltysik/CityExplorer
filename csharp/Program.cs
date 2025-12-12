@@ -5,20 +5,14 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Service Registration
-
-// API & Controllers
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
-// Database
 builder.Services.AddDbContext<PostgresContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresConnection")));
 
-// Background Workers
 builder.Services.AddHostedService<SessionCleanupService>();
 
-// CORS Configuration
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -32,8 +26,6 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
-
-// HTTP Request Pipeline
 
 if (app.Environment.IsDevelopment())
 {
