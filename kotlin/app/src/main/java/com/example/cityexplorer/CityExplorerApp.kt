@@ -26,7 +26,8 @@ class CityExplorerApp : Application() {
         hexagonRepository = HexagonRepository(
             ApiClient.hexagonApiClient,
             ApiClient.versionApiClient,
-            cacheService
+            cacheService,
+            tokenService
         )
 
         userRepository = UserRepository(ApiClient.userApiClient)

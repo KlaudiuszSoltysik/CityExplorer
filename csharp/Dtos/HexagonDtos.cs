@@ -40,7 +40,7 @@ public class LocationDto
     public DateTime Timestamp  { get; set; }
 }
 
-public class HexagonUpdateDto
+public class HexagonProgressDto
 {
     public string HexagonId { get; set; } = string.Empty;
     public double Progress { get; set; }

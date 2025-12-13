@@ -9,10 +9,10 @@ import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
 import com.example.cityexplorer.data.repositories.HexagonRepository
 import kotlinx.coroutines.launch
 import android.location.Location
-import android.util.Log
 import androidx.lifecycle.ViewModelProvider
 import com.example.cityexplorer.data.dtos.HexagonsDto
 import com.example.cityexplorer.data.dtos.SelectedHexagonDto
+import com.example.cityexplorer.data.repositories.InvalidTokenException
 import com.example.cityexplorer.data.repositories.UserRepository
 import com.example.cityexplorer.data.util.LocationTrackingService
 import com.example.cityexplorer.data.util.TokenService
@@ -83,7 +83,10 @@ class MapViewModel(
         val serviceActive = LocationTrackingService.isRunning
         state = state.copy(isExploringMode = serviceActive)
 
-        loadData(city, isInitial = true)
+        viewModelScope.launch {
+            loadHexagonData(city, true)
+            loadProgressesData(city)
+        }
     }
 
     // Stops location tracking service on view model clear
@@ -98,7 +101,10 @@ class MapViewModel(
 
     // Refreshes data from the server
     fun refreshData() {
-        loadData(city, isInitial = false)
+        viewModelScope.launch {
+            loadHexagonData(city, false)
+            loadProgressesData(city)
+        }
     }
 
     // Show toast if user doesn't grant location permissions
@@ -173,37 +179,69 @@ class MapViewModel(
     }
 
     // Fetches hexagon data with repo-managed fallback logic
-    fun loadData(city: String, isInitial: Boolean) {
-        viewModelScope.launch {
-            state = if (isInitial) {
-                state.copy(dataState = MapUiState.Loading)
-            } else {
-                state.copy(isRefreshing = true)
+    suspend fun loadHexagonData(city: String, isInitial: Boolean) {
+        state = if (isInitial) {
+            state.copy(dataState = MapUiState.Loading)
+        } else {
+            state.copy(isRefreshing = true)
+        }
+
+        try {
+            val result = hexagonRepository.getHexagonsFromCity(city, forceRefresh = !isInitial)
+
+            val data = when (result) {
+                is HexagonRepository.GetHexagonsFromCityResult.Success -> result.data
+                is HexagonRepository.GetHexagonsFromCityResult.Fallback -> {
+                    _uiEvent.send(MapUiEvent.ShowToast("Offline mode!"))
+                    result.data
+                }
             }
 
-            try {
-                val result = hexagonRepository.getHexagonsFromCity(city, forceRefresh = !isInitial)
+            state = state.copy(
+                dataState = MapUiState.Success(data)
+            )
 
-                val data = when (result) {
-                    is HexagonRepository.RepoResult.Success -> result.data
-                    is HexagonRepository.RepoResult.Fallback -> {
-                        _uiEvent.send(MapUiEvent.ShowToast("Offline mode!"))
-                        result.data
-                    }
+        } catch (_: Exception) {
+            state = state.copy(
+                dataState = MapUiState.Error("Couldn't load data. Check internet connection.")
+            )
+        } finally {
+            state = state.copy(isRefreshing = false)
+        }
+    }
+
+    // Fetches hexagon progresses
+    suspend fun loadProgressesData(city: String) {
+        try {
+            val progressList = hexagonRepository.getHexagonProgresses(city)
+
+            val currentUiState = state.dataState
+
+            if (currentUiState is MapUiState.Success) {
+
+                val progressMap = progressList.associate { it.hexagonId to it.progress }
+
+                val currentCityData = currentUiState.cityHexagonsDataDto
+
+                val updatedHexagons = currentCityData.hexagons.map { hexagon ->
+                    val newProgress = progressMap[hexagon.id] ?: 0.0
+
+                    hexagon.copy(progress = newProgress)
                 }
 
                 state = state.copy(
-                    dataState = MapUiState.Success(data)
+                    dataState = MapUiState.Success(
+                        cityHexagonsDataDto = currentCityData.copy(
+                            hexagons = updatedHexagons
+                        )
+                    )
                 )
-
-            } catch (e: Exception) {
-                e.message?.let { Log.e("error", it) }
-                state = state.copy(
-                    dataState = MapUiState.Error("Couldn't load data. Check internet connection.")
-                )
-            } finally {
-                state = state.copy(isRefreshing = false)
             }
+
+        } catch (_: InvalidTokenException) {
+            _uiEvent.send(MapUiEvent.ShowToast("Login to see progress"))
+        } catch (_: Exception) {
+            _uiEvent.send(MapUiEvent.ShowToast("Couldn't load data. Check internet connection."))
         }
     }
 

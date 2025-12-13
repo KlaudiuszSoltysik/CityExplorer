@@ -23,7 +23,6 @@ services:
   backend:
     container_name: city_explorer_csharp_prod
     image: ghcr.io/klaudiuszsoltysik/city-explorer/backend:latest
-    restart: unless-stopped
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__PostgresConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
@@ -36,7 +35,6 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: city_explorer_tunnel
-    restart: unless-stopped
     command: tunnel run
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}

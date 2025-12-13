@@ -6,16 +6,20 @@ import com.example.cityexplorer.data.api.VersionApiClient
 import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
 import com.example.cityexplorer.data.dtos.GetCountriesWithCitiesDto
 import com.example.cityexplorer.data.dtos.GetPoisFromHexagonDto
+import com.example.cityexplorer.data.dtos.HexagonProgressDto
 import com.example.cityexplorer.data.dtos.PostLocationBatchDto
 import com.example.cityexplorer.data.util.CacheService
+import com.example.cityexplorer.data.util.TokenService
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import retrofit2.HttpException
 
 class HexagonRepository(
     private val hexagonApiClient: HexagonApiClient,
     private val versionApiClient: VersionApiClient,
-    private val cacheService: CacheService
+    private val cacheService: CacheService,
+    private val tokenService: TokenService
 ) {
     suspend fun getCountriesWithCities(forceRefresh: Boolean = false): List<GetCountriesWithCitiesDto> = withContext(Dispatchers.IO) {
         val key = "get-countries-with-cities"
@@ -47,7 +51,7 @@ class HexagonRepository(
         }
     }
 
-    suspend fun getHexagonsFromCity(city: String, forceRefresh: Boolean = false): RepoResult<GetCityHexagonsDataDto> = withContext(Dispatchers.IO) {
+    suspend fun getHexagonsFromCity(city: String, forceRefresh: Boolean = false): GetHexagonsFromCityResult<GetCityHexagonsDataDto> = withContext(Dispatchers.IO) {
         val key = "get-hexagons-from-city-$city"
         val dtoType = object : TypeToken<GetCityHexagonsDataDto>() {}.type
 
@@ -57,19 +61,19 @@ class HexagonRepository(
 
             if (!forceRefresh && cachedVersion == remoteVersion) {
                 val cachedData = cacheService.getCachedData<GetCityHexagonsDataDto>(key, dtoType)
-                if (cachedData != null) return@withContext RepoResult.Success(cachedData)
+                if (cachedData != null) return@withContext GetHexagonsFromCityResult.Success(cachedData)
             }
 
             val networkData = hexagonApiClient.getHexagonsFromCity(city)
             cacheService.saveToCache(key, remoteVersion, networkData)
 
-            return@withContext RepoResult.Success(networkData)
+            return@withContext GetHexagonsFromCityResult.Success(networkData)
 
         } catch (e: Exception) {
             val fallbackData = cacheService.getCachedData<GetCityHexagonsDataDto>(key, dtoType)
 
             if (fallbackData != null) {
-                return@withContext RepoResult.Fallback(fallbackData)
+                return@withContext GetHexagonsFromCityResult.Fallback(fallbackData)
             } else {
                 throw e
             }
@@ -100,8 +104,32 @@ class HexagonRepository(
         }
     }
 
-    sealed interface RepoResult<out T> {
-        data class Success<T>(val data: T) : RepoResult<T>
-        data class Fallback<T>(val data: T) : RepoResult<T>
+    suspend fun getHexagonProgresses(city: String): List<HexagonProgressDto> {
+        val token = tokenService.getToken()
+
+        if (token.isNullOrBlank()) {
+            throw InvalidTokenException()
+        }
+
+        return try {
+            hexagonApiClient.getHexagonProgresses("Bearer $token", city)
+
+        } catch (e: HttpException) {
+            if (e.code() == 401) {
+                tokenService.clearToken()
+                throw InvalidTokenException()
+            } else {
+                throw e
+            }
+        } catch (e: Exception) {
+            throw e
+        }
+    }
+
+    sealed interface GetHexagonsFromCityResult<out T> {
+        data class Success<T>(val data: T) : GetHexagonsFromCityResult<T>
+        data class Fallback<T>(val data: T) : GetHexagonsFromCityResult<T>
     }
 }
+
+class InvalidTokenException : Exception("Token is missing or invalid")
