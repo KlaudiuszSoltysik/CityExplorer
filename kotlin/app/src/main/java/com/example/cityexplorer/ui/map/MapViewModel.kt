@@ -83,8 +83,10 @@ class MapViewModel(
         val serviceActive = LocationTrackingService.isRunning
         state = state.copy(isExploringMode = serviceActive)
 
-        loadHexagonData(city, isInitial = true)
-        loadProgressesData(city)
+        viewModelScope.launch {
+            loadHexagonData(city, true)
+            loadProgressesData(city)
+        }
     }
 
     // Stops location tracking service on view model clear
@@ -99,8 +101,10 @@ class MapViewModel(
 
     // Refreshes data from the server
     fun refreshData() {
-        loadHexagonData(city, isInitial = false)
-        loadProgressesData(city)
+        viewModelScope.launch {
+            loadHexagonData(city, false)
+            loadProgressesData(city)
+        }
     }
 
     // Show toast if user doesn't grant location permissions
@@ -175,81 +179,69 @@ class MapViewModel(
     }
 
     // Fetches hexagon data with repo-managed fallback logic
-    fun loadHexagonData(city: String, isInitial: Boolean) {
-        viewModelScope.launch {
-            state = if (isInitial) {
-                state.copy(dataState = MapUiState.Loading)
-            } else {
-                state.copy(isRefreshing = true)
-            }
+    suspend fun loadHexagonData(city: String, isInitial: Boolean) {
+        state = if (isInitial) {
+            state.copy(dataState = MapUiState.Loading)
+        } else {
+            state.copy(isRefreshing = true)
+        }
 
-            try {
-                val result = hexagonRepository.getHexagonsFromCity(city, forceRefresh = !isInitial)
+        try {
+            val result = hexagonRepository.getHexagonsFromCity(city, forceRefresh = !isInitial)
 
-                val data = when (result) {
-                    is HexagonRepository.GetHexagonsFromCityResult.Success -> result.data
-                    is HexagonRepository.GetHexagonsFromCityResult.Fallback -> {
-                        _uiEvent.send(MapUiEvent.ShowToast("Offline mode!"))
-                        result.data
-                    }
+            val data = when (result) {
+                is HexagonRepository.GetHexagonsFromCityResult.Success -> result.data
+                is HexagonRepository.GetHexagonsFromCityResult.Fallback -> {
+                    _uiEvent.send(MapUiEvent.ShowToast("Offline mode!"))
+                    result.data
                 }
-
-                state = state.copy(
-                    dataState = MapUiState.Success(data)
-                )
-
-            } catch (_: Exception) {
-                state = state.copy(
-                    dataState = MapUiState.Error("Couldn't load data. Check internet connection.")
-                )
-            } finally {
-                state = state.copy(isRefreshing = false)
             }
+
+            state = state.copy(
+                dataState = MapUiState.Success(data)
+            )
+
+        } catch (_: Exception) {
+            state = state.copy(
+                dataState = MapUiState.Error("Couldn't load data. Check internet connection.")
+            )
+        } finally {
+            state = state.copy(isRefreshing = false)
         }
     }
 
-    fun loadProgressesData(city: String) {
-        viewModelScope.launch {
-            try {
-                val progressList = hexagonRepository.getHexagonProgresses(city)
+    // Fetches hexagon progresses
+    suspend fun loadProgressesData(city: String) {
+        try {
+            val progressList = hexagonRepository.getHexagonProgresses(city)
 
-                // 2. Pobieramy obecny stan danych mapy
-                val currentUiState = state.dataState
+            val currentUiState = state.dataState
 
-                // 3. Aktualizujemy TYLKO jeśli mamy już załadowaną mapę (Success)
-                if (currentUiState is MapUiState.Success) {
+            if (currentUiState is MapUiState.Success) {
 
-                    // A. Tworzymy mapę dla szybkiego wyszukiwania: [HexagonId -> Progress]
-                    // Dzięki temu wyszukiwanie to O(1) zamiast O(N) dla każdego elementu
-                    val progressMap = progressList.associate { it.hexagonId to it.progress }
+                val progressMap = progressList.associate { it.hexagonId to it.progress }
 
-                    // B. Bierzemy obecne dane (GetCityHexagonsDataDto)
-                    val currentCityData = currentUiState.data
+                val currentCityData = currentUiState.cityHexagonsDataDto
 
-                    // C. Tworzymy nową listę heksagonów z zaktualizowanym progresem
-                    val updatedHexagons = currentCityData.hexagons.map { hexagon ->
-                        // Szukamy progresu dla danego ID. Jeśli brak, zostawiamy 0.0 lub obecną wartość
-                        val newProgress = progressMap[hexagon.id] ?: 0.0
+                val updatedHexagons = currentCityData.hexagons.map { hexagon ->
+                    val newProgress = progressMap[hexagon.id] ?: 0.0
 
-                        // Kopiujemy obiekt (immutability) ze zmianą pola progress
-                        hexagon.copy(progress = newProgress)
-                    }
-
-                    // D. Nadpisujemy stan, kopiując strukturę w górę
-                    state = state.copy(
-                        dataState = MapUiState.Success(
-                            data = currentCityData.copy(
-                                hexagons = updatedHexagons
-                            )
-                        )
-                    )
+                    hexagon.copy(progress = newProgress)
                 }
 
-            } catch (_: InvalidTokenException) {
-                _uiEvent.send(MapUiEvent.ShowToast("Login to see progress"))
-            } catch (_: Exception) {
-                _uiEvent.send(MapUiEvent.ShowToast("Couldn't load data. Check internet connection."))
+                state = state.copy(
+                    dataState = MapUiState.Success(
+                        cityHexagonsDataDto = currentCityData.copy(
+                            hexagons = updatedHexagons
+                        )
+                    )
+                )
             }
+
+        } catch (_: InvalidTokenException) {
+            _uiEvent.send(MapUiEvent.ShowToast("Login to see progress"))
+        } catch (_: Exception) {
+            _uiEvent.send(MapUiEvent.ShowToast("Couldn't load data. Check internet connection."))
         }
     }
 
