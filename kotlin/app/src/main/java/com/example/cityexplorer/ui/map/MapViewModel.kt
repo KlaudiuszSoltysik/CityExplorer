@@ -268,6 +268,11 @@ class MapViewModel(
 
             if (targetHexId != null && targetWeight != null) {
                 try {
+                    state = state.copy(selectedHexagonPois = SelectedHexagonDto(
+                        weight = targetWeight,
+                        pois = emptyList()
+                    ))
+
                     val pois = hexagonRepository.getPoisFromHexagon(targetHexId)
 
                     state = state.copy(selectedHexagonPois = SelectedHexagonDto(
