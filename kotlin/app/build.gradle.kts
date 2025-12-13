@@ -41,9 +41,12 @@ android {
 
     buildTypes {
         getByName("debug") {
+            applicationIdSuffix = ".dev"
+            resValue("string", "app_name", "City Explorer dev")
             buildConfigField("String", "BASE_URL", "\"http://192.168.0.13:6101/\"")
         }
         getByName("release") {
+            resValue("string", "app_name", "City Explorer")
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             buildConfigField("String", "BASE_URL", "\"https://city-explorer.260824.xyz/\"")
