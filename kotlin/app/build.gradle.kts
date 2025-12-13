@@ -41,24 +41,27 @@ android {
 
     buildTypes {
         getByName("debug") {
+            applicationIdSuffix = ".dev"
+            resValue("string", "app_name", "City Explorer dev")
             buildConfigField("String", "BASE_URL", "\"http://192.168.0.13:6101/\"")
         }
         getByName("release") {
+            resValue("string", "app_name", "City Explorer")
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            buildConfigField("String", "BASE_URL", "\"https://city-explorer.260824.xyz/\"")
+            buildConfigField("String", "BASE_URL", "\"https://city-explorer-api.260824.xyz/\"")
             signingConfig = signingConfigs.getByName("release")
         }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlin {
         compilerOptions {
-            jvmTarget = JvmTarget.JVM_11
+            jvmTarget.set(JvmTarget.JVM_17)
         }
     }
 

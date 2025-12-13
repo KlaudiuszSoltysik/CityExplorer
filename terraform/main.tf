@@ -2,7 +2,10 @@ terraform {
   required_providers {
     cloudflare = {
       source  = "cloudflare/cloudflare"
-      version = "~> 4.0"
+      version = "~> 5.0"
+    }
+    random = {
+      source = "hashicorp/random"
     }
   }
 }
@@ -24,10 +27,14 @@ provider "cloudflare" {
   api_token = var.cloudflare_api_token
 }
 
+resource "random_id" "tunnel_secret" {
+  byte_length = 32
+}
+
 resource "cloudflare_zero_trust_tunnel_cloudflared" "city_explorer_tunnel" {
   account_id = var.account_id
   name       = "city-explorer-tunnel"
-  secret     = base64sha256(var.cloudflare_api_token)
+  secret     = random_id.tunnel_secret.b64_std 
 }
 
 resource "cloudflare_zero_trust_tunnel_cloudflared_config" "city_explorer_config" {
@@ -36,7 +43,7 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "city_explorer_config
 
   config {
     ingress_rule {
-      hostname = "city-explorer-api.260824.xyz" 
+      hostname = "city-explorer-api.260824.xyz"
       service  = "http://backend:8080"
     }
     ingress_rule {
@@ -45,15 +52,23 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "city_explorer_config
   }
 }
 
-resource "cloudflare_record" "city_explorer_dns" {
+resource "cloudflare_dns_record" "city_explorer_dns" {
   zone_id = var.zone_id
-  name    = "city-explorer-api" 
+  name    = "city-explorer-api"
   content = "${cloudflare_zero_trust_tunnel_cloudflared.city_explorer_tunnel.id}.cfargotunnel.com"
   type    = "CNAME"
   proxied = true
 }
 
 output "tunnel_token" {
-  value     = cloudflare_zero_trust_tunnel_cloudflared.city_explorer_tunnel.tunnel_token
   sensitive = true
+  value = base64encode(jsonencode({
+    "a" = var.account_id,
+    "t" = cloudflare_zero_trust_tunnel_cloudflared.city_explorer_tunnel.id,
+    "s" = random_id.tunnel_secret.b64_std
+  }))
 }
+
+# terraform apply
+# terraform output -raw tunnel_token
+# docker-compose up -d --force-recreate --build cloudflared
