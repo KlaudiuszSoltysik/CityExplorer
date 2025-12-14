@@ -15,8 +15,6 @@ public class VersionController(PostgresContext postgresContext) : ControllerBase
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Key == key);
 
-        if (version == null) return NotFound();
-
-        return Ok(version.VersionNumber);
+        return Ok(version == null ? "0" : version.VersionNumber);
     }
 }
