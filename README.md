@@ -1,9 +1,11 @@
-# 🏙️ City Explorer
+# **City Explorer**
+
+**During development**
 
 ![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen)
 ![Tech Stack](https://img.shields.io/badge/Stack-Kotlin%20|%20.NET%20|%20Python-blue)
 
-> **Goal:** Gamify urban exploration by turning the real world into a hexagonal strategy board using GPS location.
+Gamify urban exploration by turning the real world into a hexagonal strategy board using GPS location.
 
 ## 📖 About
 
@@ -11,7 +13,7 @@ City Explorer is a mobile platform designed to encourage physical activity throu
 
 ## 📸 Screenshots
 
-_(Screenshots will be added soon)_
+_screenshots_
 
 ## ⚙️ Core Mechanics
 
@@ -33,6 +35,7 @@ Built with a focus on performance and battery efficiency during background track
 - **Google Maps SDK:** Custom styling and overlay management for rendering hexagonal grids.
 - **Authentication:** Secure sign-in flow implemented via **Google OAuth**.
 - **Architecture:** Uses modern Jetpack Compose for UI and Coroutines for asynchronous tasks.
+- **Deployment:** Downloadable release version of application avliable at _link_.
 
 ### 🔙 Backend (.NET 9.0 & PostgreSQL)
 
@@ -55,21 +58,21 @@ Fully dockerized environment with automated pipelines.
 
 - **Infrastructure as Code:** **Terraform** used to configure Cloudflare Tunnel for secure exposure of local services.
 - **CI/CD:** GitHub Actions configured for automated building.
-- **Docker:** Separate containers for Development and Production environments with auto-deploy on changes.
+- **Docker:** Separate containers for independent Development and Production environments with auto-deploy on changes.
+- **Server:** Backend and database are hosted on-premise.
 
 ## 🚧 Roadmap (Upcoming Features)
 
 - **Monetization:** Implementation of Consumable In-App Purchases (Google Play Billing Library).
 - **Automated Testing:** Expanding CI pipeline with Unit & Integration tests for Backend and Mobile.
-- **Social Features:** Guilds and team-based competitions.
-- **Swagger/OpenAPI:** Auto-generated API documentation for easy client integration.
+- **Scalar:** Auto-generated API documentation for easy client integration.
 
 ## 💻 Tech Stack
 
 | Domain       | Technology                                                    |
 | :----------- | :------------------------------------------------------------ |
 | **Mobile**   | Kotlin, Jetpack Compose, Google Maps SDK, Google OAuth        |
-| **Backend**  | C# .NET 9.0, Entity Framework Core                            |
+| **Backend**  | C# .NET 9.0, Entity Framework Core, Uber H3                   |
 | **Data**     | Python, Uber H3, Overpass API                                 |
 | **Database** | PostgreSQL                                                    |
 | **DevOps**   | Docker, Docker Compose, Terraform, Cloudflare, GitHub Actions |
