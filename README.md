@@ -3,7 +3,7 @@
 ![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen)
 ![Tech Stack](https://img.shields.io/badge/Stack-Kotlin%20|%20.NET%20|%20Python-blue)
 
-Gamify urban exploration by turning the real world into a hexagonal strategy board using GPS location.
+> **Goal:** Gamify urban exploration by turning the real world into a hexagonal strategy board using GPS location.
 
 ## 📖 About
 
@@ -29,16 +29,16 @@ The system relies on a complex geospatial model rather than simple coordinates:
 Built with a focus on performance and battery efficiency during background tracking.
 
 - **Background Location Services:** Robust state management for tracking user location even when the app is minimized (Foreground Service).
-- **Smart Caching:** implemented local caching strategy to minimize API calls and data usage.
+- **Smart Caching:** Implemented local caching strategy to minimize API calls and data usage.
 - **Google Maps SDK:** Custom styling and overlay management for rendering hexagonal grids.
-- **Google OAuth login**
+- **Authentication:** Secure sign-in flow implemented via **Google OAuth**.
 - **Architecture:** Uses modern Jetpack Compose for UI and Coroutines for asynchronous tasks.
 
 ### 🔙 Backend (.NET 9.0 & PostgreSQL)
 
 High-performance REST API designed for throughput and scalability.
 
-- **Uber H3 Integration:**
+- **Uber H3 Integration:** Server-side spatial indexing for fast geospatial queries and validation.
 - **Background Workers:** Dedicated services for managing session states and cleaning up stale data.
 - **Security:** JWT Token Authentication and secure session management.
 
