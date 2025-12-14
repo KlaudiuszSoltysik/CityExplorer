@@ -10,6 +10,7 @@ import com.example.cityexplorer.data.repositories.HexagonRepository
 import kotlinx.coroutines.launch
 import android.location.Location
 import androidx.lifecycle.ViewModelProvider
+import com.example.cityexplorer.data.dtos.HexagonProgressDto
 import com.example.cityexplorer.data.dtos.HexagonsDto
 import com.example.cityexplorer.data.dtos.SelectedHexagonDto
 import com.example.cityexplorer.data.repositories.InvalidTokenException
@@ -86,6 +87,12 @@ class MapViewModel(
         viewModelScope.launch {
             loadHexagonData(city, true)
             loadProgressesData(city)
+        }
+
+        viewModelScope.launch {
+            hexagonRepository.hexagonUpdates.collect { updates ->
+                applyProgressUpdatesToState(updates)
+            }
         }
     }
 
@@ -215,29 +222,7 @@ class MapViewModel(
         try {
             val progressList = hexagonRepository.getHexagonProgresses(city)
 
-            val currentUiState = state.dataState
-
-            if (currentUiState is MapUiState.Success) {
-
-                val progressMap = progressList.associate { it.hexagonId to it.progress }
-
-                val currentCityData = currentUiState.cityHexagonsDataDto
-
-                val updatedHexagons = currentCityData.hexagons.map { hexagon ->
-                    val newProgress = progressMap[hexagon.id] ?: 0.0
-
-                    hexagon.copy(progress = newProgress)
-                }
-
-                state = state.copy(
-                    dataState = MapUiState.Success(
-                        cityHexagonsDataDto = currentCityData.copy(
-                            hexagons = updatedHexagons
-                        )
-                    )
-                )
-            }
-
+            applyProgressUpdatesToState(progressList)
         } catch (_: InvalidTokenException) {
             _uiEvent.send(MapUiEvent.ShowToast("Login to see progress"))
         } catch (_: Exception) {
@@ -283,6 +268,32 @@ class MapViewModel(
                     _uiEvent.send(MapUiEvent.ShowToast("Failed to load POIs."))
                 }
             }
+        }
+    }
+
+    // Updates state with new progresses
+    private fun applyProgressUpdatesToState(updates: List<HexagonProgressDto>) {
+        val currentUiState = state.dataState
+
+        if (currentUiState is MapUiState.Success) {
+            val updatesMap = updates.associate { it.hexagonId to it.progress }
+            val currentCityData = currentUiState.cityHexagonsDataDto
+
+            val updatedHexagons = currentCityData.hexagons.map { hexagon ->
+                if (updatesMap.containsKey(hexagon.id)) {
+                    hexagon.copy(progress = updatesMap[hexagon.id]!!)
+                } else {
+                    hexagon
+                }
+            }
+
+            state = state.copy(
+                dataState = MapUiState.Success(
+                    cityHexagonsDataDto = currentCityData.copy(
+                        hexagons = updatedHexagons
+                    )
+                )
+            )
         }
     }
 

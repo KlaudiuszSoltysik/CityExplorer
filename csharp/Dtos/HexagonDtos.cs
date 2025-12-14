@@ -27,17 +27,16 @@ public class GetPoisFromHexagonDto
     public required bool IsPromoted { get; set; }
 }
 
-public class PostLocationBatchDto
-{
-    public required string Token { get; set; }
-    public required List<LocationDto> Locations { get; set; }
-}
-
 public class LocationDto
 {
     public double Latitude { get; set; }
     public double Longitude { get; set; }
-    public DateTime Timestamp  { get; set; }
+    public DateTime Timestamp { get; set; }
+}
+
+public class PostLocationBatchDto
+{
+    public required List<LocationDto> Locations { get; set; }
 }
 
 public class HexagonProgressDto
