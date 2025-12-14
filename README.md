@@ -67,13 +67,6 @@ Fully dockerized environment with automated pipelines.
 - **Docker:** Separate containers for independent Development and Production environments with auto-deploy on changes.
 - **Server:** Backend and database are hosted on-premise.
 
-## 🚧 Roadmap (Upcoming Features)
-
-- **Monetization:** Implementation of Consumable In-App Purchases (Google Play Billing Library).
-- **Automated Testing:** Expanding CI pipeline with Unit & Integration tests for Backend and Mobile.
-- **Scalar:** Auto-generated API documentation for easy client integration.
-- **GitHub Action:** Action to automatically create release
-
 ## 💻 Tech Stack
 
 | Domain       | Technology                                                    |
