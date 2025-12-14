@@ -41,7 +41,7 @@ Built with a focus on performance and battery efficiency during background track
 - **Google Maps SDK:** Custom styling and overlay management for rendering hexagonal grids.
 - **Authentication:** Secure sign-in flow implemented via **Google OAuth**.
 - **Architecture:** Uses modern Jetpack Compose for UI and Coroutines for asynchronous tasks.
-- **Deployment:** Downloadable release version of application avliable at _link_.
+- **Deployment:** Downloadable release version of application.
 
 ### 🔙 Backend (.NET 9.0 & PostgreSQL)
 
@@ -76,3 +76,29 @@ Fully dockerized environment with automated pipelines.
 | **Data**     | Python, Uber H3, Overpass API                                 |
 | **Database** | PostgreSQL                                                    |
 | **DevOps**   | Docker, Docker Compose, Terraform, Cloudflare, GitHub Actions |
+
+## 🚀 Project Roadmap
+
+### 🔴 Mandatory (MVP Core)
+
+- **Prevent user token from expiration during exploration**
+- **Implement "3-Strike" Rule:** Introduce a failure counter in the Service. If 3 consecutive batch uploads fail, transition the Service state to `SUSPENDED`.
+- **Battery Optimization:** When in `SUSPENDED` state, physically stop GPS updates (`client.removeLocationUpdates()`) to save battery, but keep the network retry loop active.
+- **Auto-Resume:** Upon the first successful API response (`200 OK`), reset the error counter to 0 and re-enable GPS updates (`client.requestLocationUpdates()`).
+- **Provider State Monitoring:** Register a `BroadcastReceiver` or callback to detect if the user disables GPS system-wide during gameplay. Pause the game and notify the user if this happens.
+- **User Screen:** Screen with user stats, badges, ranking, logout, delete account option etc.
+
+### 🟡 Nice to Have (Enhancements)
+
+- **Token Management** – Handling token expiration during active exploration.
+- **Social Features** – Community and interaction aspects.
+- **Refactoring** – Dependency Injection implementation (Hilt migration).
+- **Monetization:** Implementation of Consumable In-App Purchases (Google Play Billing Library).
+- **Automated Testing:** Expanding CI pipeline with Unit & Integration tests for Backend and Mobile.
+- **Scalar:** Auto-generated API documentation for easy client integration.
+- **GitHub Action:** Action to automatically create release
+- **Observability** – Monitoring and logging setup.
+- **Backup Strategy:** Automated daily **PostgreSQL backups** pushed to external storage (S3/GCS) to mitigate on-premise hardware failure risks.
+- **Error Tracking:** Setup **Sentry** or **Firebase Crashlytics** specifically for capturing unhandled exceptions in the mobile client and backend.
+- **DataOps Pipeline:** Automate the Python execution flow to periodically refresh OSM data and re-calculate Hexagon weights without manual intervention.
+- **Host Monitoring:** Setup **Prometheus/Node Exporter** to monitor on-premise server resources (Disk usage, RAM, CPU) to prevent outages due to resource exhaustion.
