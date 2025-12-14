@@ -1,11 +1,17 @@
-# **City Explorer**
-
-**During development**
+# City Explorer (during development)
 
 ![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen)
 ![Tech Stack](https://img.shields.io/badge/Stack-Kotlin%20|%20.NET%20|%20Python-blue)
 
 Gamify urban exploration by turning the real world into a hexagonal strategy board using GPS location.
+
+## 📲 Download application
+
+<a href="https://github.com/KlaudiuszSoltysik/CityExplorer/releases/download/beta/app-release.apk"><img src="https://img.shields.io/badge/Download%20.APK-3DDC84?style=for-the-badge&logo=android&logoColor=white" height="40"></a><br><br>
+
+<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://github.com/KlaudiuszSoltysik/CityExplorer/releases/download/beta/app-release.apk" width="150" alt="QR Code" />
+
+> _You have to allow instalation from unknown sources._
 
 ## 📖 About
 
@@ -66,6 +72,7 @@ Fully dockerized environment with automated pipelines.
 - **Monetization:** Implementation of Consumable In-App Purchases (Google Play Billing Library).
 - **Automated Testing:** Expanding CI pipeline with Unit & Integration tests for Backend and Mobile.
 - **Scalar:** Auto-generated API documentation for easy client integration.
+- **GitHub Action:** Action to automatically create release
 
 ## 💻 Tech Stack
 
