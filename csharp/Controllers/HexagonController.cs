@@ -1,10 +1,9 @@
 ﻿using csharp.Dtos;
 using csharp.Models;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using H3;
 using H3.Model;
-using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace csharp.Controllers;
 
@@ -85,23 +84,26 @@ public class HexagonController(PostgresContext postgresContext) : ControllerBase
 
     // Saves batch locations to database and returns progress
     [HttpPost("post-location-batch")]
-    public async Task<IActionResult> PostLocationBatch([FromBody] PostLocationBatchDto postLocationBatchDto)
+    public async Task<IActionResult> PostLocationBatch(
+        [FromHeader(Name = "Authorization")] string authorization,
+        [FromBody] PostLocationBatchDto postLocationBatchDto)
     {
-       const int h3Res = 9;
+        const int h3Res = 9;
 
-        if (postLocationBatchDto.Locations.Count == 0)
-        {
-            return BadRequest("No locations provided.");
-        }
+        if (postLocationBatchDto.Locations.Count == 0) return BadRequest("No locations provided.");
+
+        if (string.IsNullOrEmpty(authorization))
+            return Unauthorized("Missing token.");
+
+        var token = authorization.Replace("Bearer ", "").Trim();
 
         var session = await postgresContext.Sessions
+            .AsNoTracking()
             .Include(s => s.User)
-            .FirstOrDefaultAsync(s => s.Token == postLocationBatchDto.Token);
+            .FirstOrDefaultAsync(s => s.Token == token);
 
         if (session == null || session.ExpiresAt < DateTime.UtcNow)
-        {
-            return Unauthorized("Invalid or expired token.");
-        }
+            return Unauthorized("Invalid token or session expired.");
 
         var sortedLocationsWithHexagonId = postLocationBatchDto.Locations
             .OrderBy(l => l.Timestamp)
@@ -130,10 +132,7 @@ public class HexagonController(PostgresContext postgresContext) : ControllerBase
             .Where(x => hexagonDataMap.ContainsKey(x.HexagonId))
             .ToList();
 
-        if (locationsInSupportedArea.Count == 0)
-        {
-            return Ok(new { updatedHexagons = new List<HexagonProgressDto>() });
-        }
+        if (locationsInSupportedArea.Count == 0) return Ok(new { updatedHexagons = new List<HexagonProgressDto>() });
 
         var firstLocationHexId = locationsInSupportedArea[0].HexagonId;
         var targetCityId = hexagonDataMap[firstLocationHexId].CityId;
@@ -208,38 +207,40 @@ public class HexagonController(PostgresContext postgresContext) : ControllerBase
 
         return Ok(new
         {
-            updatedHexagons = changesToReturn,
+            updatedHexagons = changesToReturn
         });
     }
 
     // Fetch all user progresses for a city
     [HttpGet("get-hexagon-progresses")]
-    public async Task<IActionResult> GetHexagonProgresses([FromBody] string token, [FromQuery] string city)
+    public async Task<IActionResult> GetHexagonProgresses(
+        [FromHeader(Name = "Authorization")] string authorization,
+        [FromQuery] string city)
     {
+        if (string.IsNullOrEmpty(authorization))
+            return Unauthorized("Missing token.");
+
+        var token = authorization.Replace("Bearer ", "").Trim();
+
         var session = await postgresContext.Sessions
             .AsNoTracking()
             .Include(s => s.User)
             .FirstOrDefaultAsync(s => s.Token == token);
 
         if (session == null || session.ExpiresAt < DateTime.UtcNow)
-            return Unauthorized("Invalid token.");
+            return Unauthorized("Invalid token or session expired.");
 
         var userModel = session.User;
 
-        var validHexagonIds = await postgresContext.Hexagons
-            .Where(h => h.City.City == city)
-            .Select(h=>h.Id)
+        var progresses = await postgresContext.Progresses
+            .AsNoTracking()
+            .Where(p => p.UserId == userModel.Id && p.Hexagon != null && p.Hexagon.City.City == city)
+            .Select(p => new HexagonProgressDto
+            {
+                HexagonId = p.HexagonId.ToString(),
+                Progress = p.Progress
+            })
             .ToListAsync();
-
-        var progresses =
-            postgresContext.Progresses
-                .Where(p => p.UserId == userModel.Id && validHexagonIds.Contains(p.HexagonId))
-                .Select(p => new HexagonProgressDto
-                {
-                    HexagonId = p.HexagonId.ToString(),
-                    Progress = p.Progress
-                })
-                .ToListAsync();
 
         return Ok(progresses);
     }

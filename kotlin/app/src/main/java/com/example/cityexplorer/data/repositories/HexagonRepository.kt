@@ -1,6 +1,5 @@
 package com.example.cityexplorer.data.repositories
 
-import android.util.Log
 import com.example.cityexplorer.data.api.HexagonApiClient
 import com.example.cityexplorer.data.api.VersionApiClient
 import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
@@ -12,6 +11,8 @@ import com.example.cityexplorer.data.util.CacheService
 import com.example.cityexplorer.data.util.TokenService
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 
@@ -21,6 +22,8 @@ class HexagonRepository(
     private val cacheService: CacheService,
     private val tokenService: TokenService
 ) {
+    private val _hexagonUpdates = MutableSharedFlow<List<HexagonProgressDto>>()
+    val hexagonUpdates = _hexagonUpdates.asSharedFlow()
     suspend fun getCountriesWithCities(forceRefresh: Boolean = false): List<GetCountriesWithCitiesDto> = withContext(Dispatchers.IO) {
         val key = "get-countries-with-cities"
         val dtoType = object : TypeToken<List<GetCountriesWithCitiesDto>>() {}.type
@@ -84,22 +87,29 @@ class HexagonRepository(
         return hexagonApiClient.getPoisFromHexagon(hexagonId)
     }
 
-    suspend fun postLocationBatch(locationDto: PostLocationBatchDto): Boolean {
-          try {
-            val response = hexagonApiClient.postLocationBatch(locationDto)
+    suspend fun postLocationBatch(locationDtos: PostLocationBatchDto): Boolean {
+        val token = tokenService.getToken()
+
+        if (token.isNullOrBlank()) {
+            throw InvalidTokenException()
+        }
+
+        try {
+            val response = hexagonApiClient.postLocationBatch("Bearer $token", locationDtos)
 
             if (response.isSuccessful) {
                 val responseBody = response.body()
                 val changes = responseBody?.updatedHexagons ?: emptyList()
-                // TODO: Zapisz 'changes' do lokalnej bazy danych (Room)
+
+                if (changes.isNotEmpty()) {
+                    _hexagonUpdates.emit(changes)
+                }
 
                 return true
             } else {
-                Log.e("ServiceLogs", "Failed to sync batch with server: ${response.code()}")
                 return false
             }
-        } catch (e: Exception) {
-              Log.e("ServiceLogs", "Failed to sync batch with server: ${e.message}")
+        } catch (_: Exception) {
             return false
         }
     }
