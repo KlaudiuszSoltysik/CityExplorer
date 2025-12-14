@@ -17,9 +17,15 @@ object ApiClient {
     private val json = Json { ignoreUnknownKeys = true }
 
     private val retrofit: Retrofit by lazy {
+        val client = if (BuildConfig.DEBUG) {
+            getUnsafeOkHttpClient()
+        } else {
+            OkHttpClient.Builder().build()
+        }
+
         Retrofit.Builder()
             .baseUrl(BuildConfig.BASE_URL)
-            .client(getUnsafeOkHttpClient())
+            .client(client)
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
     }
