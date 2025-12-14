@@ -77,28 +77,40 @@ Fully dockerized environment with automated pipelines.
 | **Database** | PostgreSQL                                                    |
 | **DevOps**   | Docker, Docker Compose, Terraform, Cloudflare, GitHub Actions |
 
-## 🚀 Project Roadmap
+## 🚀 Project Roadmap (Portfolio Strategy)
 
 ### 🔴 Mandatory (MVP Core)
 
-- **Prevent user token from expiration during exploration**
-- **Implement "3-Strike" Rule:** Introduce a failure counter in the Service. If 3 consecutive batch uploads fail, transition the Service state to `SUSPENDED`.
-- **Battery Optimization:** When in `SUSPENDED` state, physically stop GPS updates (`client.removeLocationUpdates()`) to save battery, but keep the network retry loop active.
-- **Auto-Resume:** Upon the first successful API response (`200 OK`), reset the error counter to 0 and re-enable GPS updates (`client.requestLocationUpdates()`).
-- **Provider State Monitoring:** Register a `BroadcastReceiver` or callback to detect if the user disables GPS system-wide during gameplay. Pause the game and notify the user if this happens.
-- **User Screen:** Screen with user stats, badges, ranking, logout, delete account option etc.
+- [ ] **Core Logic Stability**
+    - [ ] **Prevent User Token Expiration:** Ensure the session remains valid during active gameplay/exploration to prevent abrupt logouts.
+    - [ ] **Implement "3-Strike" Rule:** Circuit breaker pattern. If 3 consecutive batch uploads fail, transition Service to `SUSPENDED` to stop API spam.
+    - [ ] **Battery Optimization (GPS Suspend):** When `SUSPENDED`, physically stop `client.removeLocationUpdates()` to verify background service efficiency.
+    - [ ] **Auto-Resume Logic:** Reset error counters and re-enable GPS upon the first successful network "heartbeat" (200 OK).
+    - [ ] **Provider State Monitoring:** Handle system-wide GPS toggle off. Pause game gracefully instead of crashing or recording invalid data.
+- [ ] **User Screen & Compliance**
+    - [ ] **User Stats Dashboard:** Display basic stats (hexes claimed, distance walked) to close the gameplay loop.
+    - [ ] **Delete Account Option:** **CRITICAL.** Required by Google Play policy. Must function completely (API call to scrub data).
 
-### 🟡 Nice to Have (Enhancements)
+### 🟡 High Impact / Engineering Flex
 
-- **Token Management** – Handling token expiration during active exploration.
-- **Social Features** – Community and interaction aspects.
-- **Refactoring** – Dependency Injection implementation (Hilt migration).
-- **Monetization:** Implementation of Consumable In-App Purchases (Google Play Billing Library).
-- **Automated Testing:** Expanding CI pipeline with Unit & Integration tests for Backend and Mobile.
-- **Scalar:** Auto-generated API documentation for easy client integration.
-- **GitHub Action:** Action to automatically create release
-- **Observability** – Monitoring and logging setup.
-- **Backup Strategy:** Automated daily **PostgreSQL backups** pushed to external storage (S3/GCS) to mitigate on-premise hardware failure risks.
-- **Error Tracking:** Setup **Sentry** or **Firebase Crashlytics** specifically for capturing unhandled exceptions in the mobile client and backend.
-- **DataOps Pipeline:** Automate the Python execution flow to periodically refresh OSM data and re-calculate Hexagon weights without manual intervention.
-- **Host Monitoring:** Setup **Prometheus/Node Exporter** to monitor on-premise server resources (Disk usage, RAM, CPU) to prevent outages due to resource exhaustion.
+- [ ] **Architecture & Refactoring**
+    - [ ] **Hilt Migration (DI):** Refactor manual dependency injection to Hilt. Shows mastery of modern Android standards and cleaner architecture.
+- [ ] **Quality Assurance (Testing)**
+    - [ ] **Unit Tests:** Add JUnit tests for core logic (e.g., Hexagon weight calculation, Service state transitions).
+    - [ ] **Integration Tests:** Basic tests for Backend API endpoints to ensure non-breaking changes.
+- [ ] **DevOps & CI**
+    - [ ] **GitHub Actions (CI):** Automate application release version.
+- [ ] **Observability**
+    - [ ] **Error Tracking:** Integrate **Sentry** or **Firebase Crashlytics**. Demonstrates proactivity in monitoring app health in production.
+- [ ] **Documentation**
+    - [ ] **Scalar/Swagger:** expose auto-generated API documentation. Shows respect for Developer Experience (DX).
+
+### 🟢 Nice to Have / Over-engineering
+
+- [ ] **Features**
+    - [ ] **Social Features:** Leaderboards, friends, chat (High effort, low impact if user base is small).
+    - [ ] **Monetization:** Google Play Billing implementation (Complex boilerplate, relevant mainly for Fintech/E-commerce roles).
+- [ ] **Advanced DevOps**
+    - [ ] **Off-site Backups:** S3/GCS backups for the DB (Critical for production business, optional for portfolio).
+    - [ ] **Host Monitoring:** Prometheus/Grafana setup (Visual eye-candy, but overkill for a single server).
+    - [ ] **DataOps Pipeline:** Automating Python scripts via Cron/Airflow (Manual execution is acceptable for static world generation).
