@@ -82,6 +82,9 @@ class MapViewModel(
     init {
         viewModelScope.launch {
             LocationTrackingService.exploringState.collect { newState ->
+                if (newState == "suspended") {
+                    _uiEvent.send(MapUiEvent.ShowToast("Exploration suspended, check your internet connection."))
+                }
                 state = state.copy(exploringState = newState)
             }
         }

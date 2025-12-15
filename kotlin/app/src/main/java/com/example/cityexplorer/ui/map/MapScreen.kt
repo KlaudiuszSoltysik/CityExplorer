@@ -594,7 +594,7 @@ private fun ExplorerControlButton(
                 "Stop exploring"
             }
             "suspended" -> {
-                "Exploring suspended, waiting for internet connection"
+                "Exploration suspended"
             }
             "stopped" -> {
                 "Start exploring"

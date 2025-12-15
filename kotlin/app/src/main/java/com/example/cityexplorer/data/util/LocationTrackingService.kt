@@ -7,7 +7,7 @@ import android.app.Service
 import android.content.Intent
 import android.location.Location
 import android.os.IBinder
-import android.util.Log
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 import com.example.cityexplorer.CityExplorerApp
@@ -137,7 +137,7 @@ class LocationTrackingService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, LOCATION_CHANNEL_ID)
             .setContentTitle("City Explorer")
             .setContentText("Tracking location in $city")
             .setSmallIcon(R.drawable.baseline_explore_24)
@@ -150,7 +150,7 @@ class LocationTrackingService : Service() {
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
 
-        startForeground(NOTIFICATION_ID, notification)
+        startForeground(LOCATION_NOTIFICATION_ID, notification)
     }
 
     // Checks if used isn't moving too quick
@@ -177,8 +177,8 @@ class LocationTrackingService : Service() {
             locationClient.getLocationFlow()
                 .collect { androidLocation ->
                     if (consecutiveFailedSendBatchData >= 3) {
-                        Log.w("TEST", "Tracking suspended, location not accepted.")
                         updateExplorationState("suspended")
+                        showConnectionLostAlert()
                         return@collect
                     }
 
@@ -196,7 +196,6 @@ class LocationTrackingService : Service() {
                                 val actualDist = androidLocation.distanceTo(currentLast)
 
                                 if (actualDist <= maxDist) {
-                                    Log.w("TEST", "Location accepted.")
                                     val simpleLoc = SimpleLocation(
                                         androidLocation.latitude,
                                         androidLocation.longitude,
@@ -254,7 +253,6 @@ class LocationTrackingService : Service() {
             uploadSuccess = hexagonRepository.postLocationBatch(PostLocationBatchDto(locationsDtos))
         } catch (_: Exception) {
             consecutiveFailedSendBatchData++
-            Log.w("TEST", "Upload not successfull.")
         }
 
 
@@ -264,10 +262,8 @@ class LocationTrackingService : Service() {
             }
             consecutiveFailedSendBatchData = 0
             updateExplorationState("started")
-            Log.w("TEST", "Upload successfull.")
         } else {
             consecutiveFailedSendBatchData++
-            Log.w("TEST", "Upload not successfull.")
         }
     }
 
@@ -287,13 +283,53 @@ class LocationTrackingService : Service() {
 
     // Creates notification channel
     private fun createNotificationChannel() {
-        val channel = NotificationChannel(
-            CHANNEL_ID,
+        val locationChannel = NotificationChannel(
+            LOCATION_CHANNEL_ID,
             "Location Tracking",
             NotificationManager.IMPORTANCE_LOW
         )
+
+        val alertChannel = NotificationChannel(
+            ALERT_CHANNEL_ID,
+            "Alerts",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Connection errors and critical alerts"
+            enableVibration(true)
+            vibrationPattern = longArrayOf(0, 500, 200, 500)
+        }
+
         val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(channel)
+        manager.createNotificationChannels(listOf(locationChannel, alertChannel))
+    }
+
+    // Shows notification about lost connection during exploring
+    private fun showConnectionLostAlert() {
+        val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+
+        val wifiIntent = Intent(Settings.ACTION_WIFI_SETTINGS)
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            wifiIntent,
+            PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
+            .setContentTitle("Connection lost")
+            .setContentText("Error while uploading data at $currentTime. Check internet access.")
+            .setSmallIcon(R.drawable.baseline_explore_24)
+            .setStyle(NotificationCompat.BigTextStyle()
+                .bigText("Error while uploading data at $currentTime. Check internet access."))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_ERROR)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setVibrate(longArrayOf(0, 500, 200, 500))
+            .build()
+
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(ALERT_NOTIFICATION_ID, notification)
     }
 
     companion object {
@@ -304,8 +340,11 @@ class LocationTrackingService : Service() {
         }
         var activeCity: String? = null
             private set
-        const val CHANNEL_ID = "location_channel"
-        const val NOTIFICATION_ID = 1
+        const val LOCATION_CHANNEL_ID = "location_channel"
+        const val ALERT_CHANNEL_ID = "alert_channel"
+
+        const val LOCATION_NOTIFICATION_ID = 1
+        const val ALERT_NOTIFICATION_ID = 2
         const val ACTION_START = "ACTION_START"
         const val ACTION_STOP = "ACTION_STOP"
         const val ACTION_STOPPED_FROM_NOTIFICATION = "ACTION_STOPPED_FROM_NOTIF"

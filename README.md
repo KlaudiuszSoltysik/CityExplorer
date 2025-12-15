@@ -82,9 +82,7 @@ Fully dockerized environment with automated pipelines.
 ### 🔴 Mandatory (MVP Core)
 
 - [ ] **Core Logic Stability**
-  - [ ] **Implement "3-Strike" Rule:** If 3 consecutive batch uploads fail, send notification
   - [ ] **Prevent User Token Expiration:** Ensure the session remains valid during active gameplay/exploration to prevent abrupt logouts.
-  - [ ] **Battery Optimization (GPS Suspend):** When `SUSPENDED`, physically stop `client.removeLocationUpdates()` to verify background service efficiency.
   - [ ] **Provider State Monitoring:** Handle system-wide GPS toggle off. Pause game gracefully instead of crashing or recording invalid data.
 - [ ] **User Screen & Compliance**
   - [ ] **User Stats Dashboard:** Display basic stats (hexes claimed, distance walked) to close the gameplay loop.
