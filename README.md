@@ -1,11 +1,17 @@
-# **City Explorer**
-
-**During development**
+# City Explorer (during development)
 
 ![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen)
 ![Tech Stack](https://img.shields.io/badge/Stack-Kotlin%20|%20.NET%20|%20Python-blue)
 
 Gamify urban exploration by turning the real world into a hexagonal strategy board using GPS location.
+
+## 📲 Download application
+
+<a href="https://github.com/KlaudiuszSoltysik/CityExplorer/releases/download/beta/app-release.apk"><img src="https://img.shields.io/badge/Download%20.APK-3DDC84?style=for-the-badge&logo=android&logoColor=white" height="40"></a><br><br>
+
+<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://github.com/KlaudiuszSoltysik/CityExplorer/releases/download/beta/app-release.apk" width="150" alt="QR Code" />
+
+> _You have to allow instalation from unknown sources._
 
 ## 📖 About
 
@@ -35,7 +41,7 @@ Built with a focus on performance and battery efficiency during background track
 - **Google Maps SDK:** Custom styling and overlay management for rendering hexagonal grids.
 - **Authentication:** Secure sign-in flow implemented via **Google OAuth**.
 - **Architecture:** Uses modern Jetpack Compose for UI and Coroutines for asynchronous tasks.
-- **Deployment:** Downloadable release version of application avliable at _link_.
+- **Deployment:** Downloadable release version of application.
 
 ### 🔙 Backend (.NET 9.0 & PostgreSQL)
 
@@ -61,12 +67,6 @@ Fully dockerized environment with automated pipelines.
 - **Docker:** Separate containers for independent Development and Production environments with auto-deploy on changes.
 - **Server:** Backend and database are hosted on-premise.
 
-## 🚧 Roadmap (Upcoming Features)
-
-- **Monetization:** Implementation of Consumable In-App Purchases (Google Play Billing Library).
-- **Automated Testing:** Expanding CI pipeline with Unit & Integration tests for Backend and Mobile.
-- **Scalar:** Auto-generated API documentation for easy client integration.
-
 ## 💻 Tech Stack
 
 | Domain       | Technology                                                    |
@@ -76,3 +76,40 @@ Fully dockerized environment with automated pipelines.
 | **Data**     | Python, Uber H3, Overpass API                                 |
 | **Database** | PostgreSQL                                                    |
 | **DevOps**   | Docker, Docker Compose, Terraform, Cloudflare, GitHub Actions |
+
+## 🚀 Project Roadmap (Portfolio Strategy)
+
+### 🔴 Mandatory (MVP Core)
+
+- [ ] **Core Logic Stability**
+  - [ ] **Implement "3-Strike" Rule:** If 3 consecutive batch uploads fail, send notification
+  - [ ] **Prevent User Token Expiration:** Ensure the session remains valid during active gameplay/exploration to prevent abrupt logouts.
+  - [ ] **Battery Optimization (GPS Suspend):** When `SUSPENDED`, physically stop `client.removeLocationUpdates()` to verify background service efficiency.
+  - [ ] **Provider State Monitoring:** Handle system-wide GPS toggle off. Pause game gracefully instead of crashing or recording invalid data.
+- [ ] **User Screen & Compliance**
+  - [ ] **User Stats Dashboard:** Display basic stats (hexes claimed, distance walked) to close the gameplay loop.
+  - [ ] **Delete Account Option:** **CRITICAL.** Required by Google Play policy. Must function completely (API call to scrub data).
+
+### 🟡 High Impact / Engineering Flex
+
+- [ ] **Architecture & Refactoring**
+  - [ ] **Hilt Migration (DI):** Refactor manual dependency injection to Hilt. Shows mastery of modern Android standards and cleaner architecture.
+- [ ] **Quality Assurance (Testing)**
+  - [ ] **Unit Tests:** Add JUnit tests for core logic (e.g., Hexagon weight calculation, Service state transitions).
+  - [ ] **Integration Tests:** Basic tests for Backend API endpoints to ensure non-breaking changes.
+- [ ] **DevOps & CI**
+  - [ ] **GitHub Actions (CI):** Automate application release version.
+- [ ] **Observability**
+  - [ ] **Error Tracking:** Integrate **Sentry** or **Firebase Crashlytics**. Demonstrates proactivity in monitoring app health in production.
+- [ ] **Documentation**
+  - [ ] **Scalar/Swagger:** expose auto-generated API documentation. Shows respect for Developer Experience (DX).
+
+### 🟢 Nice to Have / Over-engineering
+
+- [ ] **Features**
+  - [ ] **Social Features:** Leaderboards, friends, chat (High effort, low impact if user base is small).
+  - [ ] **Monetization:** Google Play Billing implementation (Complex boilerplate, relevant mainly for Fintech/E-commerce roles).
+- [ ] **Advanced DevOps**
+  - [ ] **Off-site Backups:** S3/GCS backups for the DB (Critical for production business, optional for portfolio).
+  - [ ] **Host Monitoring:** Prometheus/Grafana setup (Visual eye-candy, but overkill for a single server).
+  - [ ] **DataOps Pipeline:** Automating Python scripts via Cron/Airflow (Manual execution is acceptable for static world generation).

@@ -43,7 +43,7 @@ data class MapScreenState(
     val dataState: MapUiState = MapUiState.Loading,
     val isRefreshing: Boolean = false,
     val userLocation: Location? = null,
-    val isExploringMode: Boolean = false,
+    val exploringState: String = "stopped",
     val arePermissionsGranted: Boolean = false,
     val selectedHexagonPois: SelectedHexagonDto = SelectedHexagonDto()
 ) {
@@ -71,7 +71,6 @@ class MapViewModel(
 ) : ViewModel() {
     private val _uiEvent = Channel<MapUiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
-    private var lastToggleRequestTime: Long = 0L
 
     var state by mutableStateOf(MapScreenState())
         private set
@@ -81,8 +80,11 @@ class MapViewModel(
 
     // Initializes view model and starts location tracking if service is active
     init {
-        val serviceActive = LocationTrackingService.isRunning
-        state = state.copy(isExploringMode = serviceActive)
+        viewModelScope.launch {
+            LocationTrackingService.exploringState.collect { newState ->
+                state = state.copy(exploringState = newState)
+            }
+        }
 
         viewModelScope.launch {
             loadHexagonData(city, true)
@@ -99,7 +101,7 @@ class MapViewModel(
     // Stops location tracking service on view model clear
     override fun onCleared() {
         super.onCleared()
-        if (state.isExploringMode) {
+        if (state.exploringState == "started" || state.exploringState == "suspended") {
             viewModelScope.launch {
                 _uiEvent.send(MapUiEvent.ToggleService(false))
             }
@@ -131,23 +133,12 @@ class MapViewModel(
 
     // Stop location tracking service
     fun onServiceStoppedExternal() {
-        state = state.copy(isExploringMode = false)
+        state = state.copy(exploringState = "stopped")
     }
 
     // Toggles the exploration mode after validating requirements
     fun onExplorerToggleClick() {
         viewModelScope.launch {
-            if (state.isExploringMode) {
-                val currentTime = System.currentTimeMillis()
-                val timeDifference = currentTime - lastToggleRequestTime
-
-                if (timeDifference > 1500) {
-                    lastToggleRequestTime = currentTime
-                    _uiEvent.send(MapUiEvent.ShowToast("Click again to confirm."))
-                    return@launch
-                }
-            }
-
             if (!state.arePermissionsGranted) {
                 _uiEvent.send(MapUiEvent.RequestPermissions)
                 return@launch
@@ -164,23 +155,24 @@ class MapViewModel(
                 return@launch
             }
 
-            val newMode = !state.isExploringMode
-            state = state.copy(isExploringMode = newMode)
+            val shouldStart = state.exploringState == "stopped"
 
-            _uiEvent.send(MapUiEvent.ToggleService(newMode))
+            if (shouldStart) {
+                try {
+                    val userResponse = userRepository.getLoggedUser(token)
 
-            try {
-                val userResponse = userRepository.getLoggedUser(token)
+                    if (!userResponse.isAuthorized) {
+                        handleLogout()
+                        return@launch
+                    }
 
-                if (!userResponse.isAuthorized) {
-                    state = state.copy(isExploringMode = !newMode)
-                    handleLogout()
+                    _uiEvent.send(MapUiEvent.ToggleService(true))
+                } catch (_: Exception) {
+                    _uiEvent.send(MapUiEvent.ShowToast("Server error"))
                 }
 
-            } catch (_: Exception) {
-                state = state.copy(isExploringMode = !newMode)
-                _uiEvent.send(MapUiEvent.ToggleService(!newMode))
-                _uiEvent.send(MapUiEvent.ShowToast("Server error"))
+            } else {
+                _uiEvent.send(MapUiEvent.ToggleService(false))
             }
         }
     }

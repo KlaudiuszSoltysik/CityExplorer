@@ -285,7 +285,7 @@ private fun MapSuccessContent(
 
     MapUiOverlays(
         hexagonPois = state.selectedHexagonPois,
-        isExploringMode = state.isExploringMode,
+        exploringState = state.exploringState,
         isUserInCity = state.isUserInCity,
         arePermissionsGranted = state.arePermissionsGranted,
         modifier = modifier,
@@ -458,7 +458,7 @@ fun HexagonMap(
 @Composable
 private fun MapUiOverlays(
     hexagonPois: SelectedHexagonDto,
-    isExploringMode: Boolean,
+    exploringState: String,
     isUserInCity: Boolean,
     arePermissionsGranted: Boolean,
     modifier: Modifier = Modifier,
@@ -477,7 +477,7 @@ private fun MapUiOverlays(
         }
 
         ExplorerControlButton(
-            isExploringMode = isExploringMode,
+            exploringState = exploringState,
             isUserInCity = isUserInCity,
             arePermissionsGranted = arePermissionsGranted,
             modifier = Modifier
@@ -554,14 +554,27 @@ private fun PoiInfoItem(
 
 @Composable
 private fun ExplorerControlButton(
-    isExploringMode: Boolean,
+    exploringState: String,
     isUserInCity: Boolean,
     arePermissionsGranted: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     val containerColor = if (isUserInCity && arePermissionsGranted) {
-        if (isExploringMode) CustomError else CustomSuccess
+        when (exploringState) {
+            "started" -> {
+                CustomError
+            }
+            "suspended" -> {
+                CustomWarning
+            }
+            "stopped" -> {
+                CustomSuccess
+            }
+            else -> {
+                CustomBlack
+            }
+        }
     } else {
         CustomBlack
     }
@@ -576,7 +589,20 @@ private fun ExplorerControlButton(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         modifier = modifier
     ) {
-        Text(text = if (isExploringMode) "Stop exploring!" else "Start exploring!")
+        Text(text = when (exploringState) {
+            "started" -> {
+                "Stop exploring"
+            }
+            "suspended" -> {
+                "Exploring suspended, waiting for internet connection"
+            }
+            "stopped" -> {
+                "Start exploring"
+            }
+            else -> {
+                "Error"
+            }
+        })
     }
 }
 

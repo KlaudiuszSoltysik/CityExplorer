@@ -7,6 +7,7 @@ import android.app.Service
 import android.content.Intent
 import android.location.Location
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 import com.example.cityexplorer.CityExplorerApp
@@ -24,6 +25,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -51,6 +54,7 @@ class LocationTrackingService : Service() {
     private val bufferMutex = Mutex()
     private lateinit var locationClient: FusedLocationProviderClient
     private var lastLocation: Location? = null
+    private var consecutiveFailedSendBatchData: Int = 0
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -62,7 +66,7 @@ class LocationTrackingService : Service() {
 
     // Initializes service
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        isRunning = true
+        updateExplorationState("started")
 
         when (intent?.action) {
             ACTION_START -> {
@@ -88,7 +92,7 @@ class LocationTrackingService : Service() {
 
     // Manages service lifecycle
     override fun onDestroy() {
-        isRunning = false
+        updateExplorationState("stopped")
         activeCity = null
 
         runBlocking {
@@ -106,73 +110,6 @@ class LocationTrackingService : Service() {
             saveAndStop()
         }
         stopSelf()
-    }
-
-    // Checks if used isn't moving too quick
-    private fun calculateMaxDistance(intervalMs: Long): Float {
-        val speedMetersPerSecond = MAX_SPEED_KMH / 3.6f
-        val timeSeconds = intervalMs / 1000.0f
-        return speedMetersPerSecond * timeSeconds
-    }
-
-    // Triggers localization stream
-    private fun startTrackingLogic() {
-        serviceScope.launch {
-            val typeToken = object : TypeToken<List<SimpleLocation>>() {}.type
-            val cachedData =
-                cacheService.getCachedData<List<SimpleLocation>>("location-buffer", typeToken)
-
-            if (cachedData != null && cachedData.isNotEmpty()) {
-                bufferMutex.withLock {
-                    locationBuffer.addAll(cachedData)
-                }
-                cacheService.saveToCache("location-buffer", "0", emptyList<SimpleLocation>())
-            }
-
-            locationClient.getLocationFlow()
-                .collect { androidLocation ->
-                    if (!androidLocation.hasAccuracy() || androidLocation.accuracy > MIN_ACCURACY_METERS) {
-                        return@collect
-                    }
-
-                    bufferMutex.withLock {
-                        val currentLast = lastLocation
-
-                        if (currentLast != null) {
-                            val timeDeltaMs = androidLocation.time - currentLast.time
-                            if (timeDeltaMs > 0) {
-                                val maxDist = calculateMaxDistance(timeDeltaMs)
-                                val actualDist = androidLocation.distanceTo(currentLast)
-
-                                if (actualDist <= maxDist) {
-                                    val simpleLoc = SimpleLocation(
-                                        androidLocation.latitude,
-                                        androidLocation.longitude,
-                                        androidLocation.time
-                                    )
-                                    locationBuffer.add(simpleLoc)
-                                    lastLocation = androidLocation
-                                }
-                            }
-                        } else {
-                            val simpleLoc = SimpleLocation(
-                                androidLocation.latitude,
-                                androidLocation.longitude,
-                                androidLocation.time
-                            )
-                            locationBuffer.add(simpleLoc)
-                            lastLocation = androidLocation
-                        }
-                    }
-                }
-        }
-
-        serviceScope.launch {
-            while (isActive) {
-                delay(SEND_BATCH_INTERVAL_MS)
-                sendBatchData()
-            }
-        }
     }
 
     // Defines and starts notification
@@ -216,6 +153,80 @@ class LocationTrackingService : Service() {
         startForeground(NOTIFICATION_ID, notification)
     }
 
+    // Checks if used isn't moving too quick
+    private fun calculateMaxDistance(intervalMs: Long): Float {
+        val speedMetersPerSecond = MAX_SPEED_KMH / 3.6f
+        val timeSeconds = intervalMs / 1000.0f
+        return speedMetersPerSecond * timeSeconds
+    }
+
+    // Triggers localization stream
+    private fun startTrackingLogic() {
+        serviceScope.launch {
+            val typeToken = object : TypeToken<List<SimpleLocation>>() {}.type
+            val cachedData =
+                cacheService.getCachedData<List<SimpleLocation>>("location-buffer", typeToken)
+
+            if (cachedData != null && cachedData.isNotEmpty()) {
+                bufferMutex.withLock {
+                    locationBuffer.addAll(cachedData)
+                }
+                cacheService.saveToCache("location-buffer", "0", emptyList<SimpleLocation>())
+            }
+
+            locationClient.getLocationFlow()
+                .collect { androidLocation ->
+                    if (consecutiveFailedSendBatchData >= 3) {
+                        Log.w("TEST", "Tracking suspended, location not accepted.")
+                        updateExplorationState("suspended")
+                        return@collect
+                    }
+
+                    if (!androidLocation.hasAccuracy() || androidLocation.accuracy > MIN_ACCURACY_METERS) {
+                        return@collect
+                    }
+
+                    bufferMutex.withLock {
+                        val currentLast = lastLocation
+
+                        if (currentLast != null) {
+                            val timeDeltaMs = androidLocation.time - currentLast.time
+                            if (timeDeltaMs > 0) {
+                                val maxDist = calculateMaxDistance(timeDeltaMs)
+                                val actualDist = androidLocation.distanceTo(currentLast)
+
+                                if (actualDist <= maxDist) {
+                                    Log.w("TEST", "Location accepted.")
+                                    val simpleLoc = SimpleLocation(
+                                        androidLocation.latitude,
+                                        androidLocation.longitude,
+                                        androidLocation.time
+                                    )
+                                    locationBuffer.add(simpleLoc)
+                                    lastLocation = androidLocation
+                                }
+                            }
+                        } else {
+                            val simpleLoc = SimpleLocation(
+                                androidLocation.latitude,
+                                androidLocation.longitude,
+                                androidLocation.time
+                            )
+                            locationBuffer.add(simpleLoc)
+                            lastLocation = androidLocation
+                        }
+                    }
+                }
+        }
+
+        serviceScope.launch {
+            while (isActive) {
+                delay(SEND_BATCH_INTERVAL_MS)
+                sendBatchData()
+            }
+        }
+    }
+
     // Saves data during exploring
     private suspend fun sendBatchData() {
         val pointsToSend = bufferMutex.withLock {
@@ -242,7 +253,8 @@ class LocationTrackingService : Service() {
 
             uploadSuccess = hexagonRepository.postLocationBatch(PostLocationBatchDto(locationsDtos))
         } catch (_: Exception) {
-
+            consecutiveFailedSendBatchData++
+            Log.w("TEST", "Upload not successfull.")
         }
 
 
@@ -250,6 +262,12 @@ class LocationTrackingService : Service() {
             bufferMutex.withLock {
                 locationBuffer.removeAll(pointsToSend)
             }
+            consecutiveFailedSendBatchData = 0
+            updateExplorationState("started")
+            Log.w("TEST", "Upload successfull.")
+        } else {
+            consecutiveFailedSendBatchData++
+            Log.w("TEST", "Upload not successfull.")
         }
     }
 
@@ -279,7 +297,11 @@ class LocationTrackingService : Service() {
     }
 
     companion object {
-        var isRunning = false
+        private val _exploringState = MutableStateFlow("stopped")
+        var exploringState = _exploringState.asStateFlow()
+        fun updateExplorationState(newState: String) {
+            _exploringState.value = newState
+        }
         var activeCity: String? = null
             private set
         const val CHANNEL_ID = "location_channel"
