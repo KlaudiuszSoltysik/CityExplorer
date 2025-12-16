@@ -81,9 +81,6 @@ Fully dockerized environment with automated pipelines.
 
 ### 🔴 Mandatory (MVP Core)
 
-- [ ] **Core Logic Stability**
-  - [ ] **Prevent User Token Expiration:** Ensure the session remains valid during active gameplay/exploration to prevent abrupt logouts.
-  - [ ] **Provider State Monitoring:** Handle system-wide GPS toggle off. Pause game gracefully instead of crashing or recording invalid data.
 - [ ] **User Screen & Compliance**
   - [ ] **User Stats Dashboard:** Display basic stats (hexes claimed, distance walked) to close the gameplay loop.
   - [ ] **Delete Account Option:** **CRITICAL.** Required by Google Play policy. Must function completely (API call to scrub data).
@@ -112,6 +109,5 @@ Fully dockerized environment with automated pipelines.
   - [ ] **Host Monitoring:** Prometheus/Grafana setup (Visual eye-candy, but overkill for a single server).
   - [ ] **DataOps Pipeline:** Automating Python scripts via Cron/Airflow (Manual execution is acceptable for static world generation).
 - [ ] ai wyszukiwarka tras
-- [ ] testy
 - [ ] usprawnienie generowania danych
 - [ ] auto backup db

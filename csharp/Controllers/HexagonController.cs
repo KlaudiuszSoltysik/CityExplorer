@@ -1,5 +1,6 @@
 ﻿using csharp.Dtos;
 using csharp.Models;
+using csharp.Utils;
 using H3;
 using H3.Model;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +10,7 @@ namespace csharp.Controllers;
 
 [Route("hexagon")]
 [ApiController]
-public class HexagonController(PostgresContext postgresContext) : ControllerBase
+public class HexagonController(PostgresContext postgresContext, IConfiguration configuration) : ControllerBase
 {
     // Fetch available locations directly from Cities table (Optimized)
     [HttpGet("get-countries-with-cities")]
@@ -104,6 +105,20 @@ public class HexagonController(PostgresContext postgresContext) : ControllerBase
 
         if (session == null || session.ExpiresAt < DateTime.UtcNow)
             return Unauthorized("Invalid token or session expired.");
+
+        string? newRefreshedToken = null;
+
+        if (session.ExpiresAt <= DateTime.UtcNow + TimeSpan.FromMinutes(15))
+        {
+            newRefreshedToken = JwtTokenService.CreateAppJwtToken(
+                session.User.Id,
+                session.User.Email,
+                configuration
+            );
+
+            session.Token = newRefreshedToken;
+            session.ExpiresAt = DateTime.UtcNow.AddDays(30);
+        }
 
         var sortedLocationsWithHexagonId = postLocationBatchDto.Locations
             .OrderBy(l => l.Timestamp)
@@ -205,9 +220,10 @@ public class HexagonController(PostgresContext postgresContext) : ControllerBase
 
         await postgresContext.SaveChangesAsync();
 
-        return Ok(new
+        return Ok(new SyncResponseDto
         {
-            updatedHexagons = changesToReturn
+            UpdatedHexagons = changesToReturn,
+            Token = newRefreshedToken
         });
     }
 

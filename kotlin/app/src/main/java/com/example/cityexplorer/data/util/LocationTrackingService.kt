@@ -85,21 +85,6 @@ class LocationTrackingService : Service() {
         return START_STICKY
     }
 
-    // Procedure to properly stop service
-    private fun stopServiceProcedure() {
-        isServiceRunning = false
-        ServiceStateManager.updateState(ExplorationState.STOPPED)
-
-        CoroutineScope(Dispatchers.IO).launch {
-            saveAndStop()
-            stopSelf()
-        }
-
-        val stopIntent = Intent(ACTION_STOPPED_FROM_NOTIFICATION)
-        stopIntent.setPackage(packageName)
-        sendBroadcast(stopIntent)
-    }
-
     // Manages service lifecycle
     override fun onDestroy() {
         isServiceRunning = false
@@ -288,6 +273,21 @@ class LocationTrackingService : Service() {
         if (remainingPoints.isNotEmpty()) {
             cacheService.saveToCache("location-buffer", "0", remainingPoints)
         }
+    }
+
+    // Procedure to properly stop service
+    private fun stopServiceProcedure() {
+        isServiceRunning = false
+        ServiceStateManager.updateState(ExplorationState.STOPPED)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            saveAndStop()
+            stopSelf()
+        }
+
+        val stopIntent = Intent(ACTION_STOPPED_FROM_NOTIFICATION)
+        stopIntent.setPackage(packageName)
+        sendBroadcast(stopIntent)
     }
 
     // Creates notification channel

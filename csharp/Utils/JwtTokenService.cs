@@ -9,7 +9,7 @@ namespace csharp.Utils;
 public static class JwtTokenService
 {
     // Helper method to generate JWT tokens based on Google Payload
-    public static string CreateAppJwtToken(GoogleJsonWebSignature.Payload payload, IConfiguration configuration)
+    public static string CreateAppJwtToken(string userId, string email, IConfiguration configuration)
     {
         var secretKey = configuration["JwtSettings:SecretKey"]
                         ?? throw new InvalidOperationException("JWT SecretKey missing in config");
@@ -18,8 +18,8 @@ public static class JwtTokenService
 
         var claims = new List<Claim>
         {
-            new(ClaimTypes.Email, payload.Email),
-            new(ClaimTypes.NameIdentifier, payload.Subject)
+            new(ClaimTypes.Email, email),
+            new(ClaimTypes.NameIdentifier, userId)
         };
 
         var tokenDescriptor = new SecurityTokenDescriptor

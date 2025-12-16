@@ -6,6 +6,7 @@ namespace csharp.Models;
 public class UserModel
 {
     [Key] [MaxLength(200)] public string Id { get; init; } = string.Empty;
+    [MaxLength(100)] public string Email { get; init; } = string.Empty;
     public SessionModel? ActiveSession { get; init; }
     public List<UserHexagonProgress> HexagonProgresses { get; set; } = [];
 }
