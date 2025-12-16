@@ -72,9 +72,11 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.cityexplorer.data.dtos.SelectedHexagonDto
 import com.example.cityexplorer.data.repositories.HexagonRepository
 import com.example.cityexplorer.data.repositories.UserRepository
+import com.example.cityexplorer.data.util.ExplorationState
 import com.example.cityexplorer.ui.theme.CustomError
 import com.example.cityexplorer.ui.theme.CustomSuccess
 import com.example.cityexplorer.ui.theme.CustomWarning
@@ -95,7 +97,7 @@ fun MapScreen(
         factory = MapViewModelFactory(city, locationClient, tokenService, hexagonRepository, userRepository)
     )
 ) {
-    val state = viewModel.state
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -284,8 +286,9 @@ private fun MapSuccessContent(
     )
 
     MapUiOverlays(
+        isButtonLoading = state.isButtonLoading,
         hexagonPois = state.selectedHexagonPois,
-        exploringState = state.exploringState,
+        explorationState = state.explorationState,
         isUserInCity = state.isUserInCity,
         arePermissionsGranted = state.arePermissionsGranted,
         modifier = modifier,
@@ -310,6 +313,7 @@ fun HexagonMap(
     }
 
     val isValidBbox = data.bbox.size >= 4
+
     val cityBounds = remember(data.bbox) {
         if (isValidBbox) {
             try {
@@ -457,8 +461,9 @@ fun HexagonMap(
 
 @Composable
 private fun MapUiOverlays(
+    isButtonLoading: Boolean,
     hexagonPois: SelectedHexagonDto,
-    exploringState: String,
+    explorationState: ExplorationState,
     isUserInCity: Boolean,
     arePermissionsGranted: Boolean,
     modifier: Modifier = Modifier,
@@ -477,7 +482,8 @@ private fun MapUiOverlays(
         }
 
         ExplorerControlButton(
-            exploringState = exploringState,
+            isButtonLoading = isButtonLoading,
+            explorationState = explorationState,
             isUserInCity = isUserInCity,
             arePermissionsGranted = arePermissionsGranted,
             modifier = Modifier
@@ -554,25 +560,23 @@ private fun PoiInfoItem(
 
 @Composable
 private fun ExplorerControlButton(
-    exploringState: String,
+    isButtonLoading: Boolean,
+    explorationState: ExplorationState,
     isUserInCity: Boolean,
     arePermissionsGranted: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     val containerColor = if (isUserInCity && arePermissionsGranted) {
-        when (exploringState) {
-            "started" -> {
+        when (explorationState) {
+            ExplorationState.RUNNING -> {
                 CustomError
             }
-            "suspended" -> {
+            ExplorationState.SUSPENDED -> {
                 CustomWarning
             }
-            "stopped" -> {
+            ExplorationState.STOPPED -> {
                 CustomSuccess
-            }
-            else -> {
-                CustomBlack
             }
         }
     } else {
@@ -580,6 +584,7 @@ private fun ExplorerControlButton(
     }
 
     Button(
+        enabled = !isButtonLoading,
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor.copy(alpha = 0.6f),
@@ -589,18 +594,15 @@ private fun ExplorerControlButton(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         modifier = modifier
     ) {
-        Text(text = when (exploringState) {
-            "started" -> {
+        Text(text = when (explorationState) {
+            ExplorationState.RUNNING -> {
                 "Stop exploring"
             }
-            "suspended" -> {
+            ExplorationState.SUSPENDED -> {
                 "Exploration suspended"
             }
-            "stopped" -> {
+            ExplorationState.STOPPED -> {
                 "Start exploring"
-            }
-            else -> {
-                "Error"
             }
         })
     }

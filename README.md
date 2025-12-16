@@ -111,3 +111,7 @@ Fully dockerized environment with automated pipelines.
   - [ ] **Off-site Backups:** S3/GCS backups for the DB (Critical for production business, optional for portfolio).
   - [ ] **Host Monitoring:** Prometheus/Grafana setup (Visual eye-candy, but overkill for a single server).
   - [ ] **DataOps Pipeline:** Automating Python scripts via Cron/Airflow (Manual execution is acceptable for static world generation).
+- [ ] ai wyszukiwarka tras
+- [ ] testy
+- [ ] usprawnienie generowania danych
+- [ ] auto backup db

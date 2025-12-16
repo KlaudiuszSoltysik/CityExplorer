@@ -29,7 +29,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.text.SimpleDateFormat
@@ -55,6 +54,7 @@ class LocationTrackingService : Service() {
     private lateinit var locationClient: FusedLocationProviderClient
     private var lastLocation: Location? = null
     private var consecutiveFailedSendBatchData: Int = 0
+    private var isServiceRunning = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -66,50 +66,53 @@ class LocationTrackingService : Service() {
 
     // Initializes service
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        updateExplorationState("started")
-
-        when (intent?.action) {
+         when (intent?.action) {
             ACTION_START -> {
+                isServiceRunning = true
+
                 val city = intent.getStringExtra(EXTRA_CITY) ?: ""
                 activeCity = city
 
                 startForegroundService(city)
                 startTrackingLogic()
+                ServiceStateManager.updateState(ExplorationState.RUNNING)
             }
 
             ACTION_STOP -> {
-                val stopIntent = Intent(ACTION_STOPPED_FROM_NOTIFICATION)
-
-                stopIntent.setPackage(packageName)
-
-                sendBroadcast(stopIntent)
-
-                stopSelf()
+                stopServiceProcedure()
             }
         }
         return START_STICKY
     }
 
-    // Manages service lifecycle
-    override fun onDestroy() {
-        updateExplorationState("stopped")
-        activeCity = null
+    // Procedure to properly stop service
+    private fun stopServiceProcedure() {
+        isServiceRunning = false
+        ServiceStateManager.updateState(ExplorationState.STOPPED)
 
-        runBlocking {
+        CoroutineScope(Dispatchers.IO).launch {
             saveAndStop()
+            stopSelf()
         }
 
+        val stopIntent = Intent(ACTION_STOPPED_FROM_NOTIFICATION)
+        stopIntent.setPackage(packageName)
+        sendBroadcast(stopIntent)
+    }
+
+    // Manages service lifecycle
+    override fun onDestroy() {
+        isServiceRunning = false
+
         serviceScope.cancel()
+        activeCity = null
         super.onDestroy()
     }
 
     // Manages service lifecycle
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
-        runBlocking {
-            saveAndStop()
-        }
-        stopSelf()
+        stopServiceProcedure()
     }
 
     // Defines and starts notification
@@ -177,8 +180,10 @@ class LocationTrackingService : Service() {
             locationClient.getLocationFlow()
                 .collect { androidLocation ->
                     if (consecutiveFailedSendBatchData >= 3) {
-                        updateExplorationState("suspended")
-                        showConnectionLostAlert()
+                        if (ServiceStateManager.currentState.value == ExplorationState.RUNNING){
+                            ServiceStateManager.updateState(ExplorationState.SUSPENDED)
+                            showConnectionLostAlert()
+                        }
                         return@collect
                     }
 
@@ -260,8 +265,12 @@ class LocationTrackingService : Service() {
             bufferMutex.withLock {
                 locationBuffer.removeAll(pointsToSend)
             }
+
             consecutiveFailedSendBatchData = 0
-            updateExplorationState("started")
+
+            if (isServiceRunning) {
+                ServiceStateManager.updateState(ExplorationState.RUNNING)
+            }
         } else {
             consecutiveFailedSendBatchData++
         }
@@ -333,11 +342,6 @@ class LocationTrackingService : Service() {
     }
 
     companion object {
-        private val _exploringState = MutableStateFlow("stopped")
-        var exploringState = _exploringState.asStateFlow()
-        fun updateExplorationState(newState: String) {
-            _exploringState.value = newState
-        }
         var activeCity: String? = null
             private set
         const val LOCATION_CHANNEL_ID = "location_channel"
@@ -349,5 +353,20 @@ class LocationTrackingService : Service() {
         const val ACTION_STOP = "ACTION_STOP"
         const val ACTION_STOPPED_FROM_NOTIFICATION = "ACTION_STOPPED_FROM_NOTIF"
         const val EXTRA_CITY = "city"
+    }
+}
+
+enum class ExplorationState {
+    STOPPED,
+    RUNNING,
+    SUSPENDED
+}
+
+object ServiceStateManager {
+    private val _currentState = MutableStateFlow(ExplorationState.STOPPED)
+    val currentState = _currentState.asStateFlow()
+
+    fun updateState(newState: ExplorationState) {
+        _currentState.value = newState
     }
 }
