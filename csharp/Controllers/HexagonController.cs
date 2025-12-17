@@ -99,7 +99,6 @@ public class HexagonController(PostgresContext postgresContext, IConfiguration c
         var token = authorization.Replace("Bearer ", "").Trim();
 
         var session = await postgresContext.Sessions
-            .AsNoTracking()
             .Include(s => s.User)
             .FirstOrDefaultAsync(s => s.Token == token);
 

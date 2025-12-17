@@ -156,8 +156,6 @@ class MapViewModel(
     fun onExplorerToggleClick() {
         toggleJob?.cancel()
 
-        if (state.value.isButtonLoading) return
-
         toggleJob = viewModelScope.launch {
             val currentState = state.value
 
