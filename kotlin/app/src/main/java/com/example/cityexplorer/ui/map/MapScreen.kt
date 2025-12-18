@@ -21,7 +21,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -63,6 +62,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.LocationSearching
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Place
@@ -70,6 +70,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -93,6 +94,7 @@ fun MapScreen(
     modifier: Modifier,
     onNavigateToLogin: () -> Unit,
     onNavigateBack: () -> Unit,
+    onNavigateToUserAccount: () -> Unit,
     viewModel: MapViewModel = viewModel(
         factory = MapViewModelFactory(city, locationClient, tokenService, hexagonRepository, userRepository)
     )
@@ -150,6 +152,9 @@ fun MapScreen(
                     is MapUiEvent.NavigateToLogin -> {
                         toggleLocalizationService(false)
                         onNavigateToLogin()
+                    }
+                    is MapUiEvent.NavigateToUserAccount -> {
+                        onNavigateToUserAccount()
                     }
                     is MapUiEvent.ShowToast -> {
                         Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
@@ -223,6 +228,9 @@ fun MapScreen(
         onMyLocationClick = {
             viewModel.getPoisFromHexagon(null, null)
             selectedHexagonId = null
+        },
+        onUserAccountButtonClick = {
+            viewModel.onUserAccountButtonClick()
         }
     )
 }
@@ -235,7 +243,8 @@ fun MapScreenContent(
     onRefresh: () -> Unit,
     onExplorerToggle: () -> Unit,
     onHexagonClick: (String, Double) -> Unit,
-    onMyLocationClick: () -> Unit
+    onMyLocationClick: () -> Unit,
+    onUserAccountButtonClick: () -> Unit
 ) {
     PullToRefreshBox(
         isRefreshing = state.isRefreshing,
@@ -255,7 +264,8 @@ fun MapScreenContent(
                     modifier = Modifier.fillMaxSize(),
                     onHexagonClick = onHexagonClick,
                     onMyLocationClick = onMyLocationClick,
-                    onExplorerToggle = onExplorerToggle
+                    onExplorerToggle = onExplorerToggle,
+                    onUserAccountButtonClick = onUserAccountButtonClick
                 )
             }
             is MapUiState.Error -> {
@@ -275,7 +285,8 @@ private fun MapSuccessContent(
     modifier: Modifier = Modifier,
     onHexagonClick: (String, Double) -> Unit,
     onMyLocationClick: () -> Unit,
-    onExplorerToggle: () -> Unit
+    onExplorerToggle: () -> Unit,
+    onUserAccountButtonClick: () -> Unit
 ) {
     HexagonMap(
         state = state,
@@ -286,13 +297,14 @@ private fun MapSuccessContent(
     )
 
     MapUiOverlays(
-        isButtonLoading = state.isButtonLoading,
+        isExplorerButtonLoading = state.isExplorerButtonLoading,
         hexagonPois = state.selectedHexagonPois,
         explorationState = state.explorationState,
         isUserInCity = state.isUserInCity,
         arePermissionsGranted = state.arePermissionsGranted,
         modifier = modifier,
-        onExplorerToggle = onExplorerToggle
+        onExplorerToggle = onExplorerToggle,
+        onUserAccountButtonClick = onUserAccountButtonClick
     )
 }
 
@@ -461,13 +473,14 @@ fun HexagonMap(
 
 @Composable
 private fun MapUiOverlays(
-    isButtonLoading: Boolean,
+    isExplorerButtonLoading: Boolean,
     hexagonPois: SelectedHexagonDto,
     explorationState: ExplorationState,
     isUserInCity: Boolean,
     arePermissionsGranted: Boolean,
     modifier: Modifier = Modifier,
-    onExplorerToggle: () -> Unit
+    onExplorerToggle: () -> Unit,
+    onUserAccountButtonClick: () -> Unit
 ) {
     Box(
         modifier = modifier.fillMaxSize()
@@ -482,7 +495,7 @@ private fun MapUiOverlays(
         }
 
         ExplorerControlButton(
-            isButtonLoading = isButtonLoading,
+            isExplorerButtonLoading = isExplorerButtonLoading,
             explorationState = explorationState,
             isUserInCity = isUserInCity,
             arePermissionsGranted = arePermissionsGranted,
@@ -491,6 +504,21 @@ private fun MapUiOverlays(
                 .padding(bottom = 16.dp),
             onClick = onExplorerToggle
         )
+
+        FloatingActionButton(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .statusBarsPadding()
+                .padding(bottom = 16.dp, start = 16.dp),
+            onClick = { onUserAccountButtonClick() },
+            containerColor = CustomBlack,
+            contentColor = CustomWhite
+        ) {
+            Icon(
+                imageVector = Icons.Default.AccountCircle,
+                contentDescription = "Recenter Map"
+            )
+        }
     }
 }
 
@@ -560,7 +588,7 @@ private fun PoiInfoItem(
 
 @Composable
 private fun ExplorerControlButton(
-    isButtonLoading: Boolean,
+    isExplorerButtonLoading: Boolean,
     explorationState: ExplorationState,
     isUserInCity: Boolean,
     arePermissionsGranted: Boolean,
@@ -584,7 +612,7 @@ private fun ExplorerControlButton(
     }
 
     Button(
-        enabled = !isButtonLoading,
+        enabled = !isExplorerButtonLoading,
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor.copy(alpha = 0.6f),

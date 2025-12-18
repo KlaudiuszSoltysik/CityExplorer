@@ -85,7 +85,7 @@ Fully dockerized environment with automated pipelines.
   - [ ] **User Stats Dashboard:** Display basic stats (hexes claimed, distance walked) to close the gameplay loop.
   - [ ] **Delete Account Option:** **CRITICAL.** Required by Google Play policy. Must function completely (API call to scrub data).
 
-### 🟡 High Impact / Engineering Flex
+### 🟡 High Impact
 
 - [ ] **Architecture & Refactoring**
   - [ ] **Hilt Migration (DI):** Refactor manual dependency injection to Hilt. Shows mastery of modern Android standards and cleaner architecture.
@@ -99,7 +99,7 @@ Fully dockerized environment with automated pipelines.
 - [ ] **Documentation**
   - [ ] **Scalar/Swagger:** expose auto-generated API documentation. Shows respect for Developer Experience (DX).
 
-### 🟢 Nice to Have / Over-engineering
+### 🟢 Nice to Have
 
 - [ ] **Features**
   - [ ] **Social Features:** Leaderboards, friends, chat (High effort, low impact if user base is small).

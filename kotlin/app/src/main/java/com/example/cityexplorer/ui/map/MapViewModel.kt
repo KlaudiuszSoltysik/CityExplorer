@@ -38,6 +38,7 @@ sealed interface MapUiState {
 interface MapUiEvent {
     data class ToggleService(val shouldStart: Boolean) : MapUiEvent
     data object NavigateToLogin : MapUiEvent
+    data object NavigateToUserAccount : MapUiEvent
     data class ShowToast(val message: String) : MapUiEvent
     data object RequestPermissions : MapUiEvent
 }
@@ -45,7 +46,8 @@ interface MapUiEvent {
 data class MapScreenState(
     val dataState: MapUiState = MapUiState.Loading,
     val isRefreshing: Boolean = false,
-    val isButtonLoading: Boolean = false,
+    val isExplorerButtonLoading: Boolean = false,
+    val isUserAccountButtonLoading: Boolean = false,
     val userLocation: Location? = null,
     val explorationState: ExplorationState = ExplorationState.STOPPED,
     val arePermissionsGranted: Boolean = false,
@@ -89,7 +91,7 @@ class MapViewModel(
                     _state.update {
                         it.copy(
                             explorationState = realServiceState,
-                            isButtonLoading = false
+                            isExplorerButtonLoading = false
                         )
                     }
                 }
@@ -159,7 +161,7 @@ class MapViewModel(
         toggleJob = viewModelScope.launch {
             val currentState = state.value
 
-            if (currentState.isButtonLoading) return@launch
+            if (currentState.isExplorerButtonLoading) return@launch
 
             if (!currentState.arePermissionsGranted) {
                 _uiEvent.send(MapUiEvent.RequestPermissions)
@@ -179,7 +181,7 @@ class MapViewModel(
 
             _state.update { currentState ->
                 currentState.copy(
-                    isButtonLoading = true
+                    isExplorerButtonLoading = true
                 )
             }
 
@@ -196,13 +198,25 @@ class MapViewModel(
 
                         if (!userResponse.isAuthorized) {
                             _uiEvent.send(MapUiEvent.ToggleService(false))
+
+                            _state.update { currentState ->
+                                currentState.copy(
+                                    isExplorerButtonLoading = false
+                                )
+                            }
+
                             handleLogout()
-                            _state.update { it.copy(isButtonLoading = false) }
                         }
                     } catch (_: Exception) {
                         _uiEvent.send(MapUiEvent.ToggleService(false))
+
                         _uiEvent.send(MapUiEvent.ShowToast("Server error"))
-                        _state.update { it.copy(isButtonLoading = false) }
+
+                        _state.update { currentState ->
+                            currentState.copy(
+                                isExplorerButtonLoading = false
+                            )
+                        }
                     }
                 }
                 ExplorationState.RUNNING, ExplorationState.SUSPENDED -> {
@@ -379,9 +393,55 @@ class MapViewModel(
         }
     }
 
+    // Checks wheater to navigate to login or user account screen
+    fun onUserAccountButtonClick() {
+        viewModelScope.launch {
+            val token = tokenService.getToken()
+            if (token == null) {
+                _uiEvent.send(MapUiEvent.NavigateToLogin)
+                return@launch
+            }
+
+            _state.update { currentState ->
+                currentState.copy(
+                    isUserAccountButtonLoading = true
+                )
+            }
+
+            try {
+                val userResponse = userRepository.getLoggedUser(token)
+
+                _state.update { currentState ->
+                    currentState.copy(
+                        isUserAccountButtonLoading = false
+                    )
+                }
+
+                if (userResponse.isAuthorized) {
+                    _uiEvent.send(MapUiEvent.NavigateToUserAccount)
+                }
+                else {
+                    handleLogout()
+                }
+            } catch (_: Exception) {
+                _uiEvent.send(MapUiEvent.ShowToast("Server error"))
+
+                _state.update { currentState ->
+                    currentState.copy(
+                        isUserAccountButtonLoading = false
+                    )
+                }
+            }
+        }
+    }
+
     // Handles logout by clearing token
-    private fun handleLogout() {
-        tokenService.clearToken()
+    private suspend fun handleLogout() {
+        viewModelScope.launch {
+            tokenService.clearToken()
+
+            _uiEvent.send(MapUiEvent.NavigateToLogin)
+        }
     }
 }
 
