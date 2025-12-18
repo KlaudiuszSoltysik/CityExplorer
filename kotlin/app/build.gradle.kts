@@ -43,7 +43,7 @@ android {
         getByName("debug") {
             applicationIdSuffix = ".dev"
             resValue("string", "app_name", "City Explorer dev")
-            buildConfigField("String", "BASE_URL", "\"http://192.168.8.198:6101/\"")
+            buildConfigField("String", "BASE_URL", "\"http://192.168.0.16:6101/\"")
         }
         getByName("release") {
             resValue("string", "app_name", "City Explorer")

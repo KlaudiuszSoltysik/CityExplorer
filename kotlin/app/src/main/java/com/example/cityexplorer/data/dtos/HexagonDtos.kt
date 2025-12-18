@@ -51,7 +51,8 @@ data class PostLocationBatchDto(
 
 @Serializable
 data class SyncResponseDto(
-    val updatedHexagons: List<HexagonProgressDto>
+    val updatedHexagons: List<HexagonProgressDto>,
+    val token: String?
 )
 
 @Serializable

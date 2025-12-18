@@ -44,3 +44,9 @@ public class HexagonProgressDto
     public string HexagonId { get; set; } = string.Empty;
     public double Progress { get; set; }
 }
+
+public class SyncResponseDto
+{
+    public List<HexagonProgressDto>? UpdatedHexagons { get; set; }
+    public string? Token { get; set; }
+}

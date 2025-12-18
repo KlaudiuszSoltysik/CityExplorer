@@ -31,6 +31,7 @@ import com.example.cityexplorer.ui.login.LoginScreen
 import com.example.cityexplorer.ui.map.MapScreen
 import com.example.cityexplorer.ui.theme.CityExplorerTheme
 import com.example.cityexplorer.ui.theme.CustomBlack
+import com.example.cityexplorer.ui.useraccount.UserAccountScreen
 import com.google.android.gms.location.LocationServices
 
 class MainActivity : ComponentActivity() {
@@ -161,7 +162,22 @@ fun CityExplorerAppHost(
                     },
                     onNavigateBack = {
                         navController.popBackStack()
+                    },
+                    onNavigateToUserAccount = {
+                        navController.navigate("user_account")
                     }
+                )
+            }
+
+            // User account screen
+            composable(Screen.UserAccountScreen.route) {
+                UserAccountScreen(
+                    userRepository = userRepository,
+                    tokenService = tokenService,
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    modifier = Modifier.padding(contentPadding),
                 )
             }
         }

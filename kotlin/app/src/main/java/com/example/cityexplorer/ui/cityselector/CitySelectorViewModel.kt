@@ -26,11 +26,11 @@ class CitySelectorViewModel(
         private set
 
     init {
-        loadData(forceRefresh = false)
+        loadData(false)
     }
 
     fun refreshData() {
-        loadData(forceRefresh = true)
+        loadData(true)
     }
 
     private fun loadData(forceRefresh: Boolean) {

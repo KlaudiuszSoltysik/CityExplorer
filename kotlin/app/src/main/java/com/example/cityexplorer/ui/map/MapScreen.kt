@@ -21,7 +21,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -63,6 +62,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.LocationSearching
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Place
@@ -70,11 +70,14 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.cityexplorer.data.dtos.SelectedHexagonDto
 import com.example.cityexplorer.data.repositories.HexagonRepository
 import com.example.cityexplorer.data.repositories.UserRepository
+import com.example.cityexplorer.data.util.ExplorationState
 import com.example.cityexplorer.ui.theme.CustomError
 import com.example.cityexplorer.ui.theme.CustomSuccess
 import com.example.cityexplorer.ui.theme.CustomWarning
@@ -91,11 +94,12 @@ fun MapScreen(
     modifier: Modifier,
     onNavigateToLogin: () -> Unit,
     onNavigateBack: () -> Unit,
+    onNavigateToUserAccount: () -> Unit,
     viewModel: MapViewModel = viewModel(
         factory = MapViewModelFactory(city, locationClient, tokenService, hexagonRepository, userRepository)
     )
 ) {
-    val state = viewModel.state
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -148,6 +152,9 @@ fun MapScreen(
                     is MapUiEvent.NavigateToLogin -> {
                         toggleLocalizationService(false)
                         onNavigateToLogin()
+                    }
+                    is MapUiEvent.NavigateToUserAccount -> {
+                        onNavigateToUserAccount()
                     }
                     is MapUiEvent.ShowToast -> {
                         Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
@@ -221,6 +228,9 @@ fun MapScreen(
         onMyLocationClick = {
             viewModel.getPoisFromHexagon(null, null)
             selectedHexagonId = null
+        },
+        onUserAccountButtonClick = {
+            viewModel.onUserAccountButtonClick()
         }
     )
 }
@@ -233,7 +243,8 @@ fun MapScreenContent(
     onRefresh: () -> Unit,
     onExplorerToggle: () -> Unit,
     onHexagonClick: (String, Double) -> Unit,
-    onMyLocationClick: () -> Unit
+    onMyLocationClick: () -> Unit,
+    onUserAccountButtonClick: () -> Unit
 ) {
     PullToRefreshBox(
         isRefreshing = state.isRefreshing,
@@ -253,7 +264,8 @@ fun MapScreenContent(
                     modifier = Modifier.fillMaxSize(),
                     onHexagonClick = onHexagonClick,
                     onMyLocationClick = onMyLocationClick,
-                    onExplorerToggle = onExplorerToggle
+                    onExplorerToggle = onExplorerToggle,
+                    onUserAccountButtonClick = onUserAccountButtonClick
                 )
             }
             is MapUiState.Error -> {
@@ -273,7 +285,8 @@ private fun MapSuccessContent(
     modifier: Modifier = Modifier,
     onHexagonClick: (String, Double) -> Unit,
     onMyLocationClick: () -> Unit,
-    onExplorerToggle: () -> Unit
+    onExplorerToggle: () -> Unit,
+    onUserAccountButtonClick: () -> Unit
 ) {
     HexagonMap(
         state = state,
@@ -284,12 +297,14 @@ private fun MapSuccessContent(
     )
 
     MapUiOverlays(
+        isExplorerButtonLoading = state.isExplorerButtonLoading,
         hexagonPois = state.selectedHexagonPois,
-        isExploringMode = state.isExploringMode,
+        explorationState = state.explorationState,
         isUserInCity = state.isUserInCity,
         arePermissionsGranted = state.arePermissionsGranted,
         modifier = modifier,
-        onExplorerToggle = onExplorerToggle
+        onExplorerToggle = onExplorerToggle,
+        onUserAccountButtonClick = onUserAccountButtonClick
     )
 }
 
@@ -310,6 +325,7 @@ fun HexagonMap(
     }
 
     val isValidBbox = data.bbox.size >= 4
+
     val cityBounds = remember(data.bbox) {
         if (isValidBbox) {
             try {
@@ -457,12 +473,14 @@ fun HexagonMap(
 
 @Composable
 private fun MapUiOverlays(
+    isExplorerButtonLoading: Boolean,
     hexagonPois: SelectedHexagonDto,
-    isExploringMode: Boolean,
+    explorationState: ExplorationState,
     isUserInCity: Boolean,
     arePermissionsGranted: Boolean,
     modifier: Modifier = Modifier,
-    onExplorerToggle: () -> Unit
+    onExplorerToggle: () -> Unit,
+    onUserAccountButtonClick: () -> Unit
 ) {
     Box(
         modifier = modifier.fillMaxSize()
@@ -477,7 +495,8 @@ private fun MapUiOverlays(
         }
 
         ExplorerControlButton(
-            isExploringMode = isExploringMode,
+            isExplorerButtonLoading = isExplorerButtonLoading,
+            explorationState = explorationState,
             isUserInCity = isUserInCity,
             arePermissionsGranted = arePermissionsGranted,
             modifier = Modifier
@@ -485,6 +504,21 @@ private fun MapUiOverlays(
                 .padding(bottom = 16.dp),
             onClick = onExplorerToggle
         )
+
+        FloatingActionButton(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .statusBarsPadding()
+                .padding(bottom = 16.dp, start = 16.dp),
+            onClick = { onUserAccountButtonClick() },
+            containerColor = CustomBlack,
+            contentColor = CustomWhite
+        ) {
+            Icon(
+                imageVector = Icons.Default.AccountCircle,
+                contentDescription = "Recenter Map"
+            )
+        }
     }
 }
 
@@ -554,19 +588,31 @@ private fun PoiInfoItem(
 
 @Composable
 private fun ExplorerControlButton(
-    isExploringMode: Boolean,
+    isExplorerButtonLoading: Boolean,
+    explorationState: ExplorationState,
     isUserInCity: Boolean,
     arePermissionsGranted: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     val containerColor = if (isUserInCity && arePermissionsGranted) {
-        if (isExploringMode) CustomError else CustomSuccess
+        when (explorationState) {
+            ExplorationState.RUNNING -> {
+                CustomError
+            }
+            ExplorationState.SUSPENDED -> {
+                CustomWarning
+            }
+            ExplorationState.STOPPED -> {
+                CustomSuccess
+            }
+        }
     } else {
         CustomBlack
     }
 
     Button(
+        enabled = !isExplorerButtonLoading,
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor.copy(alpha = 0.6f),
@@ -576,7 +622,17 @@ private fun ExplorerControlButton(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         modifier = modifier
     ) {
-        Text(text = if (isExploringMode) "Stop exploring!" else "Start exploring!")
+        Text(text = when (explorationState) {
+            ExplorationState.RUNNING -> {
+                "Stop exploring"
+            }
+            ExplorationState.SUSPENDED -> {
+                "Exploration suspended"
+            }
+            ExplorationState.STOPPED -> {
+                "Start exploring"
+            }
+        })
     }
 }
 

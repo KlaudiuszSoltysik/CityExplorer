@@ -105,6 +105,10 @@ class HexagonRepository(
                     _hexagonUpdates.emit(changes)
                 }
 
+                if (responseBody?.token != null) {
+                    tokenService.saveToken(responseBody.token)
+                }
+
                 return true
             } else {
                 return false

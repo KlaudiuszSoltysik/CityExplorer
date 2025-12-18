@@ -29,7 +29,7 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
             var googlePayload = await GoogleJsonWebSignature.ValidateAsync(googleToken, validationSettings);
             var userId = googlePayload.Subject;
 
-            var newAppToken = JwtTokenService.CreateAppJwtToken(googlePayload, configuration);
+            var newAppToken = JwtTokenService.CreateAppJwtToken(userId, googlePayload.Email, configuration);
 
             var user = await postgresContext.Users
                 .Include(u => u.ActiveSession)
@@ -37,7 +37,11 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
 
             if (user == null)
             {
-                user = new UserModel { Id = userId };
+                user = new UserModel
+                {
+                    Id = userId,
+                    Email = googlePayload.Email,
+                };
                 postgresContext.Users.Add(user);
             }
 

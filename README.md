@@ -81,36 +81,33 @@ Fully dockerized environment with automated pipelines.
 
 ### 🔴 Mandatory (MVP Core)
 
-- [ ] **Core Logic Stability**
-    - [ ] **Prevent User Token Expiration:** Ensure the session remains valid during active gameplay/exploration to prevent abrupt logouts.
-    - [ ] **Implement "3-Strike" Rule:** Circuit breaker pattern. If 3 consecutive batch uploads fail, transition Service to `SUSPENDED` to stop API spam.
-    - [ ] **Battery Optimization (GPS Suspend):** When `SUSPENDED`, physically stop `client.removeLocationUpdates()` to verify background service efficiency.
-    - [ ] **Auto-Resume Logic:** Reset error counters and re-enable GPS upon the first successful network "heartbeat" (200 OK).
-    - [ ] **Provider State Monitoring:** Handle system-wide GPS toggle off. Pause game gracefully instead of crashing or recording invalid data.
 - [ ] **User Screen & Compliance**
-    - [ ] **User Stats Dashboard:** Display basic stats (hexes claimed, distance walked) to close the gameplay loop.
-    - [ ] **Delete Account Option:** **CRITICAL.** Required by Google Play policy. Must function completely (API call to scrub data).
+  - [ ] **User Stats Dashboard:** Display basic stats (hexes claimed, distance walked) to close the gameplay loop.
+  - [ ] **Delete Account Option:** **CRITICAL.** Required by Google Play policy. Must function completely (API call to scrub data).
 
-### 🟡 High Impact / Engineering Flex
+### 🟡 High Impact
 
 - [ ] **Architecture & Refactoring**
-    - [ ] **Hilt Migration (DI):** Refactor manual dependency injection to Hilt. Shows mastery of modern Android standards and cleaner architecture.
+  - [ ] **Hilt Migration (DI):** Refactor manual dependency injection to Hilt. Shows mastery of modern Android standards and cleaner architecture.
 - [ ] **Quality Assurance (Testing)**
-    - [ ] **Unit Tests:** Add JUnit tests for core logic (e.g., Hexagon weight calculation, Service state transitions).
-    - [ ] **Integration Tests:** Basic tests for Backend API endpoints to ensure non-breaking changes.
+  - [ ] **Unit Tests:** Add JUnit tests for core logic (e.g., Hexagon weight calculation, Service state transitions).
+  - [ ] **Integration Tests:** Basic tests for Backend API endpoints to ensure non-breaking changes.
 - [ ] **DevOps & CI**
-    - [ ] **GitHub Actions (CI):** Automate application release version.
+  - [ ] **GitHub Actions (CI):** Automate application release version.
 - [ ] **Observability**
-    - [ ] **Error Tracking:** Integrate **Sentry** or **Firebase Crashlytics**. Demonstrates proactivity in monitoring app health in production.
+  - [ ] **Error Tracking:** Integrate **Sentry** or **Firebase Crashlytics**. Demonstrates proactivity in monitoring app health in production.
 - [ ] **Documentation**
-    - [ ] **Scalar/Swagger:** expose auto-generated API documentation. Shows respect for Developer Experience (DX).
+  - [ ] **Scalar/Swagger:** expose auto-generated API documentation. Shows respect for Developer Experience (DX).
 
-### 🟢 Nice to Have / Over-engineering
+### 🟢 Nice to Have
 
 - [ ] **Features**
-    - [ ] **Social Features:** Leaderboards, friends, chat (High effort, low impact if user base is small).
-    - [ ] **Monetization:** Google Play Billing implementation (Complex boilerplate, relevant mainly for Fintech/E-commerce roles).
+  - [ ] **Social Features:** Leaderboards, friends, chat (High effort, low impact if user base is small).
+  - [ ] **Monetization:** Google Play Billing implementation (Complex boilerplate, relevant mainly for Fintech/E-commerce roles).
 - [ ] **Advanced DevOps**
-    - [ ] **Off-site Backups:** S3/GCS backups for the DB (Critical for production business, optional for portfolio).
-    - [ ] **Host Monitoring:** Prometheus/Grafana setup (Visual eye-candy, but overkill for a single server).
-    - [ ] **DataOps Pipeline:** Automating Python scripts via Cron/Airflow (Manual execution is acceptable for static world generation).
+  - [ ] **Off-site Backups:** S3/GCS backups for the DB (Critical for production business, optional for portfolio).
+  - [ ] **Host Monitoring:** Prometheus/Grafana setup (Visual eye-candy, but overkill for a single server).
+  - [ ] **DataOps Pipeline:** Automating Python scripts via Cron/Airflow (Manual execution is acceptable for static world generation).
+- [ ] ai wyszukiwarka tras
+- [ ] usprawnienie generowania danych
+- [ ] auto backup db
