@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.cityexplorer.data.dtos.GetUserResponseDto
 import com.example.cityexplorer.data.repositories.UserRepository
 import com.example.cityexplorer.data.util.TokenService
+import com.example.cityexplorer.ui.map.MapUiEvent
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
@@ -21,6 +22,7 @@ sealed interface UserAccountUiState {
 
 interface UserAccountUiEvent {
     data object NavigateBack : UserAccountUiEvent
+    data class ShowToast(val message: String) : UserAccountUiEvent
 }
 
 class UserAccountViewModel(
@@ -42,10 +44,19 @@ class UserAccountViewModel(
            uiState = UserAccountUiState.Loading
 
             try {
-                val data = userRepository.getLoggedUser("")
-                uiState = UserAccountUiState.Success(data)
+                userRepository.getLoggedUser()
+                    .onSuccess { response ->
+                        if (response.isAuthorized) {
+                            uiState = UserAccountUiState.Success(response)
+                        } else {
+                            handleLogout()
+                        }
+                    }
+                    .onFailure {
+                        handleLogout()
+                    }
             } catch (_: Exception) {
-                uiState = UserAccountUiState.Error("Couldn't load data")
+                uiState = UserAccountUiState.Error("Couldn't load data.")
             }
         }
     }
@@ -54,13 +65,19 @@ class UserAccountViewModel(
         viewModelScope.launch {
             tokenService.clearToken()
 
+            _uiEvent.send(UserAccountUiEvent.ShowToast("Logged out."))
+
             _uiEvent.send(UserAccountUiEvent.NavigateBack)
         }
     }
 
     fun handleDeleteAccount() {
         viewModelScope.launch {
+            userRepository.deleteUserAccount()
+
             tokenService.clearToken()
+
+            _uiEvent.send(UserAccountUiEvent.ShowToast("Account deleted."))
 
             _uiEvent.send(UserAccountUiEvent.NavigateBack)
         }

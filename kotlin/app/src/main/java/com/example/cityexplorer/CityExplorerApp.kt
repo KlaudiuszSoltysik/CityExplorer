@@ -30,6 +30,9 @@ class CityExplorerApp : Application() {
             tokenService
         )
 
-        userRepository = UserRepository(ApiClient.userApiClient)
+        userRepository = UserRepository(
+            ApiClient.userApiClient,
+            tokenService
+        )
     }
 }

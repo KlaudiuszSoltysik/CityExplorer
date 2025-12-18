@@ -83,7 +83,6 @@ Fully dockerized environment with automated pipelines.
 
 - [ ] **User Screen & Compliance**
   - [ ] **User Stats Dashboard:** Display basic stats (hexes claimed, distance walked) to close the gameplay loop.
-  - [ ] **Delete Account Option:** **CRITICAL.** Required by Google Play policy. Must function completely (API call to scrub data).
 
 ### 🟡 High Impact
 

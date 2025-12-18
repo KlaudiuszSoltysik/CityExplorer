@@ -26,7 +26,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 
 sealed interface MapUiState {
@@ -134,11 +133,7 @@ class MapViewModel(
 
     // Updates permission status and starts location tracking if granted
     fun updatePermissionStatus(isGranted: Boolean) {
-        _state.update { currentState ->
-            currentState.copy(
-                arePermissionsGranted = isGranted
-            )
-        }
+        _state.update { it.copy(arePermissionsGranted = isGranted) }
 
         if (isGranted) {
             startLocationTracking()
@@ -147,11 +142,7 @@ class MapViewModel(
 
     // Stop location tracking service
     fun onServiceStoppedExternal() {
-        _state.update { currentState ->
-            currentState.copy(
-                explorationState = ExplorationState.STOPPED
-            )
-        }
+        _state.update { it.copy(explorationState = ExplorationState.STOPPED) }
     }
 
     // Toggles the exploration mode after validating requirements
@@ -167,61 +158,36 @@ class MapViewModel(
                 _uiEvent.send(MapUiEvent.RequestPermissions)
                 return@launch
             }
-
             if (!currentState.isUserInCity) {
                 _uiEvent.send(MapUiEvent.ShowToast("You are not in the city!"))
                 return@launch
             }
 
-            val token = tokenService.getToken()
-            if (token == null) {
-                _uiEvent.send(MapUiEvent.NavigateToLogin)
+            val currentRealState = ServiceStateManager.currentState.value
+            if (currentRealState != ExplorationState.STOPPED) {
+                _uiEvent.send(MapUiEvent.ToggleService(false))
                 return@launch
             }
 
-            _state.update { currentState ->
-                currentState.copy(
-                    isExplorerButtonLoading = true
-                )
-            }
+            try {
+                _state.update { it.copy(isExplorerButtonLoading = true) }
+                _uiEvent.send(MapUiEvent.ToggleService(true))
 
-            val currentRealState = ServiceStateManager.currentState.value
-
-            when (currentRealState) {
-                ExplorationState.STOPPED -> {
-                    _uiEvent.send(MapUiEvent.ToggleService(true))
-
-                    try {
-                        val userResponse = userRepository.getLoggedUser(token)
-
-                        if (!isActive) return@launch
-
-                        if (!userResponse.isAuthorized) {
+                userRepository.getLoggedUser()
+                    .onSuccess { response ->
+                        if (!response.isAuthorized) {
                             _uiEvent.send(MapUiEvent.ToggleService(false))
-
-                            _state.update { currentState ->
-                                currentState.copy(
-                                    isExplorerButtonLoading = false
-                                )
-                            }
 
                             handleLogout()
                         }
-                    } catch (_: Exception) {
+                    }
+                    .onFailure {
                         _uiEvent.send(MapUiEvent.ToggleService(false))
 
-                        _uiEvent.send(MapUiEvent.ShowToast("Server error"))
-
-                        _state.update { currentState ->
-                            currentState.copy(
-                                isExplorerButtonLoading = false
-                            )
-                        }
+                        handleLogout()
                     }
-                }
-                ExplorationState.RUNNING, ExplorationState.SUSPENDED -> {
-                    _uiEvent.send(MapUiEvent.ToggleService(false))
-                }
+            } finally {
+                _state.update { it.copy(isExplorerButtonLoading = false) }
             }
         }
     }
@@ -229,17 +195,9 @@ class MapViewModel(
     // Fetches hexagon data with repo-managed fallback logic
     suspend fun loadHexagonData(city: String, isInitial: Boolean) {
         if (isInitial) {
-            _state.update { currentState ->
-                currentState.copy(
-                    dataState = MapUiState.Loading
-                )
-            }
+            _state.update { it.copy(dataState = MapUiState.Loading) }
         } else {
-            _state.update { currentState ->
-                currentState.copy(
-                    isRefreshing = true
-                )
-            }
+            _state.update { it.copy(isRefreshing = true) }
         }
 
         try {
@@ -253,23 +211,11 @@ class MapViewModel(
                 }
             }
 
-            _state.update { currentState ->
-                currentState.copy(
-                    dataState = MapUiState.Success(data)
-                )
-            }
+            _state.update { it.copy(dataState = MapUiState.Success(data)) }
         } catch (_: Exception) {
-            _state.update { currentState ->
-                currentState.copy(
-                    dataState = MapUiState.Error("Couldn't load data. Check internet connection.")
-                )
-            }
+            _state.update { it.copy(dataState = MapUiState.Error("Couldn't load data. Check internet connection.")) }
         } finally {
-            _state.update { currentState ->
-                currentState.copy(
-                    isRefreshing = false
-                )
-            }
+            _state.update { it.copy(isRefreshing = false) }
         }
     }
 
@@ -280,7 +226,7 @@ class MapViewModel(
 
             applyProgressUpdatesToState(progressList)
         } catch (_: InvalidTokenException) {
-            _uiEvent.send(MapUiEvent.ShowToast("Login to see progress"))
+            _uiEvent.send(MapUiEvent.ShowToast("Login to see progress."))
         } catch (_: Exception) {
             _uiEvent.send(MapUiEvent.ShowToast("Couldn't load data. Check internet connection."))
         }
@@ -311,8 +257,8 @@ class MapViewModel(
 
             if (targetHexId != null && targetWeight != null) {
                 try {
-                    _state.update { currentState ->
-                        currentState.copy(
+                    _state.update {
+                        it.copy(
                             selectedHexagonPois = SelectedHexagonDto(
                                 weight = targetWeight,
                                 pois = emptyList()
@@ -322,8 +268,8 @@ class MapViewModel(
 
                     val pois = hexagonRepository.getPoisFromHexagon(targetHexId)
 
-                    _state.update { currentState ->
-                        currentState.copy(
+                    _state.update {
+                        it.copy(
                             selectedHexagonPois = SelectedHexagonDto(
                                 weight = targetWeight,
                                 pois = pois
@@ -353,8 +299,8 @@ class MapViewModel(
                 }
             }
 
-            _state.update { currentState ->
-                currentState.copy(
+            _state.update {
+                it.copy(
                     dataState = MapUiState.Success(
                         cityHexagonsDataDto = currentCityData.copy(
                             hexagons = updatedHexagons
@@ -371,24 +317,13 @@ class MapViewModel(
             try {
                 locationClient.getLocationFlow()
                     .collect { location ->
-                        _state.update { currentState ->
-                            currentState.copy(
-                                userLocation = location
-                            )
-                        }
+                        _state.update { it.copy(userLocation = location) }
                     }
             } catch (_: SecurityException) {
-                _state.update { currentState ->
-                    currentState.copy(
-                        dataState = MapUiState.Error("Missing location permissions.")
-                    )
+                _state.update { it.copy(dataState = MapUiState.Error("Missing location permissions."))
                 }
             } catch (_: Exception) {
-                _state.update { currentState ->
-                    currentState.copy(
-                        dataState = MapUiState.Error("Location error")
-                    )
-                }
+                _state.update { it.copy(dataState = MapUiState.Error("Location error.")) }
             }
         }
     }
@@ -396,47 +331,26 @@ class MapViewModel(
     // Checks wheater to navigate to login or user account screen
     fun onUserAccountButtonClick() {
         viewModelScope.launch {
-            val token = tokenService.getToken()
-            if (token == null) {
-                _uiEvent.send(MapUiEvent.NavigateToLogin)
-                return@launch
-            }
+            _state.update { it.copy(isUserAccountButtonLoading = true) }
 
-            _state.update { currentState ->
-                currentState.copy(
-                    isUserAccountButtonLoading = true
-                )
-            }
-
-            try {
-                val userResponse = userRepository.getLoggedUser(token)
-
-                _state.update { currentState ->
-                    currentState.copy(
-                        isUserAccountButtonLoading = false
-                    )
+            userRepository.getLoggedUser()
+                .onSuccess { response ->
+                    if (response.isAuthorized) {
+                        _uiEvent.send(MapUiEvent.NavigateToUserAccount)
+                    } else {
+                        handleLogout()
+                    }
                 }
-
-                if (userResponse.isAuthorized) {
-                    _uiEvent.send(MapUiEvent.NavigateToUserAccount)
-                }
-                else {
+                .onFailure {
                     handleLogout()
                 }
-            } catch (_: Exception) {
-                _uiEvent.send(MapUiEvent.ShowToast("Server error"))
 
-                _state.update { currentState ->
-                    currentState.copy(
-                        isUserAccountButtonLoading = false
-                    )
-                }
-            }
+            _state.update { it.copy(isUserAccountButtonLoading = false) }
         }
     }
 
     // Handles logout by clearing token
-    private suspend fun handleLogout() {
+    private fun handleLogout() {
         viewModelScope.launch {
             tokenService.clearToken()
 

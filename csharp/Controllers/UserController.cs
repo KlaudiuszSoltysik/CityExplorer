@@ -40,7 +40,7 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
                 user = new UserModel
                 {
                     Id = userId,
-                    Email = googlePayload.Email,
+                    Email = googlePayload.Email
                 };
                 postgresContext.Users.Add(user);
             }
@@ -100,5 +100,39 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
                 Id = session.User.Id
             }
         });
+    }
+
+    // Deletes users account
+    [HttpPost("delete-user-account")]
+    public async Task<IActionResult> DeleteUserAccount([FromBody] string token)
+    {
+        await using var transaction = await postgresContext.Database.BeginTransactionAsync();
+
+        try
+        {
+            var session = await postgresContext.Sessions
+                .Include(s => s.User)
+                .ThenInclude(u => u.HexagonProgresses)
+                .FirstOrDefaultAsync(s => s.Token == token);
+
+            if (session == null || session.ExpiresAt < DateTime.UtcNow)
+                return Unauthorized(new AuthorizationResponseDto { IsAuthorized = false });
+
+            var user = session.User;
+
+            postgresContext.Users.Remove(user);
+
+            await postgresContext.SaveChangesAsync();
+
+            await transaction.CommitAsync();
+
+            return NoContent();
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+
+            return StatusCode(500);
+        }
     }
 }
