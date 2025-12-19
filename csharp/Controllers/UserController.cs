@@ -82,7 +82,8 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
 
     // Validates if the provided session token is active and valid
     [HttpPost("get-logged-user")]
-    public async Task<IActionResult> ValidateAuthorizationToken([FromHeader(Name = "Authorization")] string authorization)
+    public async Task<IActionResult> ValidateAuthorizationToken(
+        [FromHeader(Name = "Authorization")] string authorization)
     {
         if (string.IsNullOrEmpty(authorization))
             return Unauthorized("Missing token.");
@@ -132,12 +133,10 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
             .FirstOrDefaultAsync(x => x.UserId == user.Id && x.CityId == city);
 
         if (userStatistics == null || userStatistics.Progress == 0)
-        {
             return Ok(new GetUserStatisticsDto
             {
                 Progress = 0, PlayTime = 0, Ranking = 0, UserCount = 0
             });
-        }
 
         var totalUsers = await postgresContext.Set<UserCityProgress>()
             .CountAsync(x => x.CityId == city && x.Progress > 0);
