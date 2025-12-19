@@ -17,7 +17,9 @@ sealed class Screen(val route: String) {
         fun createRoute(city: String): String = "map/$city"
     }
 
-    data object UserAccountScreen : Screen("user_account")
+    data object UserAccountScreen : Screen("user_account/{${Args.CITY}}") {
+        fun createRoute(city: String): String = "user_account/$city"
+    }
 
     object Args {
         const val CITY = "city"

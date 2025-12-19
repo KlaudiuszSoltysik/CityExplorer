@@ -71,43 +71,33 @@ Fully dockerized environment with automated pipelines.
 
 | Domain       | Technology                                                    |
 | :----------- | :------------------------------------------------------------ |
-| **Mobile**   | Kotlin, Jetpack Compose, Google Maps SDK, Google OAuth        |
+| **Mobile**   | Kotlin, Jetpack Compose, Hilt, Google Maps SDK, Google OAuth  |
 | **Backend**  | C# .NET 9.0, Entity Framework Core, Uber H3                   |
 | **Data**     | Python, Uber H3, Overpass API                                 |
 | **Database** | PostgreSQL                                                    |
 | **DevOps**   | Docker, Docker Compose, Terraform, Cloudflare, GitHub Actions |
 
-## 🚀 Project Roadmap (Portfolio Strategy)
+## 🚀 Project Roadmap
 
-### 🔴 Mandatory (MVP Core)
+### 🔴 Mandatory
 
-- [ ] **User Screen & Compliance**
-  - [ ] **User Stats Dashboard:** Display basic stats (hexes claimed, distance walked) to close the gameplay loop.
-  - [ ] **Delete Account Option:** **CRITICAL.** Required by Google Play policy. Must function completely (API call to scrub data).
+- [ ] **Fix prod**
 
 ### 🟡 High Impact
 
-- [ ] **Architecture & Refactoring**
-  - [ ] **Hilt Migration (DI):** Refactor manual dependency injection to Hilt. Shows mastery of modern Android standards and cleaner architecture.
-- [ ] **Quality Assurance (Testing)**
-  - [ ] **Unit Tests:** Add JUnit tests for core logic (e.g., Hexagon weight calculation, Service state transitions).
-  - [ ] **Integration Tests:** Basic tests for Backend API endpoints to ensure non-breaking changes.
-- [ ] **DevOps & CI**
-  - [ ] **GitHub Actions (CI):** Automate application release version.
-- [ ] **Observability**
-  - [ ] **Error Tracking:** Integrate **Sentry** or **Firebase Crashlytics**. Demonstrates proactivity in monitoring app health in production.
-- [ ] **Documentation**
-  - [ ] **Scalar/Swagger:** expose auto-generated API documentation. Shows respect for Developer Experience (DX).
+- [ ] **User walked distance**
+- [ ] **Kill foreground service after logging out**
+- [ ] **Hilt Migration:** Refactor manual dependency injection to Hilt.
+- [ ] **Unit Tests:** Add tests for app and backend
+- [ ] **GitHub Actions:** Automate application release version.
+- [ ] **Error Tracking**
+- [ ] **Scalar:** expose auto-generated API documentation.
 
 ### 🟢 Nice to Have
 
-- [ ] **Features**
-  - [ ] **Social Features:** Leaderboards, friends, chat (High effort, low impact if user base is small).
-  - [ ] **Monetization:** Google Play Billing implementation (Complex boilerplate, relevant mainly for Fintech/E-commerce roles).
-- [ ] **Advanced DevOps**
-  - [ ] **Off-site Backups:** S3/GCS backups for the DB (Critical for production business, optional for portfolio).
-  - [ ] **Host Monitoring:** Prometheus/Grafana setup (Visual eye-candy, but overkill for a single server).
-  - [ ] **DataOps Pipeline:** Automating Python scripts via Cron/Airflow (Manual execution is acceptable for static world generation).
-- [ ] ai wyszukiwarka tras
-- [ ] usprawnienie generowania danych
-- [ ] auto backup db
+- [ ] **Social Features:** Leaderboards, friends
+- [ ] **Monetization:** Google Play Billing implementation
+- [ ] **DB Backups:** backups for the DB
+- [ ] **Host Monitoring:**
+- [ ] **DataOps Pipeline:** Automating Python scripts + making them better
+- [ ] **AI pathfinding**

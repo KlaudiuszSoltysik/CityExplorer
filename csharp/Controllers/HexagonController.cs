@@ -100,18 +100,21 @@ public class HexagonController(PostgresContext postgresContext, IConfiguration c
 
         var session = await postgresContext.Sessions
             .Include(s => s.User)
+            .ThenInclude(userModel => userModel.CityProgresses)
             .FirstOrDefaultAsync(s => s.Token == token);
 
         if (session == null || session.ExpiresAt < DateTime.UtcNow)
             return Unauthorized("Invalid token or session expired.");
+
+        var user = session.User;
 
         string? newRefreshedToken = null;
 
         if (session.ExpiresAt <= DateTime.UtcNow + TimeSpan.FromMinutes(15))
         {
             newRefreshedToken = JwtTokenService.CreateAppJwtToken(
-                session.User.Id,
-                session.User.Email,
+                user.Id,
+                user.Email,
                 configuration
             );
 
@@ -184,6 +187,8 @@ public class HexagonController(PostgresContext postgresContext, IConfiguration c
 
         var changesToReturn = new List<HexagonProgressDto>();
 
+        int newlyDiscoveredCount = 0;
+
         foreach (var hexagonId in affectedHexagonIds)
         {
             var secondsSpent = hexagonDurationMap[hexagonId];
@@ -193,6 +198,8 @@ public class HexagonController(PostgresContext postgresContext, IConfiguration c
             var progressGained = secondsSpent / (secondsToComplete * weight);
 
             var record = existingProgresses.FirstOrDefault(x => x.HexagonId == hexagonId);
+
+            bool wasAlreadyFinished = record != null && record.Progress >= 1.0;
 
             if (record != null)
             {
@@ -210,12 +217,38 @@ public class HexagonController(PostgresContext postgresContext, IConfiguration c
                 postgresContext.Progresses.Add(record);
             }
 
+            if (!wasAlreadyFinished && record.Progress >= 1.0)
+            {
+                newlyDiscoveredCount++;
+            }
+
             changesToReturn.Add(new HexagonProgressDto
             {
                 HexagonId = hexagonId,
                 Progress = record.Progress
             });
         }
+
+        var timePlayed = finalLocationsToProcess[^1].LocationObject.Timestamp -
+                         finalLocationsToProcess[0].LocationObject.Timestamp;
+
+        var cityStat = user.CityProgresses.FirstOrDefault(x => x.CityId == targetCityId);
+
+        if (cityStat == null)
+        {
+            cityStat = new UserCityProgress
+            {
+                UserId = user.Id,
+                CityId = targetCityId,
+                Progress = 0,
+                PlayTime = 0
+            };
+            user.CityProgresses.Add(cityStat);
+        }
+
+        cityStat.PlayTime += (int)timePlayed.TotalSeconds;
+
+        cityStat.Progress += newlyDiscoveredCount;
 
         await postgresContext.SaveChangesAsync();
 
@@ -245,11 +278,11 @@ public class HexagonController(PostgresContext postgresContext, IConfiguration c
         if (session == null || session.ExpiresAt < DateTime.UtcNow)
             return Unauthorized("Invalid token or session expired.");
 
-        var userModel = session.User;
+        var user = session.User;
 
         var progresses = await postgresContext.Progresses
             .AsNoTracking()
-            .Where(p => p.UserId == userModel.Id && p.Hexagon != null && p.Hexagon.City.City == city)
+            .Where(p => p.UserId == user.Id && p.Hexagon != null && p.Hexagon.City.City == city)
             .Select(p => new HexagonProgressDto
             {
                 HexagonId = p.HexagonId.ToString(),

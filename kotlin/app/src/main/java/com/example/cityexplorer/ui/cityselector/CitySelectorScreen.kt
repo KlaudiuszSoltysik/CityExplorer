@@ -41,20 +41,17 @@ import com.example.cityexplorer.data.repositories.HexagonRepository
 fun CitySelectorScreen(
     hexagonRepository: HexagonRepository,
     modifier: Modifier = Modifier,
-    onNavigateToModeSelectorScreen: (city: String) -> Unit,
+    onNavigateToMapScreen: (city: String) -> Unit,
     viewModel: CitySelectorViewModel = viewModel(
         factory = CitySelectorViewModelFactory(hexagonRepository)
     )
 ) {
-    val uiState = viewModel.uiState
-    val isRefreshing = viewModel.isRefreshing
-
     CitySelectorContent(
-        uiState = uiState,
-        isRefreshing = isRefreshing,
+        uiState = viewModel.uiState,
+        isRefreshing = viewModel.isRefreshing,
         modifier = modifier,
         onRefresh = { viewModel.refreshData() },
-        onCityClick = onNavigateToModeSelectorScreen
+        onCityClick = onNavigateToMapScreen
     )
 }
 
