@@ -94,7 +94,7 @@ fun MapScreen(
     modifier: Modifier,
     onNavigateToLogin: () -> Unit,
     onNavigateBack: () -> Unit,
-    onNavigateToUserAccount: () -> Unit,
+    onNavigateToUserAccount: (city: String) -> Unit,
     viewModel: MapViewModel = viewModel(
         factory = MapViewModelFactory(city, locationClient, tokenService, hexagonRepository, userRepository)
     )
@@ -154,7 +154,7 @@ fun MapScreen(
                         onNavigateToLogin()
                     }
                     is MapUiEvent.NavigateToUserAccount -> {
-                        onNavigateToUserAccount()
+                        onNavigateToUserAccount(viewModel.city)
                     }
                     is MapUiEvent.ShowToast -> {
                         Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()

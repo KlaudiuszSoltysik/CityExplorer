@@ -125,7 +125,7 @@ fun CityExplorerAppHost(
                 CitySelectorScreen(
                     hexagonRepository = hexagonRepository,
                     modifier = Modifier.padding(contentPadding),
-                    onNavigateToModeSelectorScreen = { city ->
+                    onNavigateToMapScreen = { city ->
                         navController.navigate(Screen.MapScreen.createRoute(city))
                     }
                 )
@@ -146,7 +146,6 @@ fun CityExplorerAppHost(
                 val city = backStackEntry.arguments?.getString(Screen.Args.CITY) ?: ""
 
                 MapScreen(
-                    modifier = Modifier.padding(contentPadding),
                     city = city,
                     locationClient = locationClient,
                     tokenService = tokenService,
@@ -163,15 +162,29 @@ fun CityExplorerAppHost(
                     onNavigateBack = {
                         navController.popBackStack()
                     },
-                    onNavigateToUserAccount = {
-                        navController.navigate("user_account")
-                    }
+                    onNavigateToUserAccount = { city ->
+                        navController.navigate(Screen.UserAccountScreen.createRoute(city))
+                    },
+                    modifier = Modifier.padding(contentPadding),
                 )
             }
 
             // User account screen
-            composable(Screen.UserAccountScreen.route) {
+            composable(
+                route = Screen.UserAccountScreen.route,
+                arguments = listOf(
+                    navArgument(Screen.Args.CITY) { type = NavType.StringType }
+                ),
+                deepLinks = listOf(
+                    navDeepLink {
+                        uriPattern = "cityexplorer://user_account/{${Screen.Args.CITY}}"
+                    }
+                )
+            ) { backStackEntry ->
+                val city = backStackEntry.arguments?.getString(Screen.Args.CITY) ?: ""
+
                 UserAccountScreen(
+                    city = city,
                     userRepository = userRepository,
                     tokenService = tokenService,
                     onNavigateBack = {

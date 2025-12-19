@@ -82,8 +82,13 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
 
     // Validates if the provided session token is active and valid
     [HttpPost("get-logged-user")]
-    public async Task<IActionResult> ValidateAuthorizationToken([FromBody] string token)
+    public async Task<IActionResult> ValidateAuthorizationToken([FromHeader(Name = "Authorization")] string authorization)
     {
+        if (string.IsNullOrEmpty(authorization))
+            return Unauthorized("Missing token.");
+
+        var token = authorization.Replace("Bearer ", "").Trim();
+
         var session = await postgresContext.Sessions
             .AsNoTracking()
             .Include(s => s.User)
@@ -102,14 +107,66 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
         });
     }
 
+    // Returns user statistics
+    [HttpGet("get-user-statistics")]
+    public async Task<IActionResult> GetUserStatistics(
+        [FromHeader(Name = "Authorization")] string authorization,
+        [FromQuery] string city)
+    {
+        if (string.IsNullOrEmpty(authorization))
+            return Unauthorized("Missing token.");
+
+        var token = authorization.Replace("Bearer ", "").Trim();
+
+        var session = await postgresContext.Sessions
+            .AsNoTracking()
+            .Include(s => s.User)
+            .FirstOrDefaultAsync(s => s.Token == token);
+
+        if (session == null || session.ExpiresAt < DateTime.UtcNow)
+            return Ok(new AuthorizationResponseDto { IsAuthorized = false });
+
+        var user = session.User;
+
+        var userStatistics = await postgresContext.Set<UserCityProgress>()
+            .FirstOrDefaultAsync(x => x.UserId == user.Id && x.CityId == city);
+
+        if (userStatistics == null || userStatistics.Progress == 0)
+        {
+            return Ok(new GetUserStatisticsDto
+            {
+                Progress = 0, PlayTime = 0, Ranking = 0, UserCount = 0
+            });
+        }
+
+        var totalUsers = await postgresContext.Set<UserCityProgress>()
+            .CountAsync(x => x.CityId == city && x.Progress > 0);
+
+        var betterPlayersCount = await postgresContext.Set<UserCityProgress>()
+            .CountAsync(x => x.CityId == city && x.Progress > userStatistics.Progress);
+
+        return Ok(new GetUserStatisticsDto
+        {
+            Progress = userStatistics.Progress,
+            PlayTime = userStatistics.PlayTime,
+            Ranking = betterPlayersCount + 1,
+            UserCount = totalUsers
+        });
+    }
+
     // Deletes users account
     [HttpPost("delete-user-account")]
-    public async Task<IActionResult> DeleteUserAccount([FromBody] string token)
+    public async Task<IActionResult> DeleteUserAccount([FromHeader(Name = "Authorization")] string authorization)
     {
         await using var transaction = await postgresContext.Database.BeginTransactionAsync();
 
         try
         {
+            if (string.IsNullOrEmpty(authorization))
+                return Unauthorized("Missing token.");
+
+            var token = authorization.Replace("Bearer ", "").Trim();
+
             var session = await postgresContext.Sessions
                 .Include(s => s.User)
                 .ThenInclude(u => u.HexagonProgresses)

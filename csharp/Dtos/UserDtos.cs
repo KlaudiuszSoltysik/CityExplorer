@@ -16,3 +16,11 @@ public class GetUserResponseDto
 {
     public string Id { get; set; } = string.Empty;
 }
+
+public class GetUserStatisticsDto
+{
+    public int Progress { get; set; }
+    public int PlayTime { get; set; }
+    public int Ranking { get; set; }
+    public int UserCount { get; set; }
+}

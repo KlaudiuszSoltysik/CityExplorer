@@ -1,5 +1,6 @@
 package com.example.cityexplorer.ui.useraccount
 
+import android.content.Intent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -7,16 +8,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.cityexplorer.data.dtos.GetUserResponseDto
+import com.example.cityexplorer.data.dtos.GetUserStatisticsDto
 import com.example.cityexplorer.data.repositories.UserRepository
+import com.example.cityexplorer.data.util.LocationTrackingService
 import com.example.cityexplorer.data.util.TokenService
-import com.example.cityexplorer.ui.map.MapUiEvent
+import com.example.cityexplorer.ui.cityselector.CitySelectorUiState
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 sealed interface UserAccountUiState {
     data object Loading : UserAccountUiState
-    data class Success(val data: GetUserResponseDto): UserAccountUiState
+    data class Success(val data: GetUserStatisticsDto): UserAccountUiState
     data class Error(val message: String) : UserAccountUiState
 }
 
@@ -26,6 +29,7 @@ interface UserAccountUiEvent {
 }
 
 class UserAccountViewModel(
+    private val city: String,
     private val userRepository: UserRepository,
     private val tokenService: TokenService
 ) : ViewModel() {
@@ -35,34 +39,43 @@ class UserAccountViewModel(
     private val _uiEvent = Channel<UserAccountUiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
 
+    var isRefreshing: Boolean by mutableStateOf(false)
+        private set
+
     init {
-        loadData()
+        loadData(false)
     }
 
-    private fun loadData() {
+    fun refreshData() {
+        loadData(true)
+    }
+
+    private fun loadData(forceRefresh: Boolean) {
+        if (!forceRefresh) uiState = UserAccountUiState.Loading else isRefreshing = true
+
         viewModelScope.launch {
            uiState = UserAccountUiState.Loading
 
             try {
-                userRepository.getLoggedUser()
+                userRepository.getUserStatistics(city)
                     .onSuccess { response ->
-                        if (response.isAuthorized) {
-                            uiState = UserAccountUiState.Success(response)
-                        } else {
-                            handleLogout()
-                        }
+                        uiState = UserAccountUiState.Success(response)
                     }
                     .onFailure {
-                        handleLogout()
+                        uiState = UserAccountUiState.Error("Couldn't load data.")
                     }
             } catch (_: Exception) {
                 uiState = UserAccountUiState.Error("Couldn't load data.")
+            } finally {
+                isRefreshing = false
             }
         }
     }
 
     fun handleLogout() {
         viewModelScope.launch {
+            stopLocationService()
+
             tokenService.clearToken()
 
             _uiEvent.send(UserAccountUiEvent.ShowToast("Logged out."))
@@ -73,6 +86,8 @@ class UserAccountViewModel(
 
     fun handleDeleteAccount() {
         viewModelScope.launch {
+            stopLocationService()
+
             userRepository.deleteUserAccount()
 
             tokenService.clearToken()
@@ -82,13 +97,21 @@ class UserAccountViewModel(
             _uiEvent.send(UserAccountUiEvent.NavigateBack)
         }
     }
+
+    private fun stopLocationService() {
+//        val intent = Intent(context, LocationTrackingService::class.java).apply {
+//            action = LocationTrackingService.ACTION_STOP
+//        }
+//
+//        context.startService(intent)
+    }
 }
 
-class UserAccountViewModelFactory(private val userRepository: UserRepository, private val tokenService: TokenService) : ViewModelProvider.Factory {
+class UserAccountViewModelFactory(private val city: String, private val userRepository: UserRepository, private val tokenService: TokenService) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(UserAccountViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return UserAccountViewModel(userRepository, tokenService) as T
+            return UserAccountViewModel(city, userRepository, tokenService) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

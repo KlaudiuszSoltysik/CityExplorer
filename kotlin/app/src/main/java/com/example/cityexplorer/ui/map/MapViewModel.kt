@@ -68,7 +68,7 @@ data class MapScreenState(
 }
 
 class MapViewModel(
-    private val city: String,
+    val city: String,
     private val locationClient: FusedLocationProviderClient,
     private val tokenService: TokenService,
     private val hexagonRepository: HexagonRepository,
