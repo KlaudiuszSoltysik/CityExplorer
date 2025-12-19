@@ -77,13 +77,16 @@ Fully dockerized environment with automated pipelines.
 | **Database** | PostgreSQL                                                    |
 | **DevOps**   | Docker, Docker Compose, Terraform, Cloudflare, GitHub Actions |
 
-## 🚀 Project Roadmap (Portfolio Strategy)
+## 🚀 Project Roadmap
 
 ### 🔴 Mandatory
+
+- [ ] **Fix prod**
 
 ### 🟡 High Impact
 
 - [ ] **User walked distance**
+- [ ] **Kill foreground service after logging out**
 - [ ] **Hilt Migration:** Refactor manual dependency injection to Hilt.
 - [ ] **Unit Tests:** Add tests for app and backend
 - [ ] **GitHub Actions:** Automate application release version.
