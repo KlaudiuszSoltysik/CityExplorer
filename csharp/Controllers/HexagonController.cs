@@ -187,7 +187,7 @@ public class HexagonController(PostgresContext postgresContext, IConfiguration c
 
         var changesToReturn = new List<HexagonProgressDto>();
 
-        int newlyDiscoveredCount = 0;
+        var newlyDiscoveredCount = 0;
 
         foreach (var hexagonId in affectedHexagonIds)
         {
@@ -199,7 +199,7 @@ public class HexagonController(PostgresContext postgresContext, IConfiguration c
 
             var record = existingProgresses.FirstOrDefault(x => x.HexagonId == hexagonId);
 
-            bool wasAlreadyFinished = record != null && record.Progress >= 1.0;
+            var wasAlreadyFinished = record != null && record.Progress >= 1.0;
 
             if (record != null)
             {
@@ -217,10 +217,7 @@ public class HexagonController(PostgresContext postgresContext, IConfiguration c
                 postgresContext.Progresses.Add(record);
             }
 
-            if (!wasAlreadyFinished && record.Progress >= 1.0)
-            {
-                newlyDiscoveredCount++;
-            }
+            if (!wasAlreadyFinished && record.Progress >= 1.0) newlyDiscoveredCount++;
 
             changesToReturn.Add(new HexagonProgressDto
             {

@@ -1,18 +1,14 @@
 package com.example.cityexplorer.ui.useraccount
 
-import android.content.Intent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.cityexplorer.data.dtos.GetUserResponseDto
 import com.example.cityexplorer.data.dtos.GetUserStatisticsDto
 import com.example.cityexplorer.data.repositories.UserRepository
-import com.example.cityexplorer.data.util.LocationTrackingService
 import com.example.cityexplorer.data.util.TokenService
-import com.example.cityexplorer.ui.cityselector.CitySelectorUiState
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch

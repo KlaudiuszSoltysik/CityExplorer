@@ -26,6 +26,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__PostgresConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - GoogleAuth__ClientId=${GOOGLE_AUTH_CLIENT_ID}
+      - JwtSettings__SecretKey=${JWT_SECTRET_KEY}
+      - JwtSettings__Issuer=CityExplorerBackend
+      - JwtSettings__Audience=CityExplorerApp
     depends_on:
       postgres:
         condition: service_healthy
