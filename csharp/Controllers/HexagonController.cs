@@ -167,6 +167,8 @@ public class HexagonController(PostgresContext postgresContext, IConfiguration c
 
         var hexagonDurationMap = new Dictionary<string, double>();
 
+        double distance = 0;
+
         for (var i = 0; i < finalLocationsToProcess.Count - 1; i++)
         {
             var current = finalLocationsToProcess[i];
@@ -176,6 +178,15 @@ public class HexagonController(PostgresContext postgresContext, IConfiguration c
 
             hexagonDurationMap.TryAdd(current.HexagonId, 0);
             hexagonDurationMap[current.HexagonId] += duration;
+
+            var dist = CalculateDistance(
+                current.LocationObject.Latitude,
+                current.LocationObject.Longitude,
+                next.LocationObject.Latitude,
+                next.LocationObject.Longitude
+            );
+
+            distance += dist;
         }
 
         var affectedHexagonIds = hexagonDurationMap.Keys.ToList();
@@ -229,23 +240,23 @@ public class HexagonController(PostgresContext postgresContext, IConfiguration c
         var timePlayed = finalLocationsToProcess[^1].LocationObject.Timestamp -
                          finalLocationsToProcess[0].LocationObject.Timestamp;
 
-        var cityStat = user.CityProgresses.FirstOrDefault(x => x.CityId == targetCityId);
+        var cityStatistic = user.CityProgresses.FirstOrDefault(x => x.CityId == targetCityId);
 
-        if (cityStat == null)
+        if (cityStatistic == null)
         {
-            cityStat = new UserCityProgress
+            cityStatistic = new UserCityProgress
             {
                 UserId = user.Id,
                 CityId = targetCityId,
                 Progress = 0,
                 PlayTime = 0
             };
-            user.CityProgresses.Add(cityStat);
+            user.CityProgresses.Add(cityStatistic);
         }
 
-        cityStat.PlayTime += (int)timePlayed.TotalSeconds;
-
-        cityStat.Progress += newlyDiscoveredCount;
+        cityStatistic.Progress += newlyDiscoveredCount;
+        cityStatistic.PlayTime += (int)timePlayed.TotalSeconds;
+        cityStatistic.Distance += distance;
 
         await postgresContext.SaveChangesAsync();
 
@@ -288,5 +299,22 @@ public class HexagonController(PostgresContext postgresContext, IConfiguration c
             .ToListAsync();
 
         return Ok(progresses);
+    }
+
+    private static double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
+    {
+        const double r = 6371e3;
+        var phi1 = lat1 * Math.PI / 180;
+        var phi2 = lat2 * Math.PI / 180;
+        var deltaPhi = (lat2 - lat1) * Math.PI / 180;
+        var deltaLambda = (lon2 - lon1) * Math.PI / 180;
+
+        var a = Math.Sin(deltaPhi / 2) * Math.Sin(deltaPhi / 2) +
+                Math.Cos(phi1) * Math.Cos(phi2) *
+                Math.Sin(deltaLambda / 2) * Math.Sin(deltaLambda / 2);
+
+        var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+
+        return r * c;
     }
 }

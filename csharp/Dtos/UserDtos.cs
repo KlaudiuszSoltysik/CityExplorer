@@ -19,8 +19,11 @@ public class GetUserResponseDto
 
 public class GetUserStatisticsDto
 {
+    public double Explored { get; set; }
     public int Progress { get; set; }
+    public int HexagonCount { get; set; }
     public int PlayTime { get; set; }
+    public int Distance { get; set; }
     public int Ranking { get; set; }
     public int UserCount { get; set; }
 }

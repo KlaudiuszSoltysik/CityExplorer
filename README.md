@@ -85,7 +85,6 @@ Fully dockerized environment with automated pipelines.
 
 ### 🟡 High Impact
 
-- [ ] **User walked distance**
 - [ ] **Kill foreground service after logging out**
 - [ ] **Hilt Migration:** Refactor manual dependency injection to Hilt.
 - [ ] **Unit Tests:** Add tests for app and backend
