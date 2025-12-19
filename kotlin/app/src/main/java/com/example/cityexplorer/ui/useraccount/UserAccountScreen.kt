@@ -147,13 +147,20 @@ fun UserAccount(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        StatisticRow(label = "Ranking", value = "# ${data.ranking} / ${data.userCount}")
         HorizontalDivider()
-
         StatisticRow(label = "Exploring time", value = formatPlayTime(data.playTime))
         HorizontalDivider()
 
-        StatisticRow(label = "Hexagons discovered", value = data.progress.toString())
+        StatisticRow(label = "Hexagons discovered", value = "${data.progress} / ${data.hexagonCount}")
+        HorizontalDivider()
+
+        StatisticRow(label = "City explored", value = "${data.explored}%")
+        HorizontalDivider()
+
+        StatisticRow(label = "Distance traveled", value = formatDistance(data.distance))
+        HorizontalDivider()
+
+        StatisticRow(label = "Ranking", value = "# ${data.ranking} / ${data.userCount}")
         HorizontalDivider()
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -211,16 +218,6 @@ fun StatisticRow(label: String, value: String) {
     }
 }
 
-
-fun formatPlayTime(seconds: Int): String {
-    val minutes = seconds / 60
-
-    val h = minutes / 60
-    val m = minutes % 60
-
-    return if (h > 0) "$h h $m min" else "$m min"
-}
-
 @Composable
 fun ErrorMessage(
     message: String,
@@ -235,4 +232,20 @@ fun ErrorMessage(
             modifier = Modifier.padding(16.dp)
         )
     }
+}
+
+fun formatPlayTime(seconds: Int): String {
+    val minutes = seconds / 60
+
+    val h = minutes / 60
+    val m = minutes % 60
+
+    return if (h > 0) "$h h $m min" else "$m min"
+}
+
+fun formatDistance(distance: Int): String {
+    val km = distance / 1000
+    val m = distance % 1000
+
+    return if (km > 0) "$km km $m m" else "$m m"
 }

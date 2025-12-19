@@ -70,13 +70,9 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
                 Token = newAppToken
             });
         }
-        catch (InvalidJwtException)
-        {
-            return Unauthorized(new LoginResponseDto { IsSuccess = false });
-        }
         catch (Exception)
         {
-            return StatusCode(500, "An internal error occurred during login.");
+            return Unauthorized(new LoginResponseDto { IsSuccess = false });
         }
     }
 
@@ -129,13 +125,20 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
 
         var user = session.User;
 
-        var userStatistics = await postgresContext.Set<UserCityProgress>()
-            .FirstOrDefaultAsync(x => x.UserId == user.Id && x.CityId == city);
+        var userStatistics = await postgresContext
+            .Set<UserCityProgress>()
+            .FirstOrDefaultAsync(u => u.UserId == user.Id && u.CityId == city);
 
         if (userStatistics == null || userStatistics.Progress == 0)
             return Ok(new GetUserStatisticsDto
             {
-                Progress = 0, PlayTime = 0, Ranking = 0, UserCount = 0
+                Explored = 0.0,
+                Progress = 0,
+                HexagonCount = 0,
+                PlayTime = 0,
+                Distance = 0,
+                Ranking = 0,
+                UserCount = 0
             });
 
         var totalUsers = await postgresContext.Set<UserCityProgress>()
@@ -144,10 +147,20 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
         var betterPlayersCount = await postgresContext.Set<UserCityProgress>()
             .CountAsync(x => x.CityId == city && x.Progress > userStatistics.Progress);
 
+        var hexagonCount = await postgresContext.Hexagons
+            .CountAsync(h => h.CityId == city);
+
+        var exploredSum = await postgresContext.Progresses
+            .Where(p => p.UserId == user.Id && p.Hexagon != null && p.Hexagon.CityId == city)
+            .SumAsync(p => p.Progress * p.Hexagon!.Weight);
+
         return Ok(new GetUserStatisticsDto
         {
+            Explored = Math.Round(exploredSum * 100, 2, MidpointRounding.AwayFromZero),
             Progress = userStatistics.Progress,
+            HexagonCount = hexagonCount,
             PlayTime = userStatistics.PlayTime,
+            Distance = (int)userStatistics.Distance,
             Ranking = betterPlayersCount + 1,
             UserCount = totalUsers
         });

@@ -29,6 +29,7 @@ public class UserCityProgress
     [Required] [MaxLength(50)] public string CityId { get; set; } = string.Empty;
     public int Progress { get; set; }
     public int PlayTime { get; set; }
+    public double Distance { get; set; }
     [Required] [MaxLength(200)] public string UserId { get; set; } = string.Empty;
     [ForeignKey(nameof(UserId))] public UserModel? User { get; set; }
 }

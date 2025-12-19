@@ -15,8 +15,11 @@ data class GetUserResponseDto(
 
 @Serializable
 data class GetUserStatisticsDto(
+    val explored: Double,
     val progress: Int,
+    val hexagonCount: Int,
     val playTime: Int,
+    val distance: Int,
     val ranking: Int,
     val userCount: Int
 )
