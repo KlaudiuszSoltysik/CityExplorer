@@ -5,7 +5,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.cityexplorer.data.util.TokenService
 import com.example.cityexplorer.data.repositories.UserRepository
@@ -19,6 +18,8 @@ import androidx.credentials.exceptions.GetCredentialException
 import com.example.cityexplorer.data.util.Constants
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
 sealed interface LoginUiState {
     data object Loading : LoginUiState
@@ -29,7 +30,8 @@ interface LoginUiEvent {
     data class ShowError(val message: String) : LoginUiEvent
 }
 
-class LoginViewModel(
+@HiltViewModel
+class LoginViewModel @Inject constructor(
     private val tokenService: TokenService,
     private val userRepository: UserRepository
 ) : ViewModel() {
@@ -114,18 +116,5 @@ class LoginViewModel(
         viewModelScope.launch {
             _uiEvent.send(LoginUiEvent.ShowError(message))
         }
-    }
-}
-
-class LoginViewModelFactory(
-    private val tokenService: TokenService,
-    private val userRepository: UserRepository
-) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(LoginViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return LoginViewModel(tokenService, userRepository) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

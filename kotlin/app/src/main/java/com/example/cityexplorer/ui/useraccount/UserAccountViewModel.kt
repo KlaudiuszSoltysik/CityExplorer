@@ -3,15 +3,18 @@ package com.example.cityexplorer.ui.useraccount
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.cityexplorer.Screen
 import com.example.cityexplorer.data.dtos.GetUserStatisticsDto
 import com.example.cityexplorer.data.repositories.UserRepository
 import com.example.cityexplorer.data.util.TokenService
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 sealed interface UserAccountUiState {
     data object Loading : UserAccountUiState
@@ -24,11 +27,14 @@ interface UserAccountUiEvent {
     data class ShowToast(val message: String) : UserAccountUiEvent
 }
 
-class UserAccountViewModel(
-    private val city: String,
+@HiltViewModel
+class UserAccountViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val userRepository: UserRepository,
     private val tokenService: TokenService
 ) : ViewModel() {
+    val city: String = savedStateHandle[Screen.Args.CITY] ?: ""
+
     var uiState: UserAccountUiState by mutableStateOf(UserAccountUiState.Loading)
         private set
 
@@ -100,15 +106,5 @@ class UserAccountViewModel(
 //        }
 //
 //        context.startService(intent)
-    }
-}
-
-class UserAccountViewModelFactory(private val city: String, private val userRepository: UserRepository, private val tokenService: TokenService) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(UserAccountViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return UserAccountViewModel(city, userRepository, tokenService) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

@@ -33,27 +33,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.cityexplorer.data.dtos.GetUserStatisticsDto
-import com.example.cityexplorer.data.repositories.UserRepository
-import com.example.cityexplorer.data.util.TokenService
 import com.example.cityexplorer.ui.theme.CustomError
 import com.example.cityexplorer.ui.theme.CustomWarning
 import com.example.cityexplorer.ui.theme.CustomWhite
 
 @Composable
 fun UserAccountScreen(
-    city: String,
-    userRepository: UserRepository,
-    tokenService: TokenService,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: UserAccountViewModel = viewModel(
-        factory = UserAccountViewModelFactory(city, userRepository, tokenService)
-    )
+    viewModel: UserAccountViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current

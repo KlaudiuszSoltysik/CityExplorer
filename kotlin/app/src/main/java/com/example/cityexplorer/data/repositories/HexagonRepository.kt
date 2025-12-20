@@ -15,8 +15,9 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
+import javax.inject.Inject
 
-class HexagonRepository(
+class HexagonRepository @Inject constructor(
     private val hexagonApiClient: HexagonApiClient,
     private val versionApiClient: VersionApiClient,
     private val cacheService: CacheService,
@@ -24,6 +25,7 @@ class HexagonRepository(
 ) {
     private val _hexagonUpdates = MutableSharedFlow<List<HexagonProgressDto>>()
     val hexagonUpdates = _hexagonUpdates.asSharedFlow()
+
     suspend fun getCountriesWithCities(forceRefresh: Boolean = false): List<GetCountriesWithCitiesDto> = withContext(Dispatchers.IO) {
         val key = "get-countries-with-cities"
         val dtoType = object : TypeToken<List<GetCountriesWithCitiesDto>>() {}.type

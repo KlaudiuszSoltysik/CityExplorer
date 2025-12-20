@@ -3,10 +3,15 @@ package com.example.cityexplorer.data.util
 import android.content.Context
 import androidx.core.content.edit
 import com.google.gson.Gson
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.lang.reflect.Type
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class CacheService(context: Context) {
-
+@Singleton
+class CacheService @Inject constructor(
+    @ApplicationContext context: Context
+) {
     private val sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val gson = Gson()
 

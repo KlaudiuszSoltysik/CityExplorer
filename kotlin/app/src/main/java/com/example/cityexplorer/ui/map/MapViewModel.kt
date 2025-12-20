@@ -6,22 +6,24 @@ import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
 import com.example.cityexplorer.data.repositories.HexagonRepository
 import kotlinx.coroutines.launch
 import android.location.Location
-import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.SavedStateHandle
+import com.example.cityexplorer.Screen
 import com.example.cityexplorer.data.dtos.HexagonProgressDto
 import com.example.cityexplorer.data.dtos.SelectedHexagonDto
-import com.example.cityexplorer.data.repositories.InvalidTokenException
 import com.example.cityexplorer.data.repositories.UserRepository
 import com.example.cityexplorer.data.util.ExplorationState
 import com.example.cityexplorer.data.util.ServiceStateManager
 import com.example.cityexplorer.data.util.TokenService
 import com.example.cityexplorer.data.util.getLocationFlow
 import com.google.android.gms.location.FusedLocationProviderClient
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import javax.inject.Inject
 
 sealed interface MapUiState {
     data object Loading : MapUiState
@@ -62,13 +64,15 @@ data class MapScreenState(
         }
 }
 
-class MapViewModel(
-    val city: String,
+@HiltViewModel
+class MapViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val locationClient: FusedLocationProviderClient,
     private val tokenService: TokenService,
     private val hexagonRepository: HexagonRepository,
     private val userRepository: UserRepository
 ) : ViewModel() {
+    val city: String = savedStateHandle[Screen.Args.CITY] ?: ""
     private val _uiEvent = Channel<MapUiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
     private val _state = MutableStateFlow(MapScreenState())
@@ -329,27 +333,5 @@ class MapViewModel(
 
             _uiEvent.send(MapUiEvent.NavigateToLogin)
         }
-    }
-}
-
-@Suppress("UNCHECKED_CAST")
-class MapViewModelFactory(
-    private val city: String,
-    private val locationClient: FusedLocationProviderClient,
-    private val tokenService: TokenService,
-    private val hexagonRepository: HexagonRepository,
-    private val userRepository: UserRepository
-) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(MapViewModel::class.java)) {
-            return MapViewModel(
-                city,
-                locationClient,
-                tokenService,
-                hexagonRepository,
-                userRepository
-            ) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
