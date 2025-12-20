@@ -41,7 +41,7 @@ Built with a focus on performance and battery efficiency during background track
 - **Google Maps SDK:** Custom styling and overlay management for rendering hexagonal grids.
 - **Authentication:** Secure sign-in flow implemented via **Google OAuth**.
 - **Architecture:** Uses modern Jetpack Compose for UI and Coroutines for asynchronous tasks.
-- **Deployment:** Downloadable release version of application.
+- **Deployment:** Downloadable, minified release version of application.
 
 ### 🔙 Backend (.NET 9.0 & PostgreSQL)
 
