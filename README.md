@@ -84,9 +84,7 @@ Fully dockerized environment with automated pipelines.
 ### 🟡 High Impact
 
 - [ ] **Kill foreground service after logging out**
-- [ ] **Hilt Migration:** Refactor manual dependency injection to Hilt.
 - [ ] **Unit Tests:** Add tests for app and backend
-- [ ] **GitHub Actions:** Automate application release version.
 - [ ] **Scalar:** expose auto-generated API documentation.
 - [ ] **AI pathfinding**
 - [ ] **Monetization:** Google Play Billing implementation
@@ -98,4 +96,6 @@ Fully dockerized environment with automated pipelines.
 - [ ] **Host Monitoring:**
 - [ ] **Error Tracking**
 - [ ] **DataOps Pipeline:** Automating Python scripts + making them better
-- [ ] **EAndroid Studio release config**
+- [ ] **Android Studio local release config**
+- [ ] **Update dependencies**
+- [ ] **Add max resources to containers**

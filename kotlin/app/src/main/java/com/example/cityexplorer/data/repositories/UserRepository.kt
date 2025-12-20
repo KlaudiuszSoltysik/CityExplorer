@@ -5,8 +5,9 @@ import com.example.cityexplorer.data.dtos.GetUserResponseDto
 import com.example.cityexplorer.data.dtos.GetUserStatisticsDto
 import com.example.cityexplorer.data.dtos.LoginResponseDto
 import com.example.cityexplorer.data.util.TokenService
+import javax.inject.Inject
 
-class UserRepository(
+class UserRepository @Inject constructor(
     private val apiService: UserApiClient,
     private val tokenService: TokenService
 ) {

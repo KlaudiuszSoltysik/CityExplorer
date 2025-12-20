@@ -12,7 +12,6 @@ import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.net.toUri
-import com.example.cityexplorer.CityExplorerApp
 import com.example.cityexplorer.MainActivity
 import com.example.cityexplorer.R
 import com.example.cityexplorer.data.dtos.LocationDto
@@ -22,6 +21,7 @@ import com.example.cityexplorer.data.repositories.HexagonRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.gson.reflect.TypeToken
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -37,18 +37,16 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import javax.inject.Inject
 
 const val MAX_SPEED_KMH = 10.0f
 const val MIN_ACCURACY_METERS = 20.0f
 const val SEND_BATCH_INTERVAL_MS = 15_000L
 
+@AndroidEntryPoint
 class LocationTrackingService : Service() {
-    private val hexagonRepository: HexagonRepository by lazy {
-        (applicationContext as CityExplorerApp).hexagonRepository
-    }
-    private val cacheService: CacheService by lazy {
-        (applicationContext as CityExplorerApp).cacheService
-    }
+    @Inject lateinit var cacheService: CacheService
+    @Inject lateinit var hexagonRepository: HexagonRepository
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val locationBuffer = mutableListOf<SimpleLocation>()

@@ -25,11 +25,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
 import com.example.cityexplorer.ui.theme.CustomBlack
 import com.example.cityexplorer.ui.theme.CustomWhite
-import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
@@ -49,7 +47,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.cityexplorer.data.util.LocationTrackingService
 import com.example.cityexplorer.R
-import com.example.cityexplorer.data.util.TokenService
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
@@ -73,10 +70,9 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.cityexplorer.data.dtos.SelectedHexagonDto
-import com.example.cityexplorer.data.repositories.HexagonRepository
-import com.example.cityexplorer.data.repositories.UserRepository
 import com.example.cityexplorer.data.util.ExplorationState
 import com.example.cityexplorer.ui.theme.CustomError
 import com.example.cityexplorer.ui.theme.CustomSuccess
@@ -86,19 +82,14 @@ import com.google.maps.android.compose.CameraMoveStartedReason
 
 @Composable
 fun MapScreen(
-    city: String,
-    locationClient: FusedLocationProviderClient,
-    tokenService: TokenService,
-    hexagonRepository: HexagonRepository,
-    userRepository: UserRepository,
     modifier: Modifier,
     onNavigateToLogin: () -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateToUserAccount: (city: String) -> Unit,
-    viewModel: MapViewModel = viewModel(
-        factory = MapViewModelFactory(city, locationClient, tokenService, hexagonRepository, userRepository)
-    )
+    viewModel: MapViewModel = hiltViewModel()
 ) {
+    val city = viewModel.city
+
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
@@ -439,7 +430,7 @@ fun HexagonMap(
                     Polygon(
                         points = hexagon.boundaries.map { LatLng(it[0], it[1]) },
                         strokeWidth = 1f,
-                        strokeColor = CustomBlack.copy(alpha = 0.2f),
+                        strokeColor = CustomBlack.copy(alpha = 0.4f),
                         fillColor = fillColor.copy(alpha = fillAlpha),
                         clickable = true,
                         onClick = { onHexagonClick(hexagon.id, hexagon.weight) }

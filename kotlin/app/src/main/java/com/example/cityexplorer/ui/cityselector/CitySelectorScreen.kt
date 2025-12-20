@@ -33,18 +33,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.cityexplorer.data.dtos.GetCountriesWithCitiesDto
-import com.example.cityexplorer.data.repositories.HexagonRepository
 
 @Composable
 fun CitySelectorScreen(
-    hexagonRepository: HexagonRepository,
     modifier: Modifier = Modifier,
     onNavigateToMapScreen: (city: String) -> Unit,
-    viewModel: CitySelectorViewModel = viewModel(
-        factory = CitySelectorViewModelFactory(hexagonRepository)
-    )
+    viewModel: CitySelectorViewModel = hiltViewModel()
 ) {
     CitySelectorContent(
         uiState = viewModel.uiState,

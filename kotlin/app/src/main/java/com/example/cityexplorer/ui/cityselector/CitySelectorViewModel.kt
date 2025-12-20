@@ -4,11 +4,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.cityexplorer.data.dtos.GetCountriesWithCitiesDto
 import com.example.cityexplorer.data.repositories.HexagonRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 sealed interface CitySelectorUiState {
     data object Loading : CitySelectorUiState
@@ -16,7 +17,8 @@ sealed interface CitySelectorUiState {
     data class Error(val message: String) : CitySelectorUiState
 }
 
-class CitySelectorViewModel(
+@HiltViewModel
+class CitySelectorViewModel @Inject constructor(
     private val hexagonRepository: HexagonRepository
 ) : ViewModel() {
     var uiState: CitySelectorUiState by mutableStateOf(CitySelectorUiState.Loading)
@@ -46,15 +48,5 @@ class CitySelectorViewModel(
                 isRefreshing = false
             }
         }
-    }
-}
-
-class CitySelectorViewModelFactory(private val hexagonRepository: HexagonRepository) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(CitySelectorViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return CitySelectorViewModel(hexagonRepository) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

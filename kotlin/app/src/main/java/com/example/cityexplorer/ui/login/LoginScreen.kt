@@ -20,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.cityexplorer.ui.theme.CustomBlack
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
@@ -36,18 +35,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
-import com.example.cityexplorer.data.repositories.UserRepository
-import com.example.cityexplorer.data.util.TokenService
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
 fun LoginScreen(
-    tokenService: TokenService,
-    userRepository: UserRepository,
     modifier: Modifier = Modifier,
     onNavigateToNextScreen: () -> Unit,
-    viewModel: LoginViewModel = viewModel(
-        factory = LoginViewModelFactory(tokenService, userRepository)
-    )
+    viewModel: LoginViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
