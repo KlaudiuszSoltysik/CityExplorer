@@ -5,10 +5,12 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.location.Location
 import android.os.IBinder
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import androidx.core.net.toUri
 import com.example.cityexplorer.CityExplorerApp
 import com.example.cityexplorer.MainActivity
@@ -36,7 +38,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-const val MAX_SPEED_KMH = 15.0f
+const val MAX_SPEED_KMH = 10.0f
 const val MIN_ACCURACY_METERS = 20.0f
 const val SEND_BATCH_INTERVAL_MS = 15_000L
 
@@ -138,7 +140,12 @@ class LocationTrackingService : Service() {
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
 
-        startForeground(LOCATION_NOTIFICATION_ID, notification)
+        ServiceCompat.startForeground(
+            this,
+            LOCATION_NOTIFICATION_ID,
+            notification,
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+        )
     }
 
     // Checks if used isn't moving too quick

@@ -9,7 +9,7 @@ Gamify urban exploration by turning the real world into a hexagonal strategy boa
 
 <a href="https://github.com/KlaudiuszSoltysik/CityExplorer/releases/download/beta/app-release.apk"><img src="https://img.shields.io/badge/Download%20.APK-3DDC84?style=for-the-badge&logo=android&logoColor=white" height="40"></a><br><br>
 
-<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://github.com/KlaudiuszSoltysik/CityExplorer/releases/download/beta/app-release.apk" width="150" alt="QR Code" />
+<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://github.com/KlaudiuszSoltysik/CityExplorer/releases/download/beta/app-release.apk" width="300" alt="QR Code" />
 
 > _You have to allow instalation from unknown sources._
 
@@ -81,22 +81,20 @@ Fully dockerized environment with automated pipelines.
 
 ### 🔴 Mandatory
 
-- [ ] **Fix prod**
-
 ### 🟡 High Impact
 
 - [ ] **Kill foreground service after logging out**
 - [ ] **Hilt Migration:** Refactor manual dependency injection to Hilt.
 - [ ] **Unit Tests:** Add tests for app and backend
 - [ ] **GitHub Actions:** Automate application release version.
-- [ ] **Error Tracking**
 - [ ] **Scalar:** expose auto-generated API documentation.
+- [ ] **AI pathfinding**
+- [ ] **Monetization:** Google Play Billing implementation
 
 ### 🟢 Nice to Have
 
 - [ ] **Social Features:** Leaderboards, friends
-- [ ] **Monetization:** Google Play Billing implementation
 - [ ] **DB Backups:** backups for the DB
 - [ ] **Host Monitoring:**
+- [ ] **Error Tracking**
 - [ ] **DataOps Pipeline:** Automating Python scripts + making them better
-- [ ] **AI pathfinding**

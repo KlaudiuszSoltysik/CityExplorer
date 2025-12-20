@@ -108,8 +108,13 @@ private fun LoginForm(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        LoginMessageText(
-            text = "You have to be logged in to explore!"
+        Text(
+            text = "You have to be logged in to explore!",
+            color = CustomWhite,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -118,21 +123,6 @@ private fun LoginForm(
             onClick = onLoginClick
         )
     }
-}
-
-@Composable
-private fun LoginMessageText(
-    text: String,
-    modifier: Modifier = Modifier
-) {
-    Text(
-        text = text,
-        color = CustomWhite,
-        fontSize = 18.sp,
-        fontWeight = FontWeight.Medium,
-        textAlign = TextAlign.Center,
-        modifier = modifier
-    )
 }
 
 @Composable

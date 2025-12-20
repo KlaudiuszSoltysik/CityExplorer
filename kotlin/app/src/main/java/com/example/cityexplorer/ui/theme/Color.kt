@@ -1,6 +1,5 @@
 package com.example.cityexplorer.ui.theme
 
-import androidx.compose.material3.ButtonColors
 import androidx.compose.ui.graphics.Color
 
 val CustomBlack = Color(0xFF0C0C0C)

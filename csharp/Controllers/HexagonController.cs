@@ -163,7 +163,7 @@ public class HexagonController(PostgresContext postgresContext, IConfiguration c
 
         if (totalHexagonsInCity == 0) return BadRequest("City appears to be empty.");
 
-        var secondsToComplete = 60.0 * totalHexagonsInCity;
+        var secondsToComplete = 120.0 * totalHexagonsInCity;
 
         var hexagonDurationMap = new Dictionary<string, double>();
 
@@ -210,7 +210,7 @@ public class HexagonController(PostgresContext postgresContext, IConfiguration c
 
             var record = existingProgresses.FirstOrDefault(x => x.HexagonId == hexagonId);
 
-            var wasAlreadyFinished = record != null && record.Progress >= 1.0;
+            var wasAlreadyFinished = record is { Progress: >= 1.0 };
 
             if (record != null)
             {

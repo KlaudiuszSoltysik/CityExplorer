@@ -1,6 +1,5 @@
 package com.example.cityexplorer.data.repositories
 
-import android.util.Log
 import com.example.cityexplorer.data.api.UserApiClient
 import com.example.cityexplorer.data.dtos.GetUserResponseDto
 import com.example.cityexplorer.data.dtos.GetUserStatisticsDto
