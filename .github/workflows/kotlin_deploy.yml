@@ -60,3 +60,12 @@ jobs:
           tag_name: ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Beta Release
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "beta"
+          prerelease: true
+          title: "Development Build"
+          files: kotlin/app/build/outputs/apk/release/app-release.apk
