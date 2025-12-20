@@ -66,6 +66,7 @@ android {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
 
+            resValue("string", "app_name", "City Explorer")
             buildConfigField("String", "BASE_URL", "\"https://city-explorer-api.260824.xyz/\"")
 
             val releaseConfig = signingConfigs.getByName("release")
