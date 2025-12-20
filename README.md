@@ -98,3 +98,4 @@ Fully dockerized environment with automated pipelines.
 - [ ] **Host Monitoring:**
 - [ ] **Error Tracking**
 - [ ] **DataOps Pipeline:** Automating Python scripts + making them better
+- [ ] **EAndroid Studio release config**

@@ -218,10 +218,8 @@ class MapViewModel(
             val progressList = hexagonRepository.getHexagonProgresses(city)
 
             applyProgressUpdatesToState(progressList)
-        } catch (_: InvalidTokenException) {
-            _uiEvent.send(MapUiEvent.ShowToast("Login to see progress."))
         } catch (_: Exception) {
-            _uiEvent.send(MapUiEvent.ShowToast("Couldn't load data. Check internet connection."))
+            _uiEvent.send(MapUiEvent.ShowToast("Login to see progress."))
         }
     }
 
