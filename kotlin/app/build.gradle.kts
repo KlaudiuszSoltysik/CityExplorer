@@ -1,4 +1,6 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -6,6 +8,16 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.secrets.gradle.plugin)
+}
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
+}
+
+fun getSecret(key: String): String {
+    return localProperties.getProperty(key) ?: System.getenv(key) ?: ""
 }
 
 secrets {
@@ -26,17 +38,18 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    signingConfigs {
-        create("release") {
-            storeFile = file("upload-keystore.jks")
-            storePassword = "android"
-            keyAlias = "upload"
-            keyPassword = "android"
-        }
-    }
-
     buildFeatures {
         buildConfig = true
+    }
+
+    signingConfigs {
+        create("release") {
+            val keyFile = file("release-key.jks")
+            storeFile = if (keyFile.exists()) keyFile else null
+            storePassword = getSecret("ANDROID_KEYSTORE_PASSWORD")
+            keyAlias = getSecret("ANDROID_KEY_ALIAS")
+            keyPassword = getSecret("ANDROID_KEY_PASSWORD")
+        }
     }
 
     buildTypes {
@@ -44,14 +57,24 @@ android {
             applicationIdSuffix = ".dev"
             resValue("string", "app_name", "City Explorer dev")
             buildConfigField("String", "BASE_URL", "\"http://192.168.0.16:6101/\"")
+
+            manifestPlaceholders["MAPS_API_KEY"] = getSecret("MAPS_API_KEY")
+            buildConfigField("String", "WEB_CLIENT_ID", "\"${getSecret("WEB_CLIENT_ID")}\"")
         }
         getByName("release") {
-            resValue("string", "app_name", "City Explorer")
             isShrinkResources = true
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+
             buildConfigField("String", "BASE_URL", "\"https://city-explorer-api.260824.xyz/\"")
-            signingConfig = signingConfigs.getByName("release")
+
+            val releaseConfig = signingConfigs.getByName("release")
+            if (releaseConfig.storeFile?.exists() == true && getSecret("ANDROID_KEYSTORE_PASSWORD").isNotEmpty()) {
+                signingConfig = releaseConfig
+            }
+
+            manifestPlaceholders["MAPS_API_KEY"] = getSecret("MAPS_API_KEY")
+            buildConfigField("String", "WEB_CLIENT_ID", "\"${getSecret("WEB_CLIENT_ID")}\"")
         }
     }
 
