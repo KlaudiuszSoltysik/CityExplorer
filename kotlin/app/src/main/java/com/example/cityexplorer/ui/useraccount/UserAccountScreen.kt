@@ -139,6 +139,7 @@ fun UserAccount(
         modifier = modifier
             .padding(16.dp)
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
     ) {
         Text(
             text = "Statistics",

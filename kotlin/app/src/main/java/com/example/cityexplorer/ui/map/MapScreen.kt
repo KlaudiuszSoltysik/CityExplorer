@@ -439,7 +439,7 @@ fun HexagonMap(
                     Polygon(
                         points = hexagon.boundaries.map { LatLng(it[0], it[1]) },
                         strokeWidth = 1f,
-                        strokeColor = CustomBlack,
+                        strokeColor = CustomBlack.copy(alpha = 0.2f),
                         fillColor = fillColor.copy(alpha = fillAlpha),
                         clickable = true,
                         onClick = { onHexagonClick(hexagon.id, hexagon.weight) }
@@ -459,12 +459,12 @@ fun HexagonMap(
                     shouldAnimateZoom = true
                     onMyLocationClick()
                 },
-                containerColor = CustomBlack,
+                containerColor = CustomBlack.copy(alpha = 0.6f),
                 contentColor = CustomWhite
             ) {
                 Icon(
                     imageVector = if (isAutoTracking) Icons.Default.MyLocation else Icons.Default.LocationSearching,
-                    contentDescription = "Recenter Map"
+                    contentDescription = null
                 )
             }
         }
@@ -474,7 +474,7 @@ fun HexagonMap(
 @Composable
 private fun MapUiOverlays(
     isExplorerButtonLoading: Boolean,
-    hexagonPois: SelectedHexagonDto,
+    hexagonPois: SelectedHexagonDto?,
     explorationState: ExplorationState,
     isUserInCity: Boolean,
     arePermissionsGranted: Boolean,
@@ -485,7 +485,7 @@ private fun MapUiOverlays(
     Box(
         modifier = modifier.fillMaxSize()
     ) {
-        if (hexagonPois.pois.isNotEmpty() || hexagonPois.weight != 0.0) {
+        if (hexagonPois != null) {
             HexagonInfoPanel(
                 hexagonPois = hexagonPois,
                 modifier = Modifier
@@ -511,12 +511,12 @@ private fun MapUiOverlays(
                 .statusBarsPadding()
                 .padding(bottom = 16.dp, start = 16.dp),
             onClick = { onUserAccountButtonClick() },
-            containerColor = CustomBlack,
+            containerColor = CustomBlack.copy(alpha = 0.6f),
             contentColor = CustomWhite
         ) {
             Icon(
                 imageVector = Icons.Default.AccountCircle,
-                contentDescription = "Recenter Map"
+                contentDescription = null
             )
         }
     }

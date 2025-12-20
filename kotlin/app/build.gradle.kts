@@ -47,8 +47,8 @@ android {
         }
         getByName("release") {
             resValue("string", "app_name", "City Explorer")
-            // TODO: Podmienić na true
-            isMinifyEnabled = false
+            isShrinkResources = true
+            isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             buildConfigField("String", "BASE_URL", "\"https://city-explorer-api.260824.xyz/\"")
             signingConfig = signingConfigs.getByName("release")

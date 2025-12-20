@@ -1,7 +1,6 @@
 ﻿using System.Text.Json;
 using csharp.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace csharp;
@@ -130,20 +129,6 @@ public class PostgresContext(DbContextOptions<PostgresContext> options) : DbCont
             v => string.IsNullOrEmpty(v)
                 ? new List<List<double>>()
                 : JsonSerializer.Deserialize<List<List<double>>>(v, Options) ?? new List<List<double>>()
-        );
-
-        public static readonly ValueConverter<Dictionary<string, int>, string> StringIntDictionary = new(
-            v => JsonSerializer.Serialize(v, Options),
-            v => string.IsNullOrEmpty(v)
-                ? new Dictionary<string, int>()
-                : JsonSerializer.Deserialize<Dictionary<string, int>>(v, Options) ?? new Dictionary<string, int>()
-        );
-
-        public static readonly ValueComparer<Dictionary<string, int>> StringIntDictionaryComparer = new(
-            (c1, c2) => JsonSerializer.Serialize(c1, Options) == JsonSerializer.Serialize(c2, Options),
-            c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.Key.GetHashCode(), v.Value.GetHashCode())),
-            c => JsonSerializer.Deserialize<Dictionary<string, int>>(JsonSerializer.Serialize(c, Options), Options)
-                 ?? new Dictionary<string, int>()
         );
     }
 }

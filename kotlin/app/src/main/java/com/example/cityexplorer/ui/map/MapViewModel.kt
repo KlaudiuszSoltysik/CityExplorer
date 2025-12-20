@@ -8,7 +8,6 @@ import kotlinx.coroutines.launch
 import android.location.Location
 import androidx.lifecycle.ViewModelProvider
 import com.example.cityexplorer.data.dtos.HexagonProgressDto
-import com.example.cityexplorer.data.dtos.HexagonsDto
 import com.example.cityexplorer.data.dtos.SelectedHexagonDto
 import com.example.cityexplorer.data.repositories.InvalidTokenException
 import com.example.cityexplorer.data.repositories.UserRepository
@@ -17,16 +16,12 @@ import com.example.cityexplorer.data.util.ServiceStateManager
 import com.example.cityexplorer.data.util.TokenService
 import com.example.cityexplorer.data.util.getLocationFlow
 import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.PolyUtil
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.withContext
 
 sealed interface MapUiState {
     data object Loading : MapUiState
@@ -50,7 +45,7 @@ data class MapScreenState(
     val userLocation: Location? = null,
     val explorationState: ExplorationState = ExplorationState.STOPPED,
     val arePermissionsGranted: Boolean = false,
-    val selectedHexagonPois: SelectedHexagonDto = SelectedHexagonDto()
+    val selectedHexagonPois: SelectedHexagonDto? = null
 ) {
     val isUserInCity: Boolean
         get() {
@@ -79,8 +74,6 @@ class MapViewModel(
     private val _state = MutableStateFlow(MapScreenState())
     val state = _state.asStateFlow()
     private var toggleJob: Job? = null
-    private val currentHexagons: List<HexagonsDto>
-        get() = (state.value.dataState as? MapUiState.Success)?.cityHexagonsDataDto?.hexagons ?: emptyList()
 
     // Initializes view model and starts location tracking if service is active
     init {
@@ -235,43 +228,25 @@ class MapViewModel(
     // Identifies target hexagon (by ID or Location) and fetches its POIs
     fun getPoisFromHexagon(hexagonId: String?, hexagonWeight: Double?) {
         viewModelScope.launch {
-            var targetHexId = hexagonId
-            var targetWeight = hexagonWeight
-
-            val currentState = state.value
-
-            if (targetHexId == null && currentState.userLocation != null) {
-                val userLatLng = LatLng(currentState.userLocation.latitude, currentState.userLocation.longitude)
-                val hexList = currentHexagons
-
-                val foundHexagon = withContext(Dispatchers.Default) {
-                    hexList.find { hex ->
-                        val polygonPath = hex.boundaries.map { point -> LatLng(point[0], point[1]) }
-                        PolyUtil.containsLocation(userLatLng, polygonPath, true)
-                    }
-                }
-
-                targetHexId = foundHexagon?.id
-                targetWeight = foundHexagon?.weight
-            }
-
-            if (targetHexId != null && targetWeight != null) {
+            if (hexagonId == null || hexagonWeight == null) {
+                _state.update { it.copy(selectedHexagonPois = null) }
+            } else {
                 try {
                     _state.update {
                         it.copy(
                             selectedHexagonPois = SelectedHexagonDto(
-                                weight = targetWeight,
+                                weight = hexagonWeight,
                                 pois = emptyList()
                             )
                         )
                     }
 
-                    val pois = hexagonRepository.getPoisFromHexagon(targetHexId)
+                    val pois = hexagonRepository.getPoisFromHexagon(hexagonId)
 
                     _state.update {
                         it.copy(
                             selectedHexagonPois = SelectedHexagonDto(
-                                weight = targetWeight,
+                                weight = hexagonWeight,
                                 pois = pois
                             )
                         )
