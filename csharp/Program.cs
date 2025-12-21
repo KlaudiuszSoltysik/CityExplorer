@@ -18,10 +18,9 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         policy
-            .SetIsOriginAllowed(_ => true)
-            .AllowAnyHeader()
+            .AllowAnyOrigin()
             .AllowAnyMethod()
-            .AllowCredentials();
+            .AllowAnyHeader();
     });
 });
 
@@ -33,10 +32,33 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
-app.MapOpenApi();
-app.MapScalarApiReference();
+else
+{
+    app.Use(async (context, next) =>
+    {
+        if (!context.Request.Headers.TryGetValue("X-Api-Key", out var extractedApiKey))
+        {
+            context.Response.StatusCode = 401;
+            await context.Response.WriteAsync("API Key missing");
+            return;
+        }
+
+        var apiKey = app.Configuration.GetValue<string>("ApiKey");
+
+        if (string.IsNullOrEmpty(apiKey) || apiKey != extractedApiKey)
+        {
+            context.Response.StatusCode = 403;
+            await context.Response.WriteAsync("Invalid API Key");
+            return;
+        }
+
+        await next();
+    });
+}
 
 app.UseCors();
+
+app.UseAuthorization();
 
 app.MapControllers();
 
