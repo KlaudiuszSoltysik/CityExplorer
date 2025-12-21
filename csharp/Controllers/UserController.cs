@@ -129,7 +129,7 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
             .Set<UserCityProgress>()
             .FirstOrDefaultAsync(u => u.UserId == user.Id && u.CityId == city);
 
-        if (userStatistics == null || userStatistics.Progress == 0)
+        if (userStatistics == null)
             return Ok(new GetUserStatisticsDto
             {
                 Explored = 0.0,
