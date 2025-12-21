@@ -30,6 +30,7 @@ services:
       - JwtSettings__SecretKey=${JWT_SECTRET_KEY}
       - JwtSettings__Issuer=CityExplorerBackend
       - JwtSettings__Audience=CityExplorerApp
+      - ApiKey=QfhciAu72jYOX3Wo8gxRnTddj8QYN3Rc
     depends_on:
       postgres:
         condition: service_healthy

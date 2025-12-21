@@ -50,6 +50,7 @@ High-performance REST API designed for throughput and scalability.
 - **Uber H3 Integration:** Server-side spatial indexing for fast geospatial queries and validation.
 - **Background Workers:** Dedicated services for managing session states and cleaning up stale data.
 - **Security:** JWT Token Authentication and secure session management.
+- **Documentation and tests:** API documentation and automatic tests triggered by GitHub Actions.
 
 ### 🐍 Data Engineering (Python)
 
@@ -63,7 +64,7 @@ Scripts responsible for world generation and data analysis.
 Fully dockerized environment with automated pipelines.
 
 - **Infrastructure as Code:** **Terraform** used to configure Cloudflare Tunnel for secure exposure of local services.
-- **CI/CD:** GitHub Actions configured for automated building.
+- **CI/CD:** GitHub Actions configured for automated building and application release.
 - **Docker:** Separate containers for independent Development and Production environments with auto-deploy on changes.
 - **Server:** Backend and database are hosted on-premise.
 
@@ -79,23 +80,22 @@ Fully dockerized environment with automated pipelines.
 
 ## 🚀 Project Roadmap
 
-### 🔴 Mandatory
+### 🔴 Mandatory / new functions
+
+- [ ] **AI pathfinding**
+- [ ] **Social Features:** Friends etc.
 
 ### 🟡 High Impact
 
-- [ ] **Kill foreground service after logging out**
-- [ ] **Unit Tests:** Add tests for app and backend
 - [ ] **Code refactoring**
-- [ ] **AI pathfinding**
-- [ ] **Monetization:** Google Play Billing implementation
+- [ ] **Tests:** Add tests for app and backend
 
 ### 🟢 Nice to Have
 
-- [ ] **Social Features:** Leaderboards, friends
-- [ ] **DB Backups:** backups for the DB
+- [ ] **Add max resources to containers**
 - [ ] **Host Monitoring:**
 - [ ] **Error Tracking**
-- [ ] **DataOps Pipeline:** Automating Python scripts + making them better
-- [ ] **Android Studio local release config**
+- [ ] **DB Backups:** backups for the DB
 - [ ] **Update dependencies**
-- [ ] **Add max resources to containers**
+- [ ] **Android Studio local release config**
+- [ ] **DataOps Pipeline:** Automating Python scripts + making them better
