@@ -85,10 +85,8 @@ Fully dockerized environment with automated pipelines.
 
 - [ ] **Kill foreground service after logging out**
 - [ ] **Unit Tests:** Add tests for app and backend
-- [ ] **Scalar:** expose auto-generated API documentation.
+- [ ] **Code refactoring**
 - [ ] **AI pathfinding**
-- [ ] **app is rebuilding when shouldnt**
-- [ ] **Make server to accept only my app**
 - [ ] **Monetization:** Google Play Billing implementation
 
 ### 🟢 Nice to Have

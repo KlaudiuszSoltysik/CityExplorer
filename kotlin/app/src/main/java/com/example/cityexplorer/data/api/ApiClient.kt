@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import com.example.cityexplorer.BuildConfig
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
+import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -14,13 +15,24 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.X509TrustManager
 
 object ApiClient {
+    private const val API_KEY = "QfhciAu72jYOX3Wo8gxRnTddj8QYN3Rc"
     private val json = Json { ignoreUnknownKeys = true }
+
+    private val apiKeyInterceptor = Interceptor { chain ->
+        val originalRequest = chain.request()
+        val newRequest = originalRequest.newBuilder()
+            .header("X-Api-Key", API_KEY)
+            .build()
+        chain.proceed(newRequest)
+    }
 
     private val retrofit: Retrofit by lazy {
         val client = if (BuildConfig.DEBUG) {
             getUnsafeOkHttpClient()
         } else {
-            OkHttpClient.Builder().build()
+            OkHttpClient.Builder()
+                .addInterceptor(apiKeyInterceptor)
+                .build()
         }
 
         Retrofit.Builder()
@@ -58,6 +70,7 @@ object ApiClient {
         return OkHttpClient.Builder()
             .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0])
             .hostnameVerifier { _, _ -> true }
+            .addInterceptor(apiKeyInterceptor)
             .connectTimeout(5, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
             .writeTimeout(10, TimeUnit.SECONDS)

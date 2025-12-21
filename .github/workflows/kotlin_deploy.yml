@@ -5,6 +5,9 @@ on:
     branches: ["master"]
     tags:
       - "beta"
+    paths:
+      - "kotlin/**"
+      - ".github/workflows/kotlin_deploy.yml"
 
 permissions:
   contents: write
@@ -44,6 +47,7 @@ jobs:
 
       - name: Build with Gradle
         env:
+          API_KEY: ${{ secrets.API_KEY }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
