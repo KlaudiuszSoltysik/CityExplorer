@@ -87,6 +87,7 @@ Fully dockerized environment with automated pipelines.
 - [ ] **Unit Tests:** Add tests for app and backend
 - [ ] **Scalar:** expose auto-generated API documentation.
 - [ ] **AI pathfinding**
+- [ ] **Make server to accept only my app**
 - [ ] **Monetization:** Google Play Billing implementation
 
 ### 🟢 Nice to Have
