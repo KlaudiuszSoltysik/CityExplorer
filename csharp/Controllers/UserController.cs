@@ -142,7 +142,7 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
             });
 
         var totalUsers = await postgresContext.Set<UserCityProgress>()
-            .CountAsync(x => x.CityId == city && x.Progress > 0);
+            .CountAsync(x => x.CityId == city);
 
         var betterPlayersCount = await postgresContext.Set<UserCityProgress>()
             .CountAsync(x => x.CityId == city && x.Progress > userStatistics.Progress);
