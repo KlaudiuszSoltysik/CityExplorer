@@ -61,7 +61,7 @@ public class PostgresContext(DbContextOptions<PostgresContext> options) : DbCont
                 .HasConversion(JsonConverters.RequiredDoubleList);
 
             entity.HasMany(x => x.Pois)
-                .WithOne(p => p.TouristHexagon)
+                .WithOne(p => p.Hexagon)
                 .HasForeignKey(p => p.HexagonId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
@@ -75,7 +75,7 @@ public class PostgresContext(DbContextOptions<PostgresContext> options) : DbCont
             entity.Property(x => x.Boundary)
                 .HasConversion(JsonConverters.NullableDoubleListList);
 
-            entity.HasOne(p => p.TouristHexagon)
+            entity.HasOne(p => p.Hexagon)
                 .WithMany(h => h.Pois)
                 .HasForeignKey(p => p.HexagonId);
 
