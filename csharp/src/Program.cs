@@ -8,8 +8,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
-builder.Services.AddDbContext<PostgresContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresConnection")));
+if (builder.Environment.EnvironmentName != "Testing")
+{
+    builder.Services.AddDbContext<PostgresContext>(options =>
+        options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresConnection")));
+}
 
 builder.Services.AddHostedService<SessionCleanupService>();
 
@@ -26,12 +29,11 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
 }
-
 else
 {
     app.Use(async (context, next) =>
@@ -63,3 +65,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }

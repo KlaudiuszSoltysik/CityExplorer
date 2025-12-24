@@ -68,3 +68,11 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Commit and push documentation
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add csharp/src/api_documentation.json
+          git commit -m "docs: automatic api documentation update" || echo "No changes to commit"
+          git push

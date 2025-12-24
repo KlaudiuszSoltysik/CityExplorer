@@ -50,7 +50,9 @@ High-performance REST API designed for throughput and scalability.
 - **Uber H3 Integration:** Server-side spatial indexing for fast geospatial queries and validation.
 - **Background Workers:** Dedicated services for managing session states and cleaning up stale data.
 - **Security:** JWT Token Authentication and secure session management.
-  _- **Documentation and tests:** API documentation and automatic tests triggered by GitHub Actions._
+- **Automated CI/CD Pipeline:** - **Pre-deployment Testing:** Integrated workflow that runs Unit and Integration tests on every push to `dev` and all `Pull Requests`.
+  - **Quality Gate:** Deployment to production is blocked if any test fails, ensuring stability.
+- **Auto-Generated Documentation:** OpenAPI (Swagger) specification is automatically updated on every build to stay in sync with the code.
 
 ### 🐍 Data Engineering (Python)
 
@@ -77,6 +79,19 @@ Fully dockerized environment with automated pipelines.
 | **Data**     | Python, Uber H3, Overpass API                                 |
 | **Database** | PostgreSQL                                                    |
 | **DevOps**   | Docker, Docker Compose, Terraform, Cloudflare, GitHub Actions |
+
+## 📖 API Documentation
+
+[![API Documentation](https://img.shields.io/badge/OpenAPI-Specification-blue?style=for-the-badge&logo=openapi-initiative&logoColor=white)](./csharp/src/api_documentation.json)
+
+<details>
+<summary>🔍 Click to see how to use the documentation</summary>
+
+The API documentation is automatically generated during the build process. You can:
+
+1. View the raw [JSON Specification](./csharp/src/api_documentation.json) directly in the repo.
+2. Download the file and paste it into [Swagger Editor](https://editor.swagger.io/) or [Scalar](https://scalar.com/) to see an interactive UI.
+</details>
 
 ## 🚀 Project Roadmap
 
