@@ -1,8 +1,10 @@
 ﻿FROM mcr.microsoft.com/dotnet/sdk:9.0
 WORKDIR /app
 
+COPY . .
+
 WORKDIR /app/src
 
 EXPOSE 8080
 
-ENTRYPOINT ["dotnet", "watch", "run", "--project", "src.csproj", "--no-launch-profile", "--urls", "http://+:8080"]
+ENTRYPOINT ["dotnet", "watch", "run", "--project", "/app/src/src.csproj", "--no-launch-profile", "--urls", "http://+:8080"]
