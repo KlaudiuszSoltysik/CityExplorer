@@ -8,19 +8,19 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
-COPY ["src/csharp.csproj", "src/"]
-RUN dotnet restore "src/csharp.csproj"
+COPY ["src/src.csproj", "src/"]
+RUN dotnet restore "src/src.csproj"
 
 COPY . .
 
 WORKDIR "/src/src"
-RUN dotnet build "csharp.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "src.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "csharp.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "src.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "csharp.dll"]
+ENTRYPOINT ["dotnet", "src.dll"]

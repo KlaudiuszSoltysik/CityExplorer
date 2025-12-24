@@ -5,4 +5,4 @@ WORKDIR /app/src
 
 EXPOSE 8080
 
-ENTRYPOINT ["dotnet", "watch", "run", "--project", "csharp.csproj", "--no-launch-profile", "--urls", "http://+:8080"]
+ENTRYPOINT ["dotnet", "watch", "run", "--project", "src.csproj", "--no-launch-profile", "--urls", "http://+:8080"]
