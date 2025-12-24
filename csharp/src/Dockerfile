@@ -7,15 +7,18 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["csharp.csproj", "./"]
-RUN dotnet restore "csharp.csproj"
+
+COPY ["src/csharp.csproj", "src/"]
+RUN dotnet restore "src/csharp.csproj"
+
 COPY . .
-WORKDIR "/src/"
-RUN dotnet build "./csharp.csproj" -c $BUILD_CONFIGURATION -o /app/build
+
+WORKDIR "/src/src"
+RUN dotnet build "csharp.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./csharp.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "csharp.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app

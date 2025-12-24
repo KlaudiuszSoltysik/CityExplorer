@@ -40,7 +40,7 @@ Built with a focus on performance and battery efficiency during background track
 - **Smart Caching:** Implemented local caching strategy to minimize API calls and data usage.
 - **Google Maps SDK:** Custom styling and overlay management for rendering hexagonal grids.
 - **Authentication:** Secure sign-in flow implemented via **Google OAuth**.
-- **Architecture:** Uses modern Jetpack Compose for UI and Coroutines for asynchronous tasks.
+- **Architecture:** Uses modern Jetpack Compose for UI, Coroutines for asynchronous tasks and Hilt.
 - **Deployment:** Downloadable, minified release version of application.
 
 ### 🔙 Backend (.NET 9.0 & PostgreSQL)
@@ -50,7 +50,7 @@ High-performance REST API designed for throughput and scalability.
 - **Uber H3 Integration:** Server-side spatial indexing for fast geospatial queries and validation.
 - **Background Workers:** Dedicated services for managing session states and cleaning up stale data.
 - **Security:** JWT Token Authentication and secure session management.
-- **Documentation and tests:** API documentation and automatic tests triggered by GitHub Actions.
+  _- **Documentation and tests:** API documentation and automatic tests triggered by GitHub Actions._
 
 ### 🐍 Data Engineering (Python)
 
@@ -88,14 +88,12 @@ Fully dockerized environment with automated pipelines.
 ### 🟡 High Impact
 
 - [ ] **Code refactoring**
-- [ ] **Tests:** Add tests for app and backend
+- [ ] **Tests:** Add tests for the app + tests and auto documentation for the backend
 
 ### 🟢 Nice to Have
 
 - [ ] **Add max resources to containers**
-- [ ] **Host Monitoring:**
-- [ ] **Error Tracking**
-- [ ] **DB Backups:** backups for the DB
-- [ ] **Update dependencies**
-- [ ] **Android Studio local release config**
+- [ ] **Host Monitoring and Error Tracking**
+- [ ] **DB Backups:** auto backups for the DB
+- [ ] **Update app imports**
 - [ ] **DataOps Pipeline:** Automating Python scripts + making them better

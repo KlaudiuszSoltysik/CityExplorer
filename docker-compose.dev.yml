@@ -24,17 +24,18 @@ services:
     container_name: city_explorer_csharp_dev
     build:
       context: ./csharp
-      dockerfile: Dockerfile.dev
+      dockerfile: src/Dockerfile.dev
     environment:
       - DOTNET_USE_POLLING_FILE_WATCHER=true
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__PostgresConnection=Host=postgres-dev;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - JwtSettings__SecretKey=${JWT_SECTRET_KEY}
     ports:
       - "${CSHARP_PORT_DEV}:8080"
     volumes:
       - ./csharp:/app
-      - /app/obj
-      - /app/bin
+      - /app/src/obj
+      - /app/src/bin
     depends_on:
       postgres-dev:
         condition: service_healthy
