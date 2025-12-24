@@ -2,25 +2,35 @@ name: Build and publish backend
 
 on:
   push:
-    branches: ["master"]
+    branches: ["master", "dev"]
     paths:
       - "csharp/**"
-      - "docker-compose.yml"
-      - ".github/workflows/csharp_deploy.yml"
+  pull_request:
+    branches: ["master", "dev"]
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: KlaudiuszSoltysik/city-explorer/backend
 
 jobs:
-  build-and-push:
+  test:
+    name: Run tests
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
     steps:
-      - name: Checkout repository
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+      - run: dotnet test csharp/csharp.sln
+
+  build-and-push:
+    name: Build and push image
+    needs: test
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup .NET
@@ -31,17 +41,17 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore csharp/csharp.sln
 
-      - name: Run Tests
+      - name: Run tests
         run: dotnet test csharp/csharp.sln --no-restore --verbosity normal
 
-      - name: Log in to the Container registry
+      - name: Log in to the container registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker
+      - name: Extract metadata for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:

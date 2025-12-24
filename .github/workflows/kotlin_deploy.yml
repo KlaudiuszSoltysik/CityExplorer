@@ -23,7 +23,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           java-version: "17"
@@ -45,7 +45,7 @@ jobs:
         run: |
           echo "MAPS_API_KEY=$MAPS_API_KEY" > secrets.properties
 
-      - name: Build with Gradle
+      - name: Build
         env:
           API_KEY: ${{ secrets.API_KEY }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -55,7 +55,7 @@ jobs:
           WEB_CLIENT_ID: ${{ secrets.WEB_CLIENT_ID }}
         run: ./gradlew assembleRelease
 
-      - name: Upload Artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: city-explorer-build
@@ -71,7 +71,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update Beta Release
+      - name: Update beta release
         uses: marvinpinto/action-automatic-releases@latest
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"

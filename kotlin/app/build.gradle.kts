@@ -60,7 +60,7 @@ android {
         getByName("debug") {
             applicationIdSuffix = ".dev"
             resValue("string", "app_name", "City Explorer dev")
-            buildConfigField("String", "BASE_URL", "\"http://192.168.0.16:6101/\"")
+            buildConfigField("String", "BASE_URL", "\"http://192.168.8.203:6101/\"")
 
             manifestPlaceholders["MAPS_API_KEY"] = getSecret("MAPS_API_KEY")
             buildConfigField("String", "WEB_CLIENT_ID", "\"${getSecret("WEB_CLIENT_ID")}\"")
