@@ -1,5 +1,7 @@
 package com.example.cityexplorer.ui.useraccount
 
+import android.content.Context
+import android.content.Intent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -9,8 +11,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.cityexplorer.Screen
 import com.example.cityexplorer.data.dtos.GetUserStatisticsDto
 import com.example.cityexplorer.data.repositories.UserRepository
+import com.example.cityexplorer.data.util.LocationTrackingService
 import com.example.cityexplorer.data.util.TokenService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
@@ -31,7 +35,8 @@ interface UserAccountUiEvent {
 class UserAccountViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val userRepository: UserRepository,
-    private val tokenService: TokenService
+    private val tokenService: TokenService,
+    @param:ApplicationContext private val context: Context
 ) : ViewModel() {
     val city: String = savedStateHandle[Screen.Args.CITY] ?: ""
 
@@ -80,8 +85,6 @@ class UserAccountViewModel @Inject constructor(
 
             tokenService.clearToken()
 
-            _uiEvent.send(UserAccountUiEvent.ShowToast("Logged out."))
-
             _uiEvent.send(UserAccountUiEvent.NavigateBack)
         }
     }
@@ -94,17 +97,15 @@ class UserAccountViewModel @Inject constructor(
 
             tokenService.clearToken()
 
-            _uiEvent.send(UserAccountUiEvent.ShowToast("Account deleted."))
-
             _uiEvent.send(UserAccountUiEvent.NavigateBack)
         }
     }
 
     private fun stopLocationService() {
-//        val intent = Intent(context, LocationTrackingService::class.java).apply {
-//            action = LocationTrackingService.ACTION_STOP
-//        }
-//
-//        context.startService(intent)
+        val intent = Intent(context, LocationTrackingService::class.java).apply {
+            action = LocationTrackingService.ACTION_STOP
+        }
+
+        context.startService(intent)
     }
 }

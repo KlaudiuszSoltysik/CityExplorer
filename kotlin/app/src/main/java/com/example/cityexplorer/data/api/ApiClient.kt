@@ -15,7 +15,7 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.X509TrustManager
 
 object ApiClient {
-    private const val API_KEY = "QfhciAu72jYOX3Wo8gxRnTddj8QYN3Rc"
+    private const val API_KEY = BuildConfig.API_KEY
     private val json = Json { ignoreUnknownKeys = true }
 
     private val apiKeyInterceptor = Interceptor { chain ->

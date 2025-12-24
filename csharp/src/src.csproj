@@ -5,6 +5,7 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <RootNamespace>csharp</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
@@ -18,6 +19,13 @@
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4"/>
         <PackageReference Include="pocketken.H3" Version="4.0.0"/>
         <PackageReference Include="Scalar.AspNetCore" Version="2.11.0"/>
+        <PackageReference Include="xunit.extensibility.core" Version="2.9.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="unit_tests\obj\project.assets.json" />
+      <_ContentIncludedByDefault Remove="unit_tests\obj\project.packagespec.json" />
+      <_ContentIncludedByDefault Remove="unit_tests\obj\unit_tests.csproj.nuget.dgspec.json" />
     </ItemGroup>
 
 </Project>
