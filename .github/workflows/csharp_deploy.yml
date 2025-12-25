@@ -10,6 +10,7 @@ on:
     branches: ["master"]
     paths:
       - "csharp/**"
+      - ".github/workflows/csharp_deploy.yml"
 
 env:
   REGISTRY: ghcr.io

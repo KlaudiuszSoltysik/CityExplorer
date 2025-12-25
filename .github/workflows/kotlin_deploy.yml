@@ -12,6 +12,7 @@ on:
     branches: ["master"]
     paths:
       - "kotlin/**"
+      - ".github/workflows/kotlin_deploy.yml"
 
 permissions:
   contents: write

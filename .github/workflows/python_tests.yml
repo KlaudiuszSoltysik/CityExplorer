@@ -10,6 +10,7 @@ on:
     branches: ["master"]
     paths:
       - "python/**"
+      - ".github/workflows/python_tests.yml"
 
 jobs:
   test:
