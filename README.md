@@ -76,7 +76,7 @@ Fully dockerized environment with automated pipelines.
 | Domain       | Technology                                                    |
 | :----------- | :------------------------------------------------------------ |
 | **Mobile**   | Kotlin, Jetpack Compose, Hilt, Google Maps SDK, Google OAuth  |
-| **Backend**  | C# .NET 9.0, Entity Framework Core, Uber H3                   |
+| **Backend**  | C# .NET 9.0, Entity Framework Core, Uber H3, XUnit            |
 | **Data**     | Python, Uber H3, Overpass API                                 |
 | **Database** | PostgreSQL                                                    |
 | **DevOps**   | Docker, Docker Compose, Terraform, Cloudflare, GitHub Actions |
