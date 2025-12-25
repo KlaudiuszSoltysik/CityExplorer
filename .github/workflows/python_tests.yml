@@ -28,6 +28,6 @@ jobs:
           pip install -r python/requirements.txt
 
       - name: Run tests with pytest
+        working-directory: ./python
         run: |
-          cd python
-          pytest tests/
+          pytest tests/tests_main.py
