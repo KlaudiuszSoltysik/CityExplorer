@@ -74,8 +74,11 @@ Scripts responsible for world generation and data analysis.
 
 Fully dockerized environment with automated pipelines.
 
-- **Infrastructure as Code:** **Terraform** used to configure Cloudflare Tunnel for secure exposure of local services.
-- **CI/CD:** GitHub Actions configured for automated building and application release.
+- **Infrastructure as Code:** **Terraform** manages Cloudflare Tunnel and **Cloudflare Access** policies, ensuring secure exposure of services without opening public ports.
+- **Observability & Logging:** **Portainer** instance deployed for real-time host monitoring, visual resource usage graphs, and centralized container log inspection (Error Tracking).
+- **Resource Governance:** Strict CPU and RAM limits configured via Docker Compose to prevent resource exhaustion and ensure high system stability.
+- **Security:** Administrative dashboards (Monitoring) are protected behind a **Cloudflare Zero Trust** authentication wall (Email OTP), completely isolating them from public access.
+- **CI/CD:** GitHub Actions configured for automated building, testing, and application release.
 - **Docker:** Separate containers for independent Development and Production environments with auto-deploy on changes.
 - **Server:** Backend and database are hosted on-premise.
 
@@ -94,7 +97,7 @@ Fully dockerized environment with automated pipelines.
 [![API Documentation](https://img.shields.io/badge/OpenAPI-Specification-blue?style=for-the-badge&logo=openapi-initiative&logoColor=white)](./csharp/src/api_documentation.json)
 
 <details>
-<summary>_🔍 Click to see how to use the documentation_</summary>
+<summary>🔍 Click to see how to use the documentation</summary>
 
 The API documentation is automatically generated during the build process. You can:
 
@@ -111,12 +114,9 @@ The API documentation is automatically generated during the build process. You c
 
 ### 🟡 High Impact
 
-- [ ] **Code refactoring**
-
 ### 🟢 Nice to Have
 
-- [ ] **Add max resources to containers**
-- [ ] **Host Monitoring and Error Tracking**
+- [ ] **DataOps Pipeline:** Automating Python scripts + making them better
 - [ ] **DB Backups:** auto backups for the DB
 - [ ] **Update app imports**
-- [ ] **DataOps Pipeline:** Automating Python scripts + making them better
+- [ ] **Code refactoring**
