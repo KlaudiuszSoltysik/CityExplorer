@@ -1,13 +1,17 @@
-name: Build and publish Android APK
+name: Android CI/CD
 
 on:
   push:
-    branches: ["master"]
+    branches: ["master", "dev"]
     tags:
       - "beta"
     paths:
       - "kotlin/**"
       - ".github/workflows/kotlin_deploy.yml"
+  pull_request:
+    branches: ["master", "dev"]
+    paths:
+      - "kotlin/**"
 
 permissions:
   contents: write
@@ -30,14 +34,17 @@ jobs:
           distribution: "temurin"
           cache: gradle
 
-      - name: Decode Keystore
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest
+
+      - name: Decode keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           echo $KEYSTORE_BASE64 | base64 --decode > app/release-key.jks
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
 
       - name: Create secrets.properties
         env:
@@ -56,13 +63,14 @@ jobs:
         run: ./gradlew assembleRelease
 
       - name: Upload artifact
+        if: github.event_name == 'push'
         uses: actions/upload-artifact@v4
         with:
           name: city-explorer-build
           path: kotlin/app/build/outputs/apk/release/app-release.apk
 
       - name: Update GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
           files: kotlin/app/build/outputs/apk/release/app-release.apk
@@ -72,6 +80,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update beta release
+        if: github.event_name == 'push' && contains(github.ref, 'beta')
         uses: marvinpinto/action-automatic-releases@latest
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"

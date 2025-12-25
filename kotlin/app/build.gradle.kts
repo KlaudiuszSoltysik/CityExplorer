@@ -132,6 +132,11 @@ dependencies {
     kapt(libs.hilt.compiler)
     kapt("org.jetbrains.kotlin:kotlin-metadata-jvm:2.1.0")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
+    testImplementation("io.mockk:mockk:1.14.7")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+    testImplementation("com.google.truth:truth:1.4.5")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -152,4 +157,8 @@ dependencies {
 
 kapt {
     correctErrorTypes = true
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
 }
