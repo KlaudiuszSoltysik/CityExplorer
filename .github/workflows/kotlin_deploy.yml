@@ -75,7 +75,8 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
           WEB_CLIENT_ID: ${{ secrets.WEB_CLIENT_ID }}
-        run: ./kotlin/gradlew assembleRelease
+        working-directory: ./kotlin
+        run: ./gradlew assembleRelease
 
       - name: Upload artifact
         if: github.event_name == 'push'
