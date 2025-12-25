@@ -53,6 +53,9 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x kotlin/gradlew
 
+      - name: Debug file structure
+        run: ls -R
+
       - name: Decode keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
