@@ -120,3 +120,4 @@ The API documentation is automatically generated during the build process. You c
 - [ ] **DB Backups:** auto backups for the DB
 - [ ] **Update app imports**
 - [ ] **Code refactoring**
+- [ ] **Kapt:** Support for language version 2.0+ in kapt is in Alpha and must be enabled explicitly. Falling back to 1.9.
