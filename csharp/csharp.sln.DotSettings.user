@@ -3,5 +3,7 @@
   &lt;TestAncestor&gt;&#xD;
     &lt;TestId&gt;xUnit::AFCD0EA5-84C3-4794-8F69-F64E96B9EF6D::net9.0::tests.JwtTokenServiceTests&lt;/TestId&gt;&#xD;
     &lt;TestId&gt;xUnit::AFCD0EA5-84C3-4794-8F69-F64E96B9EF6D::net9.0::tests.VersionControllerTests&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::AFCD0EA5-84C3-4794-8F69-F64E96B9EF6D::net9.0::tests.UserControllerTests&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::AFCD0EA5-84C3-4794-8F69-F64E96B9EF6D::net9.0::tests.HexagonControllerTests&lt;/TestId&gt;&#xD;
   &lt;/TestAncestor&gt;&#xD;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

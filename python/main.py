@@ -34,29 +34,25 @@ OVERPASS_FILTERS = {
     "craft": "brewery|winery"
 }
 
-def build_overpass_query(bbox: Tuple[float, float, float, float]) -> str:
+# Helper to build overpass query.
+def build_overpass_query(bbox: Tuple[float, float, float, float],
+                         overpass_filters: Dict[str, str]
+                         ) -> str:
     bbox_str = f"{bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}"
 
     query = f"""
         [out:json][timeout:100];
         (
-            nwr["tourism"~"{OVERPASS_FILTERS['tourism']}"]({bbox_str});
-            
+            nwr["tourism"~"{overpass_filters.get('tourism', '')}"]({bbox_str});
             nwr["historic"]({bbox_str});
-            
-            nwr["amenity"~"{OVERPASS_FILTERS['amenity']}"]({bbox_str});
-            
-            nwr["leisure"~"{OVERPASS_FILTERS['leisure']}"]({bbox_str});
-            
-            node["man_made"~"{OVERPASS_FILTERS['man_made']}"]({bbox_str});
-            way["man_made"~"{OVERPASS_FILTERS['man_made']}"]({bbox_str});
-            
-            node["natural"~"{OVERPASS_FILTERS['natural']}"]({bbox_str});
-            
-            node["waterway"="{OVERPASS_FILTERS['waterway']}"]({bbox_str});
-            
-            node["craft"~"{OVERPASS_FILTERS['craft']}"]({bbox_str});
-            way["craft"~"{OVERPASS_FILTERS['craft']}"]({bbox_str});
+            nwr["amenity"~"{overpass_filters.get('amenity', '')}"]({bbox_str});
+            nwr["leisure"~"{overpass_filters.get('leisure', '')}"]({bbox_str});
+            node["man_made"~"{overpass_filters.get('man_made', '')}"]({bbox_str});
+            way["man_made"~"{overpass_filters.get('man_made', '')}"]({bbox_str});
+            node["natural"~"{overpass_filters.get('natural', '')}"]({bbox_str});
+            node["waterway"="{overpass_filters.get('waterway', '')}"]({bbox_str});
+            node["craft"~"{overpass_filters.get('craft', '')}"]({bbox_str});
+            way["craft"~"{overpass_filters.get('craft', '')}"]({bbox_str});
         );
         out center;
     """
@@ -64,28 +60,33 @@ def build_overpass_query(bbox: Tuple[float, float, float, float]) -> str:
 
 # Helper to extract lat/lon from different parts of the Overpass response.
 def _extract_location(element: Dict[str, Any]) -> Optional[Tuple[float, float]]:
-
     if "lat" in element and "lon" in element:
         return element["lat"], element["lon"]
 
     if "center" in element:
-        return element["center"].get("lat"), element["center"].get("lon")
+        lat = element["center"].get("lat")
+        lon = element["center"].get("lon")
+        if lat is not None and lon is not None:
+            return lat, lon
 
     return None
 
 # Parses a raw Overpass element into our internal POI structure.
-def _parse_poi_element(element: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _parse_poi_element(element: Dict[str, Any],
+                       poi_keys: Dict[str, int],
+                       city: str
+                       ) -> Optional[Dict[str, Any]]:
     tags = element.get("tags", {})
     if not tags:
         return None
 
-    poi_type = next((k for k in POI_KEYS.keys() if k in tags), None)
+    poi_type = next((k for k in poi_keys.keys() if k in tags), None)
     if not poi_type:
         return None
 
     poi = {
         "id": f"{element['type']}/{element['id']}",
-        "city": CITY,
+        "city": city,
         "name": tags.get("name", tags.get("name:en")),
         "poi_type": poi_type,
         "poi_subtype": tags.get(poi_type),
@@ -97,8 +98,12 @@ def _parse_poi_element(element: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
     return poi
 
-def fetch_pois(bbox: Tuple[float, float, float, float]) -> List[Dict[str, Any]]:
-    query = build_overpass_query(bbox)
+def fetch_pois(bbox: Tuple[float, float, float, float],
+               poi_keys: Dict[str, int],
+               overpass_filters: Dict[str, str],
+               city: str
+               ) -> List[Dict[str, Any]]:
+    query = build_overpass_query(bbox, overpass_filters)
     url = "https://overpass-api.de/api/interpreter"
 
     try:
@@ -113,19 +118,23 @@ def fetch_pois(bbox: Tuple[float, float, float, float]) -> List[Dict[str, Any]]:
     pois = []
 
     for element in elements:
-        poi = _parse_poi_element(element)
+        poi = _parse_poi_element(element, poi_keys, city)
         if poi:
             pois.append(poi)
 
     return pois
 
 # Converts a list of (lat, lon) coordinates forming a polygon into H3 cells.
-def _hexagons_from_coords(coords: List[Tuple[float, float]]) -> Set[str]:
+def _hexagons_from_coords(coords: List[Tuple[float, float]],
+                          resolution: int
+                          ) -> Set[str]:
     polygon_h3 = h3.LatLngPoly(coords)
-    return h3.polygon_to_cells(polygon_h3, RESOLUTION)
+    return h3.polygon_to_cells(polygon_h3, resolution)
 
 # Generates H3 cells covering a rectangular bounding box.
-def _hexagons_from_bbox(bbox: Tuple[float, float, float, float]) -> Set[str]:
+def _hexagons_from_bbox(bbox: Tuple[float, float, float, float],
+                        resolution: int
+                        ) -> Set[str]:
     south, west, north, east = bbox
 
     box_coords = [
@@ -136,17 +145,20 @@ def _hexagons_from_bbox(bbox: Tuple[float, float, float, float]) -> Set[str]:
         (south, west)
     ]
 
-    return _hexagons_from_coords(box_coords)
+    return _hexagons_from_coords(box_coords, resolution)
 
 # Maps POIs to H3 hexagons based on location (point) or boundary (polygon)
-def assign_pois_to_hexagons(hexagons: Set[str], pois: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def assign_pois_to_hexagons(hexagons: Set[str],
+                            pois: List[Dict[str, Any]],
+                            resolution: int
+                            ) -> List[Dict[str, Any]]:
     hex_poi_map = {hex_id: [] for hex_id in hexagons}
     valid_hex_set = set(hexagons)
 
     for poi in pois:
         if poi.get("location"):
             poi_lat, poi_lon = poi["location"]
-            poi_hex = h3.latlng_to_cell(poi_lat, poi_lon, RESOLUTION)
+            poi_hex = h3.latlng_to_cell(poi_lat, poi_lon, resolution)
 
             if poi_hex in valid_hex_set:
                 poi_entry = poi.copy()
@@ -154,7 +166,7 @@ def assign_pois_to_hexagons(hexagons: Set[str], pois: List[Dict[str, Any]]) -> L
                 hex_poi_map[poi_hex].append(poi_entry)
 
         elif poi.get("boundary"):
-            poi_hexagons = _hexagons_from_coords(poi["boundary"])
+            poi_hexagons = _hexagons_from_coords(poi["boundary"], resolution)
 
             for hex_id in poi_hexagons:
                 if hex_id in valid_hex_set:
@@ -182,13 +194,16 @@ def attach_boundaries(hexagons_data: List[Dict[str, Any]]) -> List[Dict[str, Any
     return hexagons_data
 
 # Calculates weighted score for each hexagon based on POI density and uniform distribution
-def calculate_weights(hexagons: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    uniform_factor = 1 - POI_FACTOR
+def calculate_weights(hexagons: List[Dict[str, Any]],
+                      poi_factor: float,
+                      poi_keys: Dict[str, int]
+                      ) -> List[Dict[str, Any]]:
+    uniform_factor = 1 - poi_factor
 
     for hexagon in hexagons:
         raw_weight = 0
         for poi in hexagon["pois"]:
-            raw_weight += POI_KEYS.get(poi["poi_type"], 0)
+            raw_weight += poi_keys.get(poi["poi_type"], 0)
         hexagon["weight"] = raw_weight
 
     weight_sum = sum(h["weight"] for h in hexagons) or 1
@@ -198,12 +213,17 @@ def calculate_weights(hexagons: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
     for hexagon in hexagons:
         poi_share = hexagon["weight"] / weight_sum
-        hexagon["weight"] = (poi_share * POI_FACTOR) + (uniform_weight * uniform_factor)
+        hexagon["weight"] = (poi_share * poi_factor) + (uniform_weight * uniform_factor)
 
     return hexagons
 
 # Persists City, Hexagons, and POIs data into PostgreSQL database
-def save_to_db(hexagons: List[Dict[str, Any]], bbox: Tuple[float, float, float, float]) -> None:
+def save_to_db(hexagons: List[Dict[str, Any]],
+               bbox: Tuple[float, float, float, float],
+               country: str,
+               city: str,
+               connection_string: str
+               ) -> None:
     upsert_city = """
         INSERT INTO "Cities" ("City", "Country", "Bbox")
         VALUES (%s, %s, %s)
@@ -236,17 +256,17 @@ def save_to_db(hexagons: List[Dict[str, Any]], bbox: Tuple[float, float, float, 
             "CityId" = EXCLUDED."CityId";
     """
 
-    with psycopg2.connect(CONNECTION_STRING) as conn:
+    with psycopg2.connect(connection_string) as conn:
         with conn.cursor() as cursor:
 
-            cursor.execute(upsert_city, (CITY, COUNTRY, json.dumps(bbox)))
+            cursor.execute(upsert_city, (city, country, json.dumps(bbox)))
 
             for hexagon in hexagons:
                 cursor.execute(upsert_hexagon, (
                     hexagon["id"],
                     json.dumps(hexagon["boundaries"]),
                     json.dumps(hexagon["center"]),
-                    CITY,
+                    city,
                     hexagon["weight"]
                 ))
 
@@ -260,7 +280,7 @@ def save_to_db(hexagons: List[Dict[str, Any]], bbox: Tuple[float, float, float, 
                         json.dumps(poi.get("boundary")),
                         False,
                         hexagon["id"],
-                        CITY
+                        city
                     ))
 
         conn.commit()
@@ -312,14 +332,14 @@ def load_region_data(filename):
 def main():
     coords_h3, bbox = load_region_data(INPUT_FILENAME)
 
-    hexagons = _hexagons_from_coords(coords_h3)
-    pois = fetch_pois(bbox)
+    hexagons = _hexagons_from_coords(coords_h3, RESOLUTION)
+    pois = fetch_pois(bbox, POI_KEYS, OVERPASS_FILTERS, CITY)
 
-    hexagons = assign_pois_to_hexagons(hexagons, pois)
+    hexagons = assign_pois_to_hexagons(hexagons, pois, RESOLUTION)
     hexagons = attach_boundaries(hexagons)
-    hexagons = calculate_weights(hexagons)
+    hexagons = calculate_weights(hexagons, POI_FACTOR, POI_KEYS)
 
-    save_to_db(hexagons, bbox)
+    save_to_db(hexagons, bbox, COUNTRY, CITY, CONNECTION_STRING)
     visualize_hexagons(hexagons)
 
     with open(OUTPUT_FILENAME, "w", encoding="utf-8") as f:

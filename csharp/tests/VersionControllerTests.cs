@@ -4,29 +4,43 @@ using csharp.Models;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace tests;
 
-public class VersionControllerTests : IClassFixture<WebApplicationFactory<Program>>
+public class VersionControllerTests : IClassFixture<WebApplicationFactory<Program>>, IDisposable
 {
     private readonly WebApplicationFactory<Program> _factory;
+    private readonly SqliteConnection _connection;
 
     public VersionControllerTests(WebApplicationFactory<Program> factory)
     {
+        _connection = new SqliteConnection("Filename=:memory:");
+        _connection.Open();
+
         _factory = factory.WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Testing");
-
             builder.ConfigureServices(services =>
             {
                 services.AddDbContext<PostgresContext>(options =>
                 {
-                    options.UseInMemoryDatabase("IntegrationTestsDb");
+                    options.UseSqlite(_connection);
                 });
+
+                using var scope = services.BuildServiceProvider().CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<PostgresContext>();
+                db.Database.EnsureCreated();
             });
         });
+    }
+
+    public void Dispose()
+    {
+        _connection.Close();
+        _connection.Dispose();
     }
 
     [Fact]

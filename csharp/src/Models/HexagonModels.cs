@@ -25,7 +25,7 @@ public class PoiModel
     public List<List<double>>? Boundary { get; init; }
     public bool IsPromoted { get; init; }
     [MaxLength(50)] public string? HexagonId { get; init; }
-    [ForeignKey(nameof(HexagonId))] public required HexagonModel TouristHexagon { get; init; }
+    [ForeignKey(nameof(HexagonId))] public required HexagonModel Hexagon { get; init; }
     [MaxLength(50)] public string CityId { get; init; } = string.Empty;
     [ForeignKey(nameof(CityId))] public required CityModel City { get; init; }
 }
