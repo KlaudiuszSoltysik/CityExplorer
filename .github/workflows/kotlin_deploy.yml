@@ -2,27 +2,43 @@ name: Android CI/CD
 
 on:
   push:
-    branches: ["master", "dev"]
+    branches: ["master"]
     tags:
       - "beta"
     paths:
       - "kotlin/**"
       - ".github/workflows/kotlin_deploy.yml"
   pull_request:
-    branches: ["master", "dev"]
+    branches: ["master"]
     paths:
       - "kotlin/**"
+      - ".github/workflows/kotlin_deploy.yml"
 
 permissions:
   contents: write
 
 jobs:
-  build:
+  test:
+    name: Unit Tests
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./kotlin
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: gradle
+      - name: Grant execute permission for gradlew
+        run: chmod +x kotlin/gradlew
+      - name: Run tests
+        run: cd kotlin && ./gradlew testDebugUnitTest
 
+  publish:
+    name: Build & Publish APK
+    needs: test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || contains(github.ref, 'beta'))
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,9 +52,6 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
-
-      - name: Run unit tests
-        run: ./gradlew testDebugUnitTest
 
       - name: Decode keystore
         env:

@@ -112,7 +112,6 @@ The API documentation is automatically generated during the build process. You c
 ### 🟡 High Impact
 
 - [ ] **Code refactoring**
-- [ ] **Tests:** Add tests for the app
 
 ### 🟢 Nice to Have
 

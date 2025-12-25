@@ -2,13 +2,15 @@ name: Python Tests
 
 on:
   push:
-    branches: ["master", "dev"]
+    branches: ["master"]
     paths:
       - "python/**"
+      - ".github/workflows/python_tests.yml"
   pull_request:
-    branches: ["master", "dev"]
+    branches: ["master"]
     paths:
       - "python/**"
+      - ".github/workflows/python_tests.yml"
 
 jobs:
   test:
