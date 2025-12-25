@@ -41,7 +41,10 @@ Built with a focus on performance and battery efficiency during background track
 - **Google Maps SDK:** Custom styling and overlay management for rendering hexagonal grids.
 - **Authentication:** Secure sign-in flow implemented via **Google OAuth**.
 - **Architecture:** Uses modern Jetpack Compose for UI, Coroutines for asynchronous tasks and Hilt.
-- **Deployment:** Downloadable, minified release version of application.
+- **Automated Testing & QA:**
+  - **Repository Unit Tests:** Verification of data integrity, cache fallbacks, and API error handling using `JUnit 5` and `MockK`.
+  - **CI/CD Integration:** Automated unit test execution on every Push/PR to ensure core logic stability.
+- **Deployment:** Fully automated CI/CD pipeline that builds, signs, and publishes minified release APKs.
 
 ### 🔙 Backend (.NET 9.0 & PostgreSQL)
 
@@ -61,6 +64,11 @@ Scripts responsible for world generation and data analysis.
 
 - **Data Pipeline:** Fetches data from **Overpass API (OSM)** to identify POIs.
 - **Spatial Analysis:** Calculates hexagon weights using Uber H3 library based on POI density.
+- **Automated Quality Assurance:**
+  - **Unit Testing Suite:** 100% logic coverage for data parsing, geometry transformations, and weight balancing algorithms via `pytest`.
+  - **Mocked Integration Tests:** Network and Database layers are fully verified using `requests-mock` and `mocker`, ensuring pipeline reliability without external dependencies.
+  - **CI/CD Integration:** Dedicated GitHub Actions workflow triggered on `python/` directory changes, enforcing "green" tests before any code merge.
+- **Geographic Visualization:** Automated generation of Interactive Folium maps for visual verification of hexagon grids and POI distribution across cities.
 
 ### 🛠️ DevOps & Infrastructure
 
@@ -73,13 +81,13 @@ Fully dockerized environment with automated pipelines.
 
 ## 💻 Tech Stack
 
-| Domain       | Technology                                                    |
-| :----------- | :------------------------------------------------------------ |
-| **Mobile**   | Kotlin, Jetpack Compose, Hilt, Google Maps SDK, Google OAuth  |
-| **Backend**  | C# .NET 9.0, Entity Framework Core, Uber H3, XUnit            |
-| **Data**     | Python, Uber H3, Overpass API                                 |
-| **Database** | PostgreSQL                                                    |
-| **DevOps**   | Docker, Docker Compose, Terraform, Cloudflare, GitHub Actions |
+| Domain       | Technology                                                          |
+| :----------- | :------------------------------------------------------------------ |
+| **Mobile**   | Kotlin, Jetpack Compose, Hilt, Google Maps SDK, Google OAuth, JUnit |
+| **Backend**  | C# .NET 9.0, Entity Framework Core, Uber H3, XUnit                  |
+| **Data**     | Python, Uber H3, Overpass API, Pytest                               |
+| **Database** | PostgreSQL                                                          |
+| **DevOps**   | Docker, Docker Compose, Terraform, Cloudflare, GitHub Actions       |
 
 ## 📖 API Documentation
 
