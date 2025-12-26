@@ -62,6 +62,7 @@ High-performance REST API designed for throughput and scalability.
 
 Scripts responsible for world generation and data analysis.
 
+- **Containerized ETL Architecture:** Data processing logic is encapsulated in an **ephemeral Docker container** (`data-processor`). It runs on-demand batch jobs, securely connecting to the database within the internal Docker network without exposing ports, ensuring environment consistency (IoC).
 - **Data Pipeline:** Fetches data from **Overpass API (OSM)** to identify POIs.
 - **Spatial Analysis:** Calculates hexagon weights using Uber H3 library based on POI density.
 - **Automated Quality Assurance:**
@@ -76,6 +77,7 @@ Fully dockerized environment with automated pipelines.
 
 - **Infrastructure as Code:** **Terraform** manages Cloudflare Tunnel and **Cloudflare Access** policies, ensuring secure exposure of services without opening public ports.
 - **Observability & Logging:** **Portainer** instance deployed for real-time host monitoring, visual resource usage graphs, and centralized container log inspection (Error Tracking).
+- **Disaster Recovery Strategy:** Automated, scheduled database backups with a configurable **retention policy** (7-day rotation) executed via a dedicated sidecar container, ensuring data persistence and rapid recovery capability.
 - **Resource Governance:** Strict CPU and RAM limits configured via Docker Compose to prevent resource exhaustion and ensure high system stability.
 - **Security:** Administrative dashboards (Monitoring) are protected behind a **Cloudflare Zero Trust** authentication wall (Email OTP), completely isolating them from public access.
 - **CI/CD:** GitHub Actions configured for automated building, testing, and application release.
@@ -116,8 +118,5 @@ The API documentation is automatically generated during the build process. You c
 
 ### 🟢 Nice to Have
 
-- [ ] **DataOps Pipeline:** Automating Python scripts + making them better
-- [ ] **DB Backups:** auto backups for the DB
 - [ ] **Update app imports**
 - [ ] **Code refactoring**
-- [ ] **Kapt:** Support for language version 2.0+ in kapt is in Alpha and must be enabled explicitly. Falling back to 1.9.

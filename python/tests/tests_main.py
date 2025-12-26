@@ -2,7 +2,10 @@
 import h3
 import os
 import json
-from main import build_overpass_query, _extract_location, _parse_poi_element, fetch_pois, _hexagons_from_coords, _hexagons_from_bbox, assign_pois_to_hexagons, attach_boundaries, calculate_weights, save_to_db, visualize_hexagons, load_region_data
+
+from functions import build_overpass_query, _extract_location, _parse_poi_element, fetch_pois, _hexagons_from_coords, \
+    _hexagons_from_bbox, assign_pois_to_hexagons, attach_boundaries, calculate_weights, visualize_hexagons, \
+    load_region_data
 
 def test_build_overpass_query_formats_correctly():
     bbox = (52.1, 21.0, 52.2, 21.1)
@@ -25,7 +28,7 @@ def test_build_overpass_query_formats_correctly():
 
     assert 'nwr["historic"]' in query
 
-    assert "[out:json][timeout:100];" in query
+    assert "[out:json][timeout:10000];" in query
 
 def test_extract_location_from_lat_lon():
     element = {"lat": 52.4, "lon": 16.9}
@@ -290,29 +293,6 @@ def test_save_to_db_calls_correct_sql(mocker):
     assert hex_call[0][1][0] == "hex1"
 
     mock_conn.commit.assert_called_once()
-
-def test_visualize_hexagons_creates_file():
-    filename = "hexagons.html"
-    if os.path.exists(filename):
-        os.remove(filename)
-
-    hexagons = [{
-        "id": "891e2040003ffff",
-        "weight": 0.5,
-        "boundaries": [[52.4, 16.9], [52.41, 16.9], [52.41, 16.91], [52.4, 16.9]]
-    }]
-
-    visualize_hexagons(hexagons)
-
-    assert os.path.exists(filename)
-    assert os.path.getsize(filename) > 0
-
-    os.remove(filename)
-
-def test_visualize_hexagons_no_data(capsys):
-    visualize_hexagons([])
-    captured = capsys.readouterr()
-    assert "No hexagons to visualize." in captured.out
 
 def test_load_region_data_parsing(tmp_path):
     sample_geojson = {

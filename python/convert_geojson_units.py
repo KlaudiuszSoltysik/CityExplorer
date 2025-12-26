@@ -65,4 +65,4 @@ def convert_geojson_to_wgs84(filename: str) -> None:
         print(f"Error processing file {filename}: {e}")
 
 if __name__ == "__main__":
-    convert_geojson_to_wgs84("geojsons/poznan.geojson")
+    convert_geojson_to_wgs84("raw_data/poznan.geojson")

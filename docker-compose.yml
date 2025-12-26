@@ -85,12 +85,57 @@ services:
   portainer:
     image: portainer/portainer-ce:latest
     container_name: city_explorer_dashboard
-    restart: always
     security_opt:
       - no-new-privileges:true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - portainer_data:/data
+    networks:
+      - city_explorer_net
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  data-processor:
+    build: ./python
+    container_name: python_data_processor
+    profiles: ["tools"]
+    volumes:
+      - ./python/raw_data:/app/raw_data
+      - ./python/processed_data:/app/processed_data
+    environment:
+      - DB_CONNECTION_STRING=host=postgres dbname=${POSTGRES_DB} user=${POSTGRES_USER} password=${POSTGRES_PASSWORD}
+      - INPUT_DIRECTORY=/app/raw_data
+      - OUTPUT_DIRECTORY=/app/processed_data
+    networks:
+      - city_explorer_net
+    depends_on:
+      - postgres
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  postgres-backup:
+    image: prodrigestivill/postgres-backup-local
+    container_name: city_explorer_postgres_backup
+    user: postgres:postgres
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      - postgres
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - SCHEDULE=@every 12h00m
+      - BACKUP_KEEP_DAYS=7
     networks:
       - city_explorer_net
     deploy:
