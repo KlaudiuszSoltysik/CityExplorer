@@ -138,6 +138,12 @@ services:
       - BACKUP_KEEP_DAYS=7
     networks:
       - city_explorer_net
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
 
 networks:
   city_explorer_net:
