@@ -77,6 +77,7 @@ Fully dockerized environment with automated pipelines.
 
 - **Infrastructure as Code:** **Terraform** manages Cloudflare Tunnel and **Cloudflare Access** policies, ensuring secure exposure of services without opening public ports.
 - **Observability & Logging:** **Portainer** instance deployed for real-time host monitoring, visual resource usage graphs, and centralized container log inspection (Error Tracking).
+- **Disaster Recovery Strategy:** Automated, scheduled database backups with a configurable **retention policy** (7-day rotation) executed via a dedicated sidecar container, ensuring data persistence and rapid recovery capability.
 - **Resource Governance:** Strict CPU and RAM limits configured via Docker Compose to prevent resource exhaustion and ensure high system stability.
 - **Security:** Administrative dashboards (Monitoring) are protected behind a **Cloudflare Zero Trust** authentication wall (Email OTP), completely isolating them from public access.
 - **CI/CD:** GitHub Actions configured for automated building, testing, and application release.
@@ -117,6 +118,5 @@ The API documentation is automatically generated during the build process. You c
 
 ### 🟢 Nice to Have
 
-- [ ] **DB Backups:** auto backups for the DB
 - [ ] **Update app imports**
 - [ ] **Code refactoring**
