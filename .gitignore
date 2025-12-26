@@ -4,3 +4,4 @@ docker/*
 terraform/*
 !terraform/main.tf
 !terraform/.terraform.lock.hcl
+backups/*

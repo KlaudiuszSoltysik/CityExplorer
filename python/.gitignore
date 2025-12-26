@@ -1,3 +1,4 @@
-﻿geojsons/*
-hexagons.html
-hexagons.json
+﻿raw_data/*
+processed_data/*
+.venv
+__pycache__/*

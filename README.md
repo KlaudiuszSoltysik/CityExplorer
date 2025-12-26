@@ -62,6 +62,7 @@ High-performance REST API designed for throughput and scalability.
 
 Scripts responsible for world generation and data analysis.
 
+- **Containerized ETL Architecture:** Data processing logic is encapsulated in an **ephemeral Docker container** (`data-processor`). It runs on-demand batch jobs, securely connecting to the database within the internal Docker network without exposing ports, ensuring environment consistency (IoC).
 - **Data Pipeline:** Fetches data from **Overpass API (OSM)** to identify POIs.
 - **Spatial Analysis:** Calculates hexagon weights using Uber H3 library based on POI density.
 - **Automated Quality Assurance:**
@@ -116,8 +117,6 @@ The API documentation is automatically generated during the build process. You c
 
 ### 🟢 Nice to Have
 
-- [ ] **DataOps Pipeline:** Automating Python scripts + making them better
 - [ ] **DB Backups:** auto backups for the DB
 - [ ] **Update app imports**
 - [ ] **Code refactoring**
-- [ ] **Kapt:** Support for language version 2.0+ in kapt is in Alpha and must be enabled explicitly. Falling back to 1.9.

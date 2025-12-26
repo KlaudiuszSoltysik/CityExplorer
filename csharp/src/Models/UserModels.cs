@@ -26,7 +26,7 @@ public class SessionModel
 public class UserCityProgress
 {
     [Key] public int Id { get; set; }
-    [Required] [MaxLength(50)] public string CityId { get; set; } = string.Empty;
+    [Required] [MaxLength(100)] public string CityId { get; set; } = string.Empty;
     public int Progress { get; set; }
     public int PlayTime { get; set; }
     public double Distance { get; set; }
