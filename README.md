@@ -19,8 +19,6 @@ City Explorer is a mobile platform designed to encourage physical activity throu
 
 ## 📸 Screenshots
 
-_screenshots_
-
 ## ⚙️ Core Mechanics
 
 The system relies on a complex geospatial model rather than simple coordinates:
@@ -112,11 +110,9 @@ The API documentation is automatically generated during the build process. You c
 ### 🔴 Mandatory / New functions
 
 - [ ] **AI pathfinding**
-- [ ] **Social Features:** Friends etc.
 
 ### 🟡 High Impact
 
 ### 🟢 Nice to Have
 
-- [ ] **Update app imports**
-- [ ] **Code refactoring**
+- [ ] **Social Features:** Friends etc.
