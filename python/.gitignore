@@ -1,5 +1,6 @@
 ﻿raw_data/*
 processed_data/*
-.venv
+.venv/*
+.idea
 __pycache__/*
 tests/__pycache__/*
