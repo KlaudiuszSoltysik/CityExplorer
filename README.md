@@ -19,7 +19,12 @@ City Explorer is a mobile platform designed to encourage physical activity throu
 
 ## 📸 Screenshots
 
-_screenshots_
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/a4dadab2-ab0a-4d0d-a6b1-46d2bbc0d60d" width="24%"/>
+  <img src="https://github.com/user-attachments/assets/8c6d8d24-2458-47bf-adc7-54e3b91b862f" width="24%"/>
+  <img src="https://github.com/user-attachments/assets/51544ce4-b81e-4009-ac0c-b371b14265d3" width="24%"/>
+  <img src="https://github.com/user-attachments/assets/87f8e84c-ef1f-48ee-bbfa-1f3a34a2aa55" width="24%"/>
+</p>
 
 ## ⚙️ Core Mechanics
 
@@ -112,11 +117,9 @@ The API documentation is automatically generated during the build process. You c
 ### 🔴 Mandatory / New functions
 
 - [ ] **AI pathfinding**
-- [ ] **Social Features:** Friends etc.
 
 ### 🟡 High Impact
 
 ### 🟢 Nice to Have
 
-- [ ] **Update app imports**
-- [ ] **Code refactoring**
+- [ ] **Social Features:** Friends etc.
