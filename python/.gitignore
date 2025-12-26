@@ -2,3 +2,4 @@
 processed_data/*
 .venv
 __pycache__/*
+tests/__pycache__/*
