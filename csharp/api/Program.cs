@@ -14,8 +14,23 @@ if (builder.Environment.EnvironmentName != "Testing")
     builder.Services.AddDbContext<PostgresContext>(options =>
         options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresConnection")));
 
-    var redisConnection = ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("RedisConnection") ?? "redis-dev:6379");
-    builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
+    builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+    {
+        var configuration = sp.GetRequiredService<IConfiguration>();
+        var redisConnectionString = configuration.GetConnectionString("RedisConnection") ?? "redis-dev:6379";
+
+        try
+        {
+            var redisOptions = ConfigurationOptions.Parse(redisConnectionString);
+            redisOptions.AbortOnConnectFail = false;
+            return ConnectionMultiplexer.Connect(redisOptions);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Redis Error] {ex.Message}");
+            throw;
+        }
+    });
 }
 
 builder.Services.AddHostedService<SessionCleanupService>();

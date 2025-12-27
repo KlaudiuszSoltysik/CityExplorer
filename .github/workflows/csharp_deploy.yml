@@ -68,7 +68,7 @@ jobs:
           labels: ${{ steps.meta-backend.outputs.labels }}
 
       # Build and push Worker image
-      - name: Extract metadata for Worker
+      - name: Extract metadata for worker
         id: meta-worker
         uses: docker/metadata-action@v5
         with:
@@ -87,12 +87,12 @@ jobs:
           labels: ${{ steps.meta-worker.outputs.labels }}
 
       # Generate and commit documentation
-      - name: Setup .NET for Docs Generation
+      - name: Setup .NET for docs generation
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "9.0.x"
 
-      - name: Generate Documentation JSON
+      - name: Generate documentation
         run: dotnet build csharp/api/api.csproj -c Release
 
       - name: Commit and push documentation

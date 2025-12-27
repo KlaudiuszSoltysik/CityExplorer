@@ -14,7 +14,7 @@ RUN dotnet restore "api/api.csproj"
 COPY . .
 
 WORKDIR "/api/api"
-RUN dotnet build "api.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "api.csproj" -c $BUILD_CONFIGURATION -o /app/build /p:OpenApiGenerateDocumentsOnBuild=false
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
