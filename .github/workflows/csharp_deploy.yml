@@ -77,7 +77,7 @@ jobs:
             type=raw,value=latest
             type=sha
 
-      - name: Build and push Worker
+      - name: Build and push worker
         uses: docker/build-push-action@v5
         with:
           context: ./csharp
