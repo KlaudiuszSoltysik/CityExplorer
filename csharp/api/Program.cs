@@ -31,6 +31,9 @@ if (builder.Environment.EnvironmentName != "Testing")
             throw;
         }
     });
+
+    builder.Services.AddSignalR()
+        .AddStackExchangeRedis(builder.Configuration.GetConnectionString("RedisConnection") ?? "redis-dev:6379");
 }
 
 builder.Services.AddHostedService<SessionCleanupService>();
@@ -57,6 +60,8 @@ else
 {
     app.UseMiddleware<ApiKeyMiddleware>();
 }
+
+app.MapHub<WorkerHub>("/hubs/worker");
 
 app.UseCors();
 

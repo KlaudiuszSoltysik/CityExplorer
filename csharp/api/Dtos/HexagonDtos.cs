@@ -63,3 +63,9 @@ public class GenerateRouteResponseDto
     public required string JobId { get; set; }
     public string? Token { get; set; }
 }
+
+public class WorkerResult
+{
+    public string JobId { get; set; }
+    public List<string> Route { get; set; }
+}

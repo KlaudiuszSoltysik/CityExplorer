@@ -1,5 +1,8 @@
 using System.Text.Json;
 using csharp;
+using csharp.Dtos;
+using csharp.Utils;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 
@@ -8,11 +11,12 @@ namespace worker;
 public class Worker(ILogger<Worker> logger,
     IConnectionMultiplexer redis,
     IH3Service h3Service,
-    IServiceScopeFactory scopeFactory
+    IServiceScopeFactory scopeFactory,
+    IHubContext<WorkerHub, IWorkerClient> hubContext
 ) : BackgroundService
 {
     private const string QueueName = "route_jobs";
-    private const double MinutesPerHexagon = 5.0;
+    private const double MinutesPerHexagon = 6.0;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -78,10 +82,6 @@ public class Worker(ILogger<Worker> logger,
                             .ToListAsync(cancellationToken: stoppingToken);
                     }
 
-                    logger.LogInformation("Start {nodes}", startHexagonId);
-                    logger.LogInformation("Losowy {nodes}", hexagonIdsInRange[0]);
-                    logger.LogInformation("Długość nodes {nodes}", nodes.Count);
-
                     var input = new AcoInput
                     {
                         StartHexagonId = startHexagonId,
@@ -92,6 +92,12 @@ public class Worker(ILogger<Worker> logger,
                     var aco = new AntColonyOptimizer(h3Service, input);
 
                     var route = aco.Solve();
+
+                    await hubContext.Clients.Group(jobId).JobCompleted(new WorkerResult
+                    {
+                        JobId = jobId,
+                        Route = route
+                    });
 
                     var routeString = string.Join(" -> ", route);
 
