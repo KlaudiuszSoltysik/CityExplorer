@@ -28,7 +28,7 @@ services:
     networks:
       - city_explorer_net
 
-  backend-dev:
+  api-dev:
     container_name: city_explorer_api_dev
     build:
       context: ./csharp
@@ -60,11 +60,15 @@ services:
       - DOTNET_USE_POLLING_FILE_WATCHER=true
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__PostgresConnection=Host=postgres-dev;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
-      - ConnectionStrings__Redis=redis-dev:6379
+      - ConnectionStrings__RedisConnection=redis-dev:6379
     volumes:
       - ./csharp:/app
       - /app/worker/obj
       - /app/worker/bin
+      - /app/api/obj
+      - /app/api/bin
+      - /app/tests/obj
+      - /app/tests/bin
     depends_on:
       postgres-dev:
         condition: service_healthy
