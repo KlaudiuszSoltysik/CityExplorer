@@ -50,3 +50,16 @@ public class SyncResponseDto
     public List<HexagonProgressDto>? UpdatedHexagons { get; set; }
     public string? Token { get; set; }
 }
+
+public class GenerateRouteRequestDto
+{
+    public required string StartHexId { get; set; }
+    public int Duration { get; set; }
+    public required string CityId { get; set; }
+}
+
+public class GenerateRouteResponseDto
+{
+    public required string JobId { get; set; }
+    public string? Token { get; set; }
+}

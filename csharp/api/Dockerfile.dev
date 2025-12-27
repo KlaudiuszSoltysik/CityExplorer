@@ -1,0 +1,10 @@
+﻿FROM mcr.microsoft.com/dotnet/sdk:9.0
+WORKDIR /app
+
+COPY . .
+
+WORKDIR /app/api
+
+EXPOSE 8080
+
+ENTRYPOINT ["dotnet", "watch", "run", "--project", "/app/api/api.csproj", "--no-launch-profile", "--urls", "http://+:8080"]

@@ -20,25 +20,56 @@ services:
       timeout: 5s
       retries: 5
 
+  redis-dev:
+    image: redis:alpine
+    container_name: city_explorer_redis_dev
+    ports:
+      - "6379:6379"
+    networks:
+      - city_explorer_net
+
   backend-dev:
-    container_name: city_explorer_csharp_dev
+    container_name: city_explorer_api_dev
     build:
       context: ./csharp
-      dockerfile: src/Dockerfile.dev
+      dockerfile: api/Dockerfile.dev
     environment:
       - DOTNET_USE_POLLING_FILE_WATCHER=true
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__PostgresConnection=Host=postgres-dev;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__RedisConnection=redis-dev:6379
       - JwtSettings__SecretKey=${JWT_SECTRET_KEY}
     ports:
       - "${CSHARP_PORT_DEV}:8080"
     volumes:
       - ./csharp:/app
-      - /app/src/obj
-      - /app/src/bin
+      - /app/api/obj
+      - /app/api/bin
     depends_on:
       postgres-dev:
         condition: service_healthy
+    networks:
+      - city_explorer_net
+
+  worker-dev:
+    container_name: city_explorer_worker_dev
+    build:
+      context: ./csharp
+      dockerfile: worker/Dockerfile.dev
+    environment:
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__PostgresConnection=Host=postgres-dev;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__Redis=redis-dev:6379
+    volumes:
+      - ./csharp:/app
+      - /app/worker/obj
+      - /app/worker/bin
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+      redis-dev:
+        condition: service_started
     networks:
       - city_explorer_net
 

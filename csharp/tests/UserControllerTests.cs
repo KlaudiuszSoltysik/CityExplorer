@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
+using StackExchange.Redis;
 
 namespace tests;
 
@@ -32,6 +34,21 @@ public class UserControllerTests : IClassFixture<WebApplicationFactory<Program>>
                 {
                     options.UseSqlite(_connection);
                 });
+
+                var redisDescriptor = services.SingleOrDefault(
+                    d => d.ServiceType == typeof(IConnectionMultiplexer));
+
+                if (redisDescriptor != null)
+                {
+                    services.Remove(redisDescriptor);
+                }
+
+                var mockRedis = new Mock<IConnectionMultiplexer>();
+
+                mockRedis.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
+                    .Returns(new Mock<IDatabase>().Object);
+
+                services.AddSingleton(mockRedis.Object);
 
                 using var scope = services.BuildServiceProvider().CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<PostgresContext>();
