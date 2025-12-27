@@ -27,10 +27,10 @@ if (builder.Environment.EnvironmentName != "Testing")
             throw;
         }
     });
-
-    builder.Services.AddSignalR()
-        .AddStackExchangeRedis(builder.Configuration.GetConnectionString("RedisConnection") ?? "redis-dev:6379");
 }
+
+builder.Services.AddSignalR()
+    .AddStackExchangeRedis(builder.Configuration.GetConnectionString("RedisConnection") ?? "redis-dev:6379");
 
 builder.Services.AddSingleton<IH3Service, H3Service>();
 
