@@ -93,13 +93,12 @@ jobs:
           dotnet-version: "9.0.x"
 
       - name: Generate Documentation JSON
-        run: dotnet build csharp/src/src.csproj -c Release
+        run: dotnet build csharp/api/api.csproj -c Release
 
       - name: Commit and push documentation
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          # Upewnij się, że ścieżka do pliku JSON jest dobra
-          git add csharp/src/api_documentation.json 
+          git add csharp/api/api_documentation.json 
           git commit -m "docs: automatic api documentation update" || echo "No changes to commit"
           git push
