@@ -1,11 +1,22 @@
 using System.Text.Json;
+using csharp;
+using csharp.Dtos;
+using csharp.Utils;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 
 namespace worker;
 
-public class Worker(ILogger<Worker> logger, IConnectionMultiplexer redis) : BackgroundService
+public class Worker(ILogger<Worker> logger,
+    IConnectionMultiplexer redis,
+    IH3Service h3Service,
+    IServiceScopeFactory scopeFactory,
+    IHubContext<WorkerHub, IWorkerClient> hubContext
+) : BackgroundService
 {
     private const string QueueName = "route_jobs";
+    private const double MinutesPerHexagon = 6.0;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -32,14 +43,65 @@ public class Worker(ILogger<Worker> logger, IConnectionMultiplexer redis) : Back
                     using var doc = JsonDocument.Parse(jobJson);
 
                     var root = doc.RootElement;
+
                     var jobId = root.GetProperty("JobId").GetString();
+                    var userId = root.GetProperty("UserId").GetString();
+                    var startHexagonId = root.GetProperty("StartHexId").GetString();
+                    var duration = root.GetProperty("Duration").GetInt32();
+                    var cityId = root.GetProperty("CityId").GetString();
+
+                    if (jobId is null || userId is null || startHexagonId is null || cityId is null) continue;
 
                     logger.LogInformation("Processing JobId: {JobId}...", jobId);
 
-                    // Symulacja pracy (np. algorytm mrówkowy)
-                    await Task.Delay(2000, stoppingToken);
+                    var totalStepsBudget = (int)(duration / MinutesPerHexagon);
+                    var kRingSize = (int)(duration / 2.0 / MinutesPerHexagon) + 2;
 
-                    logger.LogInformation("Completed JobId: {JobId}", jobId);
+                    if (kRingSize < 3) kRingSize = 3;
+
+                    var hexagonIdsInRange = h3Service.GetKRing(startHexagonId, kRingSize);
+
+                    List<GraphNode> nodes;
+
+                    using (var scope = scopeFactory.CreateScope())
+                    {
+                        var dbContext = scope.ServiceProvider.GetRequiredService<PostgresContext>();
+
+                        nodes = await dbContext.Hexagons
+                            .AsNoTracking()
+                            .Where(h => hexagonIdsInRange.Contains(h.Id))
+                            .Select(h => new GraphNode
+                            {
+                                HexagonId = h.Id,
+                                Weight = h.Weight,
+                                Progress = dbContext.Progresses
+                                    .Where(p => p.HexagonId == h.Id && p.UserId == userId)
+                                    .Select(p => p.Progress)
+                                    .FirstOrDefault()
+                            })
+                            .ToListAsync(cancellationToken: stoppingToken);
+                    }
+
+                    var input = new AcoInput
+                    {
+                        StartHexagonId = startHexagonId,
+                        MaxDistance = totalStepsBudget,
+                        Nodes = nodes
+                    };
+
+                    var aco = new AntColonyOptimizer(h3Service, input);
+
+                    var route = aco.Solve();
+
+                    await hubContext.Clients.Group(jobId).JobCompleted(new WorkerResult
+                    {
+                        JobId = jobId,
+                        Route = route
+                    });
+
+                    var routeString = string.Join(" -> ", route);
+
+                    logger.LogInformation("Completed JobId: {JobId}, route: {route}", jobId, routeString);
                 }
                 catch (Exception e)
                 {

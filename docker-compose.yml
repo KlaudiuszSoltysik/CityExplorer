@@ -33,7 +33,7 @@ services:
       - city_explorer_net
     command: redis-server --save 60 1 --loglevel warning
 
-  backend:
+  api:
     container_name: city_explorer_api_prod
     image: ghcr.io/klaudiuszsoltysik/city-explorer/api:latest
     environment:
@@ -60,7 +60,7 @@ services:
         reservations:
           memory: 256M
 
-  worker:
+  city_explorer_worker:
     image: ghcr.io/klaudiuszsoltysik/city-explorer/worker:latest
     deploy:
       mode: replicated

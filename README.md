@@ -43,6 +43,7 @@ Built with a focus on performance and battery efficiency during background track
 
 - **Background Location Services:** Robust state management for tracking user location even when the app is minimized (Foreground Service).
 - **Smart Caching:** Implemented local caching strategy to minimize API calls and data usage.
+- **Interactive Route Planning:** UI for the "Mystery Walk" feature, allowing users to define time budgets and visualize AI-generated exploration paths on the hexagonal grid.
 - **Google Maps SDK:** Custom styling and overlay management for rendering hexagonal grids.
 - **Authentication:** Secure sign-in flow implemented via **Google OAuth**.
 - **Architecture:** Uses modern Jetpack Compose for UI, Coroutines for asynchronous tasks and Hilt.
@@ -55,6 +56,9 @@ Built with a focus on performance and battery efficiency during background track
 
 High-performance REST API designed for throughput and scalability.
 
+- **Event-Driven Architecture (Producer-Consumer):** Decoupled heavy computational tasks from the main API using **Redis** as a message broker. This ensures non-blocking API responses while complex jobs are processed asynchronously.
+- **AI-Powered Route Generation:** Implemented **Ant Colony Optimization (ACO)** algorithm on the H3 grid to generate "Mystery Walks". The system solves a _Maximum Reward Path_ problem to maximize the discovery of new hexagons within a user's time budget.
+- **Serverless-Like Worker Pattern:** Developed a dedicated **Worker Microservice** that utilizes **Redis Blocking Operations (BRPOP)**. This achieves near-zero latency processing (event-driven) and minimizes idle CPU usage, simulating AWS Lambda behavior without cold-start penalties.
 - **Uber H3 Integration:** Server-side spatial indexing for fast geospatial queries and validation.
 - **Background Workers:** Dedicated services for managing session states and cleaning up stale data.
 - **Security:** JWT Token Authentication and secure session management.
@@ -80,6 +84,7 @@ Scripts responsible for world generation and data analysis.
 
 Fully dockerized environment with automated pipelines.
 
+- **Horizontal Scalability:** Implemented the **Competing Consumers Pattern** for the Worker service. The infrastructure supports running multiple Worker replicas that process jobs from the Redis queue in parallel, handling traffic spikes efficiently.
 - **Infrastructure as Code:** **Terraform** manages Cloudflare Tunnel and **Cloudflare Access** policies, ensuring secure exposure of services without opening public ports.
 - **Observability & Logging:** **Portainer** instance deployed for real-time host monitoring, visual resource usage graphs, and centralized container log inspection (Error Tracking).
 - **Disaster Recovery Strategy:** Automated, scheduled database backups with a configurable **retention policy** (7-day rotation) executed via a dedicated sidecar container, ensuring data persistence and rapid recovery capability.
@@ -122,4 +127,5 @@ The API documentation is automatically generated during the build process. You c
 
 ### 🟢 Nice to Have
 
+- [ ] **Tests:** generate-route and worker tests
 - [ ] **Social Features:** Friends etc.

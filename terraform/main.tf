@@ -44,7 +44,7 @@ resource "cloudflare_tunnel_config" "city_explorer_config" {
   config {
     ingress_rule {
       hostname = "city-explorer-api.260824.xyz"
-      service  = "http://backend:8080"
+      service  = "http://api:8080"
     }
     ingress_rule {
       hostname = "city-explorer-api-stats.260824.xyz"
