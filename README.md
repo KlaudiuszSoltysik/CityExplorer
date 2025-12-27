@@ -101,7 +101,7 @@ Fully dockerized environment with automated pipelines.
 
 ## 📖 API Documentation
 
-[![API Documentation](https://img.shields.io/badge/OpenAPI-Specification-blue?style=for-the-badge&logo=openapi-initiative&logoColor=white)](./csharp/src/api_documentation.json)
+[![API Documentation](https://img.shields.io/badge/OpenAPI-Specification-blue?style=for-the-badge&logo=openapi-initiative&logoColor=white)](./csharp/api/api_documentation.json)
 
 <details>
 <summary>🔍 Click to see how to use the documentation</summary>

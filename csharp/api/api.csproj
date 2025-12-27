@@ -46,10 +46,10 @@
     </PropertyGroup>
 
     <Target Name="RenameOpenApiFile" AfterTargets="GenerateOpenApiDocuments">
-      <Move SourceFiles="$(OpenApiDocumentsDirectory)\src.json" 
+      <Move SourceFiles="$(OpenApiDocumentsDirectory)\api.json" 
             DestinationFiles="$(OpenApiDocumentsDirectory)\api_documentation.json" 
             OverwriteReadOnlyFiles="true" 
-            Condition="Exists('$(OpenApiDocumentsDirectory)\src.json')" />
+            Condition="Exists('$(OpenApiDocumentsDirectory)\api.json')" />
     </Target>
 
 </Project>
