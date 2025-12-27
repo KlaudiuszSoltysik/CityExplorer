@@ -23,6 +23,7 @@
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4"/>
         <PackageReference Include="pocketken.H3" Version="4.0.0"/>
         <PackageReference Include="Scalar.AspNetCore" Version="2.11.0"/>
+        <PackageReference Include="StackExchange.Redis" Version="2.10.1" />
         <PackageReference Include="xunit.extensibility.core" Version="2.9.2" />
     </ItemGroup>
 
@@ -34,7 +35,14 @@
 
     <PropertyGroup>
       <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)</OpenApiDocumentsDirectory>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
       <OpenApiGenerateDocumentsOnBuild>true</OpenApiGenerateDocumentsOnBuild>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+      <OpenApiGenerateDocumentsOnBuild>false</OpenApiGenerateDocumentsOnBuild>
     </PropertyGroup>
 
     <Target Name="RenameOpenApiFile" AfterTargets="GenerateOpenApiDocuments">

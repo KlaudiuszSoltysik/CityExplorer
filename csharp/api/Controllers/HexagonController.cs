@@ -1,16 +1,18 @@
-﻿using csharp.Dtos;
+﻿using System.Text.Json;
+using csharp.Dtos;
 using csharp.Models;
 using csharp.Utils;
 using H3;
 using H3.Model;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 
 namespace csharp.Controllers;
 
 [Route("hexagon")]
 [ApiController]
-public class HexagonController(PostgresContext postgresContext, IConfiguration configuration) : ControllerBase
+public class HexagonController(PostgresContext postgresContext, IConnectionMultiplexer redis, IConfiguration configuration) : ControllerBase
 {
     // Fetch available locations directly from Cities table (Optimized)
     [HttpGet("get-countries-with-cities")]
@@ -299,6 +301,65 @@ public class HexagonController(PostgresContext postgresContext, IConfiguration c
             .ToListAsync();
 
         return Ok(progresses);
+    }
+
+    [HttpPost("generate-route")]
+    public async Task<IActionResult> GenerateRoute(
+        [FromHeader(Name = "Authorization")] string authorization,
+        [FromBody] GenerateRouteRequestDto generateRouteRequestDto)
+    {
+        if (string.IsNullOrEmpty(authorization))
+            return Unauthorized("Missing token.");
+
+        var token = authorization.Replace("Bearer ", "").Trim();
+
+        var session = await postgresContext.Sessions
+            .Include(s => s.User)
+            .ThenInclude(userModel => userModel.CityProgresses)
+            .FirstOrDefaultAsync(s => s.Token == token);
+
+        if (session == null || session.ExpiresAt < DateTime.UtcNow)
+            return Unauthorized("Invalid token or session expired.");
+
+        var user = session.User;
+
+        string? newRefreshedToken = null;
+
+        if (session.ExpiresAt <= DateTime.UtcNow + TimeSpan.FromMinutes(15))
+        {
+            newRefreshedToken = JwtTokenService.CreateAppJwtToken(
+                user.Id,
+                user.Email,
+                configuration
+            );
+
+            session.Token = newRefreshedToken;
+            session.ExpiresAt = DateTime.UtcNow.AddDays(30);
+        }
+
+        var jobId = Guid.NewGuid().ToString();
+
+        var jobPayload = new
+        {
+            JobId = jobId,
+            UserId = user.Id,
+            StartHexId = generateRouteRequestDto.StartHexId,
+            Duration = generateRouteRequestDto.Duration,
+            CityId = generateRouteRequestDto.CityId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var jsonPayload = JsonSerializer.Serialize(jobPayload);
+
+        var db = redis.GetDatabase();
+
+        await db.ListLeftPushAsync("route_jobs", jsonPayload);
+
+        return Accepted(new GenerateRouteResponseDto
+        {
+            JobId = jobId,
+            Token = newRefreshedToken
+        });
     }
 
     private static double CalculateDistance(double lat1, double lon1, double lat2, double lon2)

@@ -26,12 +26,20 @@ services:
         reservations:
           memory: 128M
 
+  redis:
+    image: redis:alpine
+    container_name: city_explorer_redis_prod
+    networks:
+      - city_explorer_net
+    command: redis-server --save 60 1 --loglevel warning
+
   backend:
-    container_name: city_explorer_csharp_prod
-    image: ghcr.io/klaudiuszsoltysik/city-explorer/backend:latest
+    container_name: city_explorer_api_prod
+    image: ghcr.io/klaudiuszsoltysik/city-explorer/api:latest
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__PostgresConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__RedisConnection=redis:6379
       - GoogleAuth__ClientId=${GOOGLE_AUTH_CLIENT_ID}
       - JwtSettings__SecretKey=${JWT_SECTRET_KEY}
       - JwtSettings__Issuer=CityExplorerBackend
@@ -40,6 +48,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - city_explorer_net
     deploy:
@@ -49,6 +59,31 @@ services:
           memory: 512M
         reservations:
           memory: 256M
+
+  worker:
+    image: ghcr.io/klaudiuszsoltysik/city-explorer/worker:latest
+    deploy:
+      mode: replicated
+      replicas: 2
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+        reservations:
+          memory: 128M
+      restart_policy:
+        condition: on-failure
+    environment:
+      - DOTNET_ENVIRONMENT=Production
+      - ConnectionStrings__PostgresConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__RedisConnection=redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - city_explorer_net
 
   cloudflared:
     image: cloudflare/cloudflared:latest
@@ -70,7 +105,7 @@ services:
     container_name: city_explorer_watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 30 --cleanup city_explorer_csharp_prod
+    command: --interval 30 --cleanup city_explorer_api_prod city_explorer_worker_prod
     environment:
       - DOCKER_API_VERSION=1.45
     networks:
