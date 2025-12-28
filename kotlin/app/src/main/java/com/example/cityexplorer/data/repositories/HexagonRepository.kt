@@ -160,7 +160,7 @@ class HexagonRepository @Inject constructor(
         }
     }
 
-    suspend fun generateRoute(startHexId: String, duration: Int): WorkerResultDto {
+    suspend fun generateRoute(latitude: Double, longitude: Double, duration: Int): WorkerResultDto {
         val token = tokenService.getToken()
 
         if (token.isNullOrBlank()) {
@@ -170,7 +170,7 @@ class HexagonRepository @Inject constructor(
         try {
             val response = hexagonApiClient.generateRoute(
                 "Bearer $token",
-                GenerateRouteRequestDto(startHexId, duration)
+                GenerateRouteRequestDto(latitude, longitude, duration)
             )
 
             if (response.isSuccessful) {

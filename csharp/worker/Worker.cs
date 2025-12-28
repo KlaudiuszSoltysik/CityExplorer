@@ -47,10 +47,11 @@ public class Worker(ILogger<Worker> logger,
 
                     var jobId = root.GetProperty("JobId").GetString();
                     var userId = root.GetProperty("UserId").GetString();
-                    var startHexagonId = root.GetProperty("StartHexagonId").GetString();
+                    var userLatitude = root.GetProperty("UserLatitude").GetDouble();
+                    var userLongitude = root.GetProperty("UserLongitude").GetDouble();
                     var duration = root.GetProperty("Duration").GetInt32();
 
-                    if (jobId is null || userId is null || startHexagonId is null) continue;
+                    if (jobId is null || userId is null) continue;
 
                     logger.LogInformation("Processing JobId: {JobId}...", jobId);
 
@@ -59,7 +60,9 @@ public class Worker(ILogger<Worker> logger,
 
                     if (kRingSize < 3) kRingSize = 3;
 
-                    var hexagonIdsInRange = h3Service.GetKRing(startHexagonId, kRingSize);
+                    var hexagonId = h3Service.GetHexagonId(userLatitude, userLongitude);
+
+                    var hexagonIdsInRange = h3Service.GetKRing(hexagonId, kRingSize);
 
                     List<GraphNode> nodes;
 
@@ -84,7 +87,7 @@ public class Worker(ILogger<Worker> logger,
 
                     var input = new AcoInput
                     {
-                        StartHexagonId = startHexagonId,
+                        StartHexagonId = hexagonId,
                         MaxDistance = totalStepsBudget,
                         Nodes = nodes
                     };

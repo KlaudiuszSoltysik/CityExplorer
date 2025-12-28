@@ -268,7 +268,7 @@ fun MapScreenContent(
                     onUserAccountButtonClick = onUserAccountButtonClick,
                     handleNewRoute = handleNewRoute,
                     clearRoute = clearRoute,
-                    onNavigateToLogin = onNavigateToLogin
+                    onNavigateToLogin = onNavigateToLogin,
                 )
             }
             is MapUiState.Error -> {
@@ -317,7 +317,7 @@ private fun MapSuccessContent(
         onShowGenerateRouteButtonClick = { showGenerateRouteDialog = true },
     )
 
-    if (showGenerateRouteDialog) {
+    if (showGenerateRouteDialog && state.userLocation != null) {
         GenerateRouteDialog(
             userLocation = state.userLocation,
             onNavigateToLogin = { onNavigateToLogin() },
@@ -534,19 +534,22 @@ private fun MapUiOverlays(
             .statusBarsPadding()
             .padding(bottom = 16.dp, start = 16.dp))
         {
-            FloatingActionButton(
-                modifier = Modifier,
-                onClick = { onShowGenerateRouteButtonClick() },
-                containerColor = CustomBlack.copy(alpha = 0.6f),
-                contentColor = CustomWhite
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Route,
-                    contentDescription = null
-                )
+            if(isUserInCity) {
+                FloatingActionButton(
+                    modifier = Modifier,
+                    onClick = { onShowGenerateRouteButtonClick() },
+                    containerColor = CustomBlack.copy(alpha = 0.6f),
+                    contentColor = CustomWhite
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Route,
+                        contentDescription = null
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
 
             FloatingActionButton(
                 modifier = Modifier,

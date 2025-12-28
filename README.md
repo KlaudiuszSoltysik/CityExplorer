@@ -121,15 +121,13 @@ The API documentation is automatically generated during the build process. You c
 
 ### 🔴 Mandatory / New functions
 
-- [ ] **AI pathfinding**
-
 ### 🟡 High Impact
 
 - [ ] **Room migration**
 
 ### 🟢 Nice to Have
 
-- [ ] **Refactoring**
-- [ ] **Tests:** generate-route and worker tests
 - [ ] **Bug:** after user loggs out / deletes account progress is still displayed (cached)
+- [ ] **Refactoring**
+- [ ] **Tests:** add more backend and app tests
 - [ ] **Social Features:** Friends etc.

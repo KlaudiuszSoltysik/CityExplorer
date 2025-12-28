@@ -1,5 +1,6 @@
 package com.example.cityexplorer.ui.generateroute
 
+import android.location.Location
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cityexplorer.data.dtos.WorkerResultDto
@@ -46,7 +47,7 @@ class GenerateRouteViewModel @Inject constructor(
         _selectedTime.value = time
     }
 
-    fun onConfirmClicked() {
+    fun onConfirmClicked(location: Location) {
         viewModelScope.launch {
             _uiState.value = GenerateRouteUiState.Loading
 
@@ -61,7 +62,7 @@ class GenerateRouteViewModel @Inject constructor(
                         handleLogout()
                     }
 
-                val response = hexagonRepository.generateRoute("891e24aaccbffff", _selectedTime.value)
+                val response = hexagonRepository.generateRoute(location.latitude, location.longitude, _selectedTime.value)
 
                 _uiState.value = GenerateRouteUiState.Success(response)
             } catch (e: Exception) {

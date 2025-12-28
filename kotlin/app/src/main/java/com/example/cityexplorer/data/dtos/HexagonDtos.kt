@@ -82,7 +82,8 @@ data class SimpleLocation(
 @Serializable
 @Keep
 data class GenerateRouteRequestDto(
-    val startHexagonId: String,
+    val userLatitude: Double,
+    val userLongitude: Double,
     val duration: Int
 )
 

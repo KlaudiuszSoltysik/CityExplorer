@@ -28,7 +28,7 @@ import com.example.cityexplorer.ui.theme.CustomWhite
 
 @Composable
 fun GenerateRouteDialog(
-    userLocation: Location?,
+    userLocation: Location,
     onNavigateToLogin: () -> Unit,
     onDismiss: () -> Unit,
     onRouteGenerated: (WorkerResultDto) -> Unit,
@@ -118,7 +118,7 @@ fun GenerateRouteDialog(
                                     Text("Close")
                                 }
                                 Button(
-                                    onClick = { viewModel.onConfirmClicked() },
+                                    onClick = { viewModel.onConfirmClicked(userLocation) },
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = CustomWhite,
                                         contentColor = CustomBlack

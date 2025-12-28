@@ -343,7 +343,8 @@ public class HexagonController(PostgresContext postgresContext, IConnectionMulti
         {
             JobId = jobId,
             UserId = user.Id,
-            StartHexagonId = generateRouteRequestDto.StartHexagonId,
+            UserLatitude = generateRouteRequestDto.UserLatitude,
+            UserLongitude = generateRouteRequestDto.UserLongitude,
             Duration = generateRouteRequestDto.Duration,
             CreatedAt = DateTime.UtcNow
         };

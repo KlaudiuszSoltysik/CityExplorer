@@ -53,7 +53,8 @@ public class SyncResponseDto
 
 public class GenerateRouteRequestDto
 {
-    public required string StartHexagonId { get; set; }
+    public double UserLatitude { get; set; }
+    public double UserLongitude { get; set; }
     public int Duration { get; set; }
 }
 
