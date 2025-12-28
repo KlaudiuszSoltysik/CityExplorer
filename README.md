@@ -20,10 +20,11 @@ City Explorer is a mobile platform designed to encourage physical activity throu
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/a4dadab2-ab0a-4d0d-a6b1-46d2bbc0d60d" width="24%"/>
-  <img src="https://github.com/user-attachments/assets/8c6d8d24-2458-47bf-adc7-54e3b91b862f" width="24%"/>
-  <img src="https://github.com/user-attachments/assets/51544ce4-b81e-4009-ac0c-b371b14265d3" width="24%"/>
-  <img src="https://github.com/user-attachments/assets/87f8e84c-ef1f-48ee-bbfa-1f3a34a2aa55" width="24%"/>
+  <img src="https://github.com/user-attachments/assets/a4dadab2-ab0a-4d0d-a6b1-46d2bbc0d60d" width="19%"/>
+  <img src="https://github.com/user-attachments/assets/6aa2b734-fc67-4393-97a3-116ffda24633" width="19%"/>
+  <img src="https://github.com/user-attachments/assets/80223996-e72b-451d-9488-0094254095d3" width="19%"/>
+  <img src="https://github.com/user-attachments/assets/51544ce4-b81e-4009-ac0c-b371b14265d3" width="19%"/>
+  <img src="https://github.com/user-attachments/assets/87f8e84c-ef1f-48ee-bbfa-1f3a34a2aa55" width="19%"/>
 </p>
 
 ## ⚙️ Core Mechanics
@@ -128,6 +129,6 @@ The API documentation is automatically generated during the build process. You c
 ### 🟢 Nice to Have
 
 - [ ] **Bug:** after user loggs out / deletes account progress is still displayed (cached)
-- [ ] **Refactoring**
-- [ ] **Tests:** add more backend and app tests
+- [ ] **Code refactoring**
+- [ ] **Tests:** add more backend and application tests
 - [ ] **Social Features:** Friends etc.
