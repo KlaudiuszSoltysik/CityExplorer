@@ -78,3 +78,23 @@ data class SimpleLocation(
     val longitude: Double,
     val timestamp: Long
 )
+
+@Serializable
+@Keep
+data class GenerateRouteRequestDto(
+    val startHexagonId: String,
+    val duration: Int
+)
+
+@Serializable
+@Keep
+data class GenerateRouteResponseDto(
+    val jobId: String,
+    val token: String?
+)
+
+@Serializable
+@Keep
+data class WorkerResultDto(
+    val route: List<String>
+)

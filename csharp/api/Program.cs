@@ -36,6 +36,14 @@ if (builder.Environment.EnvironmentName != "Testing")
 builder.Services.AddSignalR()
     .AddStackExchangeRedis(builder.Configuration.GetConnectionString("RedisConnection") ?? "redis-dev:6379");
 
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("RedisConnection") ?? "redis-dev:6379";
+    options.InstanceName = "WorkerJob";
+});
+
+builder.Services.AddSingleton<IJobStateService, JobStateService>();
+
 builder.Services.AddHostedService<SessionCleanupService>();
 
 builder.Services.AddCors(options =>

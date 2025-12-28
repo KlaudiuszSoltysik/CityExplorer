@@ -1,5 +1,7 @@
 package com.example.cityexplorer.data.api
 
+import com.example.cityexplorer.data.dtos.GenerateRouteRequestDto
+import com.example.cityexplorer.data.dtos.GenerateRouteResponseDto
 import com.example.cityexplorer.data.dtos.GetCountriesWithCitiesDto
 import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
 import com.example.cityexplorer.data.dtos.GetPoisFromHexagonDto
@@ -38,4 +40,10 @@ interface HexagonApiClient {
         @Header("Authorization") token: String,
         @Query("city") city: String
     ): List<HexagonProgressDto>
+
+    @POST("/hexagon/generate-route")
+    suspend fun generateRoute(
+        @Header("Authorization") token: String,
+        @Body generateRouteRequestDto: GenerateRouteRequestDto
+    ): Response<GenerateRouteResponseDto>
 }

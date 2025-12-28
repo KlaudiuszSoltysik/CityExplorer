@@ -125,7 +125,11 @@ The API documentation is automatically generated during the build process. You c
 
 ### 🟡 High Impact
 
+- [ ] **Room migration**
+
 ### 🟢 Nice to Have
 
+- [ ] **Refactoring**
 - [ ] **Tests:** generate-route and worker tests
+- [ ] **Bug:** after user loggs out / deletes account progress is still displayed (cached)
 - [ ] **Social Features:** Friends etc.

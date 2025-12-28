@@ -12,7 +12,8 @@ public class Worker(ILogger<Worker> logger,
     IConnectionMultiplexer redis,
     IH3Service h3Service,
     IServiceScopeFactory scopeFactory,
-    IHubContext<WorkerHub, IWorkerClient> hubContext
+    IHubContext<WorkerHub, IWorkerHub> hubContext,
+    IJobStateService jobStateService
 ) : BackgroundService
 {
     private const string QueueName = "route_jobs";
@@ -46,11 +47,10 @@ public class Worker(ILogger<Worker> logger,
 
                     var jobId = root.GetProperty("JobId").GetString();
                     var userId = root.GetProperty("UserId").GetString();
-                    var startHexagonId = root.GetProperty("StartHexId").GetString();
+                    var startHexagonId = root.GetProperty("StartHexagonId").GetString();
                     var duration = root.GetProperty("Duration").GetInt32();
-                    var cityId = root.GetProperty("CityId").GetString();
 
-                    if (jobId is null || userId is null || startHexagonId is null || cityId is null) continue;
+                    if (jobId is null || userId is null || startHexagonId is null) continue;
 
                     logger.LogInformation("Processing JobId: {JobId}...", jobId);
 
@@ -93,11 +93,14 @@ public class Worker(ILogger<Worker> logger,
 
                     var route = aco.Solve();
 
-                    await hubContext.Clients.Group(jobId).JobCompleted(new WorkerResult
+                    var workerResult = new WorkerResult
                     {
-                        JobId = jobId,
                         Route = route
-                    });
+                    };
+
+                    await jobStateService.SaveResultAsync(jobId, workerResult);
+
+                    await hubContext.Clients.Group(jobId).JobCompleted(workerResult);
 
                     var routeString = string.Join(" -> ", route);
 
