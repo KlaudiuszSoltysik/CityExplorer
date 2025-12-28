@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
+import com.example.cityexplorer.data.dtos.WorkerResultDto
 
 sealed interface MapUiState {
     data object Loading : MapUiState
@@ -32,7 +33,7 @@ sealed interface MapUiState {
 }
 
 interface MapUiEvent {
-    data class ToggleService(val shouldStart: Boolean) : MapUiEvent
+    data class ToggleLocationTrackingService(val shouldStart: Boolean) : MapUiEvent
     data object NavigateToLogin : MapUiEvent
     data object NavigateToUserAccount : MapUiEvent
     data class ShowToast(val message: String) : MapUiEvent
@@ -47,7 +48,8 @@ data class MapScreenState(
     val userLocation: Location? = null,
     val explorationState: ExplorationState = ExplorationState.STOPPED,
     val arePermissionsGranted: Boolean = false,
-    val selectedHexagonPois: SelectedHexagonDto? = null
+    val selectedHexagonPois: SelectedHexagonDto? = null,
+    val route: WorkerResultDto? = null
 ) {
     val isUserInCity: Boolean
         get() {
@@ -73,10 +75,13 @@ class MapViewModel @Inject constructor(
     private val userRepository: UserRepository
 ) : ViewModel() {
     val city: String = savedStateHandle[Screen.Args.CITY] ?: ""
+
     private val _uiEvent = Channel<MapUiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
+
     private val _state = MutableStateFlow(MapScreenState())
     val state = _state.asStateFlow()
+
     private var toggleJob: Job? = null
 
     // Initializes view model and starts location tracking if service is active
@@ -109,7 +114,7 @@ class MapViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         viewModelScope.launch {
-            _uiEvent.send(MapUiEvent.ToggleService(false))
+            _uiEvent.send(MapUiEvent.ToggleLocationTrackingService(false))
         }
     }
 
@@ -162,24 +167,24 @@ class MapViewModel @Inject constructor(
 
             val currentRealState = ServiceStateManager.currentState.value
             if (currentRealState != ExplorationState.STOPPED) {
-                _uiEvent.send(MapUiEvent.ToggleService(false))
+                _uiEvent.send(MapUiEvent.ToggleLocationTrackingService(false))
                 return@launch
             }
 
             try {
                 _state.update { it.copy(isExplorerButtonLoading = true) }
-                _uiEvent.send(MapUiEvent.ToggleService(true))
+                _uiEvent.send(MapUiEvent.ToggleLocationTrackingService(true))
 
                 userRepository.getLoggedUser()
                     .onSuccess { response ->
                         if (!response.isAuthorized) {
-                            _uiEvent.send(MapUiEvent.ToggleService(false))
+                            _uiEvent.send(MapUiEvent.ToggleLocationTrackingService(false))
 
                             handleLogout()
                         }
                     }
                     .onFailure {
-                        _uiEvent.send(MapUiEvent.ToggleService(false))
+                        _uiEvent.send(MapUiEvent.ToggleLocationTrackingService(false))
 
                         handleLogout()
                     }
@@ -324,6 +329,14 @@ class MapViewModel @Inject constructor(
 
             _state.update { it.copy(isUserAccountButtonLoading = false) }
         }
+    }
+
+    fun handleNewRoute(route: WorkerResultDto) {
+        _state.update { it.copy(route = route) }
+    }
+
+    fun clearRoute() {
+        _state.update { it.copy(route = null) }
     }
 
     // Handles logout by clearing token

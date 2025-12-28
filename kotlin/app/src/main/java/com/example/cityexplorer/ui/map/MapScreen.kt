@@ -54,6 +54,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
@@ -63,6 +64,7 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.LocationSearching
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Route
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.derivedStateOf
@@ -73,10 +75,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.cityexplorer.data.dtos.SelectedHexagonDto
+import com.example.cityexplorer.data.dtos.WorkerResultDto
 import com.example.cityexplorer.data.util.ExplorationState
+import com.example.cityexplorer.ui.generateroute.GenerateRouteDialog
 import com.example.cityexplorer.ui.theme.CustomError
 import com.example.cityexplorer.ui.theme.CustomSuccess
 import com.example.cityexplorer.ui.theme.CustomWarning
+import com.example.cityexplorer.ui.theme.Tertiary
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.maps.android.compose.CameraMoveStartedReason
 
@@ -137,7 +142,7 @@ fun MapScreen(
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.uiEvent.collect { event ->
                 when (event) {
-                    is MapUiEvent.ToggleService -> {
+                    is MapUiEvent.ToggleLocationTrackingService -> {
                         toggleLocalizationService(event.shouldStart)
                     }
                     is MapUiEvent.NavigateToLogin -> {
@@ -220,9 +225,10 @@ fun MapScreen(
             viewModel.getPoisFromHexagon(null, null)
             selectedHexagonId = null
         },
-        onUserAccountButtonClick = {
-            viewModel.onUserAccountButtonClick()
-        }
+        onUserAccountButtonClick = { viewModel.onUserAccountButtonClick() },
+        handleNewRoute = { route -> viewModel.handleNewRoute(route) },
+        clearRoute = { viewModel.clearRoute() },
+        onNavigateToLogin = { onNavigateToLogin() }
     )
 }
 
@@ -235,7 +241,10 @@ fun MapScreenContent(
     onExplorerToggle: () -> Unit,
     onHexagonClick: (String, Double) -> Unit,
     onMyLocationClick: () -> Unit,
-    onUserAccountButtonClick: () -> Unit
+    onUserAccountButtonClick: () -> Unit,
+    handleNewRoute: (WorkerResultDto) -> Unit,
+    clearRoute: () -> Unit,
+    onNavigateToLogin: () -> Unit
 ) {
     PullToRefreshBox(
         isRefreshing = state.isRefreshing,
@@ -256,7 +265,10 @@ fun MapScreenContent(
                     onHexagonClick = onHexagonClick,
                     onMyLocationClick = onMyLocationClick,
                     onExplorerToggle = onExplorerToggle,
-                    onUserAccountButtonClick = onUserAccountButtonClick
+                    onUserAccountButtonClick = onUserAccountButtonClick,
+                    handleNewRoute = handleNewRoute,
+                    clearRoute = clearRoute,
+                    onNavigateToLogin = onNavigateToLogin,
                 )
             }
             is MapUiState.Error -> {
@@ -277,8 +289,14 @@ private fun MapSuccessContent(
     onHexagonClick: (String, Double) -> Unit,
     onMyLocationClick: () -> Unit,
     onExplorerToggle: () -> Unit,
-    onUserAccountButtonClick: () -> Unit
+    onUserAccountButtonClick: () -> Unit,
+    handleNewRoute: (WorkerResultDto) -> Unit,
+    clearRoute: () -> Unit,
+    onNavigateToLogin: () -> Unit
 ) {
+    // Local state for generate route dialog
+    var showGenerateRouteDialog by remember { mutableStateOf(false) }
+
     HexagonMap(
         state = state,
         data = data,
@@ -295,8 +313,19 @@ private fun MapSuccessContent(
         arePermissionsGranted = state.arePermissionsGranted,
         modifier = modifier,
         onExplorerToggle = onExplorerToggle,
-        onUserAccountButtonClick = onUserAccountButtonClick
+        onUserAccountButtonClick = onUserAccountButtonClick,
+        onShowGenerateRouteButtonClick = { showGenerateRouteDialog = true },
     )
+
+    if (showGenerateRouteDialog && state.userLocation != null) {
+        GenerateRouteDialog(
+            userLocation = state.userLocation,
+            onNavigateToLogin = { onNavigateToLogin() },
+            onDismiss = { showGenerateRouteDialog = false },
+            onRouteGenerated = { route -> handleNewRoute(route) },
+            onRouteCleared = { clearRoute() }
+        )
+    }
 }
 
 @Composable
@@ -313,6 +342,10 @@ fun HexagonMap(
 
     val userLatLng = remember(state.userLocation) {
         state.userLocation?.let { LatLng(it.latitude, it.longitude) }
+    }
+
+    val routeHexagonIds = remember(state.route) {
+        state.route?.route?.toSet() ?: emptySet()
     }
 
     val isValidBbox = data.bbox.size >= 4
@@ -423,12 +456,22 @@ fun HexagonMap(
         ) {
             if (isMapLoaded) {
                 visibleHexagons.forEach { hexagon ->
+                    val isRoute = hexagon.id in routeHexagonIds
                     val isSelected = hexagon.id == selectedHexagonId
-                    val fillColor = if (hexagon.progress == 0.0) {CustomError} else if (hexagon.progress == 1.0) {CustomSuccess} else {CustomWarning}
-                    val fillAlpha = if (isSelected) 0.15f else 0.08f
+                    val fillColor = when {
+                        isRoute -> Tertiary
+                        hexagon.progress == 0.0 -> CustomError
+                        hexagon.progress == 1.0 -> CustomSuccess
+                        else -> CustomWarning
+                    }
+                    val fillAlpha = if (isSelected) 0.4f else 0.2f
+
+                    val polygonPoints = remember(hexagon.boundaries) {
+                        hexagon.boundaries.map { LatLng(it[0], it[1]) }
+                    }
 
                     Polygon(
-                        points = hexagon.boundaries.map { LatLng(it[0], it[1]) },
+                        points = polygonPoints,
                         strokeWidth = 1f,
                         strokeColor = CustomBlack.copy(alpha = 0.4f),
                         fillColor = fillColor.copy(alpha = fillAlpha),
@@ -471,7 +514,8 @@ private fun MapUiOverlays(
     arePermissionsGranted: Boolean,
     modifier: Modifier = Modifier,
     onExplorerToggle: () -> Unit,
-    onUserAccountButtonClick: () -> Unit
+    onUserAccountButtonClick: () -> Unit,
+    onShowGenerateRouteButtonClick: () -> Unit
 ) {
     Box(
         modifier = modifier.fillMaxSize()
@@ -485,6 +529,41 @@ private fun MapUiOverlays(
             )
         }
 
+        Column(modifier = Modifier
+            .align(Alignment.BottomStart)
+            .statusBarsPadding()
+            .padding(bottom = 16.dp, start = 16.dp))
+        {
+            if(isUserInCity) {
+                FloatingActionButton(
+                    modifier = Modifier,
+                    onClick = { onShowGenerateRouteButtonClick() },
+                    containerColor = CustomBlack.copy(alpha = 0.6f),
+                    contentColor = CustomWhite
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Route,
+                        contentDescription = null
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+
+            FloatingActionButton(
+                modifier = Modifier,
+                onClick = { onUserAccountButtonClick() },
+                containerColor = CustomBlack.copy(alpha = 0.6f),
+                contentColor = CustomWhite
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AccountCircle,
+                    contentDescription = null
+                )
+            }
+        }
+
         ExplorerControlButton(
             isExplorerButtonLoading = isExplorerButtonLoading,
             explorationState = explorationState,
@@ -495,21 +574,6 @@ private fun MapUiOverlays(
                 .padding(bottom = 16.dp),
             onClick = onExplorerToggle
         )
-
-        FloatingActionButton(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .statusBarsPadding()
-                .padding(bottom = 16.dp, start = 16.dp),
-            onClick = { onUserAccountButtonClick() },
-            containerColor = CustomBlack.copy(alpha = 0.6f),
-            contentColor = CustomWhite
-        ) {
-            Icon(
-                imageVector = Icons.Default.AccountCircle,
-                contentDescription = null
-            )
-        }
     }
 }
 

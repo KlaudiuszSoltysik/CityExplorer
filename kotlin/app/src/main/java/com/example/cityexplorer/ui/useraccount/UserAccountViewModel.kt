@@ -28,7 +28,6 @@ sealed interface UserAccountUiState {
 
 interface UserAccountUiEvent {
     data object NavigateBack : UserAccountUiEvent
-    data class ShowToast(val message: String) : UserAccountUiEvent
 }
 
 @HiltViewModel

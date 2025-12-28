@@ -53,9 +53,9 @@ public class SyncResponseDto
 
 public class GenerateRouteRequestDto
 {
-    public required string StartHexId { get; set; }
+    public double UserLatitude { get; set; }
+    public double UserLongitude { get; set; }
     public int Duration { get; set; }
-    public required string CityId { get; set; }
 }
 
 public class GenerateRouteResponseDto
@@ -66,6 +66,5 @@ public class GenerateRouteResponseDto
 
 public class WorkerResult
 {
-    public string JobId { get; set; }
-    public List<string> Route { get; set; }
+    public List<string> Route { get; set; } = [];
 }

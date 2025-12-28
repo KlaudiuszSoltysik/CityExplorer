@@ -31,6 +31,12 @@ android {
     namespace = "com.example.cityexplorer"
     compileSdk = 36
 
+    testOptions {
+        unitTests {
+            isReturnDefaultValues = true
+        }
+    }
+
     defaultConfig {
         applicationId = "com.example.cityexplorer"
         minSdk = 33
@@ -129,6 +135,7 @@ dependencies {
     implementation("androidx.security:security-crypto:1.1.0-alpha03")
     implementation("com.google.code.gson:gson:2.13.2")
     implementation(libs.hilt.android)
+    implementation(libs.firebase.crashlytics.buildtools)
     kapt(libs.hilt.compiler)
     kapt("org.jetbrains.kotlin:kotlin-metadata-jvm:2.1.0")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
@@ -137,6 +144,9 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     testImplementation("com.google.truth:truth:1.4.5")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    implementation("io.reactivex.rxjava3:rxjava:3.1.8")
+    implementation("org.slf4j:slf4j-android:1.7.36")
+    implementation("com.microsoft.signalr:signalr:7.0.0")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

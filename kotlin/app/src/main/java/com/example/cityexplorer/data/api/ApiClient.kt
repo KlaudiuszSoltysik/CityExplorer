@@ -2,6 +2,7 @@ package com.example.cityexplorer.data.api
 
 import android.annotation.SuppressLint
 import com.example.cityexplorer.BuildConfig
+import com.example.cityexplorer.BuildConfig.BASE_URL
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
@@ -15,13 +16,12 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.X509TrustManager
 
 object ApiClient {
-    private const val API_KEY = BuildConfig.API_KEY
     private val json = Json { ignoreUnknownKeys = true }
 
     private val apiKeyInterceptor = Interceptor { chain ->
         val originalRequest = chain.request()
         val newRequest = originalRequest.newBuilder()
-            .header("X-Api-Key", API_KEY)
+            .header("X-Api-Key", BuildConfig.API_KEY)
             .build()
         chain.proceed(newRequest)
     }
@@ -30,13 +30,11 @@ object ApiClient {
         val client = if (BuildConfig.DEBUG) {
             getUnsafeOkHttpClient()
         } else {
-            OkHttpClient.Builder()
-                .addInterceptor(apiKeyInterceptor)
-                .build()
+            getSafeOkHttpClient()
         }
 
         Retrofit.Builder()
-            .baseUrl(BuildConfig.BASE_URL)
+            .baseUrl(BASE_URL)
             .client(client)
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
@@ -54,9 +52,26 @@ object ApiClient {
         retrofit.create(VersionApiClient::class.java)
     }
 
-    // Intentionally bypasses SSL verification for local/dev environments
-    @SuppressLint("CustomX509TrustManager", "TrustAllX509TrustManager")
+    private fun getSafeOkHttpClient(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .addInterceptor(apiKeyInterceptor)
+            .build()
+    }
+
     private fun getUnsafeOkHttpClient(): OkHttpClient {
+        val builder = OkHttpClient.Builder()
+            .addInterceptor(apiKeyInterceptor)
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.SECONDS)
+            .writeTimeout(10, TimeUnit.SECONDS)
+
+        configureUnsafeSsl(builder)
+
+        return builder.build()
+    }
+
+    @SuppressLint("CustomX509TrustManager", "TrustAllX509TrustManager")
+    private fun configureUnsafeSsl(builder: OkHttpClient.Builder) {
         val trustAllCerts = arrayOf<X509TrustManager>(object : X509TrustManager {
             override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
             override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
@@ -67,13 +82,7 @@ object ApiClient {
             init(null, trustAllCerts, SecureRandom())
         }
 
-        return OkHttpClient.Builder()
-            .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0])
-            .hostnameVerifier { _, _ -> true }
-            .addInterceptor(apiKeyInterceptor)
-            .connectTimeout(5, TimeUnit.SECONDS)
-            .readTimeout(10, TimeUnit.SECONDS)
-            .writeTimeout(10, TimeUnit.SECONDS)
-            .build()
+        builder.sslSocketFactory(sslContext.socketFactory, trustAllCerts[0])
+        builder.hostnameVerifier { _, _ -> true }
     }
 }
