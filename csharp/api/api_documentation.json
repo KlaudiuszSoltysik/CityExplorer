@@ -246,21 +246,19 @@
   "components": {
     "schemas": {
       "GenerateRouteRequestDto": {
-        "required": [
-          "startHexId",
-          "cityId"
-        ],
         "type": "object",
         "properties": {
-          "startHexId": {
-            "type": "string"
+          "userLatitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "userLongitude": {
+            "type": "number",
+            "format": "double"
           },
           "duration": {
             "type": "integer",
             "format": "int32"
-          },
-          "cityId": {
-            "type": "string"
           }
         }
       },
