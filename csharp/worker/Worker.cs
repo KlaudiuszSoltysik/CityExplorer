@@ -8,7 +8,8 @@ using StackExchange.Redis;
 
 namespace worker;
 
-public class Worker(ILogger<Worker> logger,
+public class Worker(
+    ILogger<Worker> logger,
     IConnectionMultiplexer redis,
     IH3Service h3Service,
     IServiceScopeFactory scopeFactory,
@@ -25,7 +26,6 @@ public class Worker(ILogger<Worker> logger,
         const int blockSeconds = 3;
 
         while (!stoppingToken.IsCancellationRequested)
-        {
             try
             {
                 var result = await db.ExecuteAsync("BRPOP", QueueName, blockSeconds);
@@ -76,7 +76,7 @@ public class Worker(ILogger<Worker> logger,
                                     .Select(p => p.Progress)
                                     .FirstOrDefault()
                             })
-                            .ToListAsync(cancellationToken: stoppingToken);
+                            .ToListAsync(stoppingToken);
                     }
 
                     var input = new AcoInput
@@ -109,6 +109,5 @@ public class Worker(ILogger<Worker> logger,
                 logger.LogError(ex, "Connection error. Reconnecting...");
                 await Task.Delay(5000, stoppingToken);
             }
-        }
     }
 }

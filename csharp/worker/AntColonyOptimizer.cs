@@ -18,21 +18,24 @@ public class GraphNode
 
 public class AntColonyOptimizer
 {
+    // Population size per iteration; determines the breadth of the parallel search.
+    private const int NumberOfAnts = 20;
+
+    // Total simulation cycles to allow the algorithm to converge on a solution.
+    private const int Iterations = 50;
+
+    // Pheromone importance factor. Higher values favor "following the crowd" (exploitation of historical paths).
+    private const double Alpha = 1.0;
+
+    // Heuristic importance factor. Higher values favor "greedy" moves towards high-score nodes (immediate reward).
+    private const double Beta = 2.5;
+
+    // Pheromone decay coefficient (0.0-1.0). Prevents stagnation in local optima by reducing old trail intensity over time.
+    private const double EvaporationRate = 0.1;
+    private readonly Dictionary<string, GraphNode> _graph;
     private readonly IH3Service _h3Service;
 
     private readonly AcoInput _input;
-    private readonly Dictionary<string, GraphNode> _graph;
-
-    // Population size per iteration; determines the breadth of the parallel search.
-    private const int NumberOfAnts = 20;
-    // Total simulation cycles to allow the algorithm to converge on a solution.
-    private const int Iterations = 50;
-    // Pheromone importance factor. Higher values favor "following the crowd" (exploitation of historical paths).
-    private const double Alpha = 1.0;
-    // Heuristic importance factor. Higher values favor "greedy" moves towards high-score nodes (immediate reward).
-    private const double Beta = 2.5;
-    // Pheromone decay coefficient (0.0-1.0). Prevents stagnation in local optima by reducing old trail intensity over time.
-    private const double EvaporationRate = 0.1;
 
     // Shared memory for pheromone trails on edges. Key is "HexA-HexB".
     private readonly ConcurrentDictionary<string, double> _pheromones = new();
@@ -63,10 +66,7 @@ public class AntColonyOptimizer
             Parallel.For(0, NumberOfAnts, _ =>
             {
                 var result = RunAnt();
-                if (result.Score > 0)
-                {
-                    antsPaths.Add(result);
-                }
+                if (result.Score > 0) antsPaths.Add(result);
             });
 
             if (antsPaths.IsEmpty) continue;
@@ -125,21 +125,15 @@ public class AntColonyOptimizer
                 // Calculate if the ant has enough remaining budget to return home after making this move.
                 // Cost: Current Step + 1 (move to neighbor) + Distance from neighbor to Start.
                 var distHome = _h3Service.GetDistance(neighborId, startHexagon);
-                if (step + 1 + distHome <= _input.MaxDistance)
-                {
-                    candidates.Add(neighborId);
-                }
+                if (step + 1 + distHome <= _input.MaxDistance) candidates.Add(neighborId);
             }
 
             // Optimization: If multiple choices exist, remove the node we just came from (immediate backtrack).
             // This encourages forward exploration but allows backtracking if it's the only option (dead end).
             if (candidates.Count > 1)
             {
-                 var prevHex = path.Count > 1 ? path[^2] : null;
-                 if (prevHex != null && candidates.Contains(prevHex))
-                 {
-                     candidates.Remove(prevHex);
-                 }
+                var prevHex = path.Count > 1 ? path[^2] : null;
+                if (prevHex != null && candidates.Contains(prevHex)) candidates.Remove(prevHex);
             }
 
             // No valid moves left (either dead end or not enough budget to return).
@@ -190,17 +184,13 @@ public class AntColonyOptimizer
 
             // HEURISTIC: Calculate attractiveness (Greediness).
             if (visitedSet.Contains(neighborId))
-            {
                 // PENALTY: If already visited, drastically reduce attractiveness.
                 // This allows escaping dead ends but discourages loops/backtracking on open paths.
                 heuristic = node.Weight * (1.1 - node.Progress) * 0.1;
-            }
             else
-            {
                 // STANDARD: Base weight adjusted by user progress (unvisited areas are more attractive).
                 // 1.1 ensures a small base value even if progress is 100% (1.0).
                 heuristic = node.Weight * (1.1 - node.Progress);
-            }
 
             // ACO Transition Formula: P = (τ^α) * (η^β)
             var p = Math.Pow(pheromone, Alpha) * Math.Pow(heuristic, Beta);
@@ -217,6 +207,7 @@ public class AntColonyOptimizer
             currentSum += probabilities[i];
             if (rand <= currentSum) return candidates[i];
         }
+
         // Fallback in case of floating point rounding errors.
         return candidates.Last();
     }
@@ -233,7 +224,6 @@ public class AntColonyOptimizer
 
         // 2. Deposit: Strengthen paths taken by ants in this iteration.
         foreach (var (path, deposit) in antsResults)
-        {
             for (var i = 0; i < path.Count - 1; i++)
             {
                 var u = path[i];
@@ -243,10 +233,11 @@ public class AntColonyOptimizer
                 // Add new pheromone to the existing level.
                 _pheromones.AddOrUpdate(key, deposit, (_, oldVal) => oldVal + deposit);
             }
-        }
     }
 
     // Generates a unique key for an undirected edge (A-B is the same as B-A).
-    private static string GetEdgeKey(string a, string b) =>
-        string.CompareOrdinal(a, b) < 0 ? $"{a}-{b}" : $"{b}-{a}";
+    private static string GetEdgeKey(string a, string b)
+    {
+        return string.CompareOrdinal(a, b) < 0 ? $"{a}-{b}" : $"{b}-{a}";
+    }
 }

@@ -17,8 +17,8 @@ namespace tests;
 
 public class HexagonControllerTests : IClassFixture<WebApplicationFactory<Program>>, IDisposable
 {
-    private readonly WebApplicationFactory<Program> _factory;
     private readonly SqliteConnection _connection;
+    private readonly WebApplicationFactory<Program> _factory;
 
     public HexagonControllerTests(WebApplicationFactory<Program> factory)
     {
@@ -30,18 +30,11 @@ public class HexagonControllerTests : IClassFixture<WebApplicationFactory<Progra
             builder.UseEnvironment("Testing");
             builder.ConfigureServices(services =>
             {
-                services.AddDbContext<PostgresContext>(options =>
-                {
-                    options.UseSqlite(_connection);
-                });
+                services.AddDbContext<PostgresContext>(options => { options.UseSqlite(_connection); });
 
-                var redisDescriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(IConnectionMultiplexer));
+                var redisDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IConnectionMultiplexer));
 
-                if (redisDescriptor != null)
-                {
-                    services.Remove(redisDescriptor);
-                }
+                if (redisDescriptor != null) services.Remove(redisDescriptor);
 
                 var mockRedis = new Mock<IConnectionMultiplexer>();
 
@@ -71,9 +64,9 @@ public class HexagonControllerTests : IClassFixture<WebApplicationFactory<Progra
         {
             var db = scope.ServiceProvider.GetRequiredService<PostgresContext>();
             db.Cities.AddRange(
-                new CityModel { City = "Poznań", Bbox = [1.0,2.0,3.0,4.0], Country = "Poland" },
-                new CityModel {  City = "Warszawa", Bbox = [1.0,2.0,3.0,4.0], Country = "Poland" },
-                new CityModel { City = "Berlin", Bbox = [1.0,2.0,3.0,4.0], Country = "Germany" }
+                new CityModel { City = "Poznań", Bbox = [1.0, 2.0, 3.0, 4.0], Country = "Poland" },
+                new CityModel { City = "Warszawa", Bbox = [1.0, 2.0, 3.0, 4.0], Country = "Poland" },
+                new CityModel { City = "Berlin", Bbox = [1.0, 2.0, 3.0, 4.0], Country = "Germany" }
             );
             await db.SaveChangesAsync();
         }
@@ -97,7 +90,7 @@ public class HexagonControllerTests : IClassFixture<WebApplicationFactory<Progra
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<PostgresContext>();
-            var city = new CityModel { City = cityName, Bbox = [1.0,2.0,3.0,4.0], Country = "Poland" };
+            var city = new CityModel { City = cityName, Bbox = [1.0, 2.0, 3.0, 4.0], Country = "Poland" };
             db.Cities.Add(city);
             db.Hexagons.Add(new HexagonModel
             {
@@ -105,8 +98,8 @@ public class HexagonControllerTests : IClassFixture<WebApplicationFactory<Progra
                 CityId = city.City,
                 City = city,
                 Weight = 1.0,
-                Boundaries = [[0.0,0.0]],
-                Center = [0.0,0.0]
+                Boundaries = [[0.0, 0.0]],
+                Center = [0.0, 0.0]
             });
             await db.SaveChangesAsync();
         }
@@ -128,7 +121,7 @@ public class HexagonControllerTests : IClassFixture<WebApplicationFactory<Progra
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
-    
+
     [Fact]
     public async Task GetPoisFromHexagon_ShouldReturnTop3Pois_PrioritizingPromoted()
     {
@@ -161,11 +154,31 @@ public class HexagonControllerTests : IClassFixture<WebApplicationFactory<Progra
             db.Hexagons.Add(hexagon);
 
             db.Pois.AddRange(
-                new PoiModel { Id = "1", HexagonId = hexId, Hexagon = hexagon, CityId = cityId, City = city, Name = "Regular 1", IsPromoted = false, PoiType = "Shop", PoiSubtype = "Grocery" },
-                new PoiModel { Id = "2", HexagonId = hexId, Hexagon = hexagon, CityId = cityId, City = city, Name = "Regular 2", IsPromoted = false, PoiType = "Shop", PoiSubtype = "Grocery" },
-                new PoiModel { Id = "3", HexagonId = hexId, Hexagon = hexagon, CityId = cityId, City = city, Name = "Regular 3", IsPromoted = false, PoiType = "Shop", PoiSubtype = "Grocery" },
-                new PoiModel { Id = "4", HexagonId = hexId, Hexagon = hexagon, CityId = cityId, City = city, Name = "Promoted 1", IsPromoted = true, PoiType = "Museum", PoiSubtype = "Art" },
-                new PoiModel { Id = "5", HexagonId = hexId, Hexagon = hexagon, CityId = cityId, City = city, Name = "A", IsPromoted = false, PoiType = "Short", PoiSubtype = "None" }
+                new PoiModel
+                {
+                    Id = "1", HexagonId = hexId, Hexagon = hexagon, CityId = cityId, City = city, Name = "Regular 1",
+                    IsPromoted = false, PoiType = "Shop", PoiSubtype = "Grocery"
+                },
+                new PoiModel
+                {
+                    Id = "2", HexagonId = hexId, Hexagon = hexagon, CityId = cityId, City = city, Name = "Regular 2",
+                    IsPromoted = false, PoiType = "Shop", PoiSubtype = "Grocery"
+                },
+                new PoiModel
+                {
+                    Id = "3", HexagonId = hexId, Hexagon = hexagon, CityId = cityId, City = city, Name = "Regular 3",
+                    IsPromoted = false, PoiType = "Shop", PoiSubtype = "Grocery"
+                },
+                new PoiModel
+                {
+                    Id = "4", HexagonId = hexId, Hexagon = hexagon, CityId = cityId, City = city, Name = "Promoted 1",
+                    IsPromoted = true, PoiType = "Museum", PoiSubtype = "Art"
+                },
+                new PoiModel
+                {
+                    Id = "5", HexagonId = hexId, Hexagon = hexagon, CityId = cityId, City = city, Name = "A",
+                    IsPromoted = false, PoiType = "Short", PoiSubtype = "None"
+                }
             );
 
             await db.SaveChangesAsync();
@@ -180,9 +193,7 @@ public class HexagonControllerTests : IClassFixture<WebApplicationFactory<Progra
         result.Count.Should().BeInRange(0, 3);
 
         if (result.Any(p => p.IsPromoted))
-        {
             result[0].IsPromoted.Should().BeTrue("because promoted POIs are ordered first");
-        }
 
         result.Any(p => p.Name == "A").Should().BeFalse("because names with length < 2 are filtered out");
     }
@@ -219,8 +230,10 @@ public class HexagonControllerTests : IClassFixture<WebApplicationFactory<Progra
             });
 
             db.Progresses.AddRange(
-                new UserHexagonProgress { UserId = userMe.Id, User = userMe, HexagonId = hex.Id, Hexagon = hex, Progress = 0.75 },
-                new UserHexagonProgress { UserId = userOther.Id, User = userOther, HexagonId = hex.Id, Hexagon = hex, Progress = 1.0 }
+                new UserHexagonProgress
+                    { UserId = userMe.Id, User = userMe, HexagonId = hex.Id, Hexagon = hex, Progress = 0.75 },
+                new UserHexagonProgress
+                    { UserId = userOther.Id, User = userOther, HexagonId = hex.Id, Hexagon = hex, Progress = 1.0 }
             );
 
             await db.SaveChangesAsync();

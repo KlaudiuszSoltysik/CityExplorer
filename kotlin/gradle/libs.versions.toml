@@ -22,7 +22,6 @@ foundationLayout = "1.10.0"
 uiText = "1.10.0"
 foundation = "1.10.0"
 hilt = "2.55"
-hiltNavigationCompose = "1.2.0"
 firebaseCrashlyticsBuildtools = "3.0.6"
 
 [libraries]

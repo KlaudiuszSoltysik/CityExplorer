@@ -17,9 +17,6 @@ public class WorkerHub(IJobStateService jobStateService) : Hub<IWorkerHub>
 
         var existingResult = await jobStateService.GetResultAsync(jobId);
 
-        if (existingResult != null)
-        {
-            await Clients.Caller.JobCompleted(existingResult);
-        }
+        if (existingResult != null) await Clients.Caller.JobCompleted(existingResult);
     }
 }

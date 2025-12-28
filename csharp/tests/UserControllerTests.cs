@@ -17,8 +17,8 @@ namespace tests;
 
 public class UserControllerTests : IClassFixture<WebApplicationFactory<Program>>, IDisposable
 {
-    private readonly WebApplicationFactory<Program> _factory;
     private readonly SqliteConnection _connection;
+    private readonly WebApplicationFactory<Program> _factory;
 
     public UserControllerTests(WebApplicationFactory<Program> factory)
     {
@@ -30,18 +30,11 @@ public class UserControllerTests : IClassFixture<WebApplicationFactory<Program>>
             builder.UseEnvironment("Testing");
             builder.ConfigureServices(services =>
             {
-                services.AddDbContext<PostgresContext>(options =>
-                {
-                    options.UseSqlite(_connection);
-                });
+                services.AddDbContext<PostgresContext>(options => { options.UseSqlite(_connection); });
 
-                var redisDescriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(IConnectionMultiplexer));
+                var redisDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IConnectionMultiplexer));
 
-                if (redisDescriptor != null)
-                {
-                    services.Remove(redisDescriptor);
-                }
+                if (redisDescriptor != null) services.Remove(redisDescriptor);
 
                 var mockRedis = new Mock<IConnectionMultiplexer>();
 

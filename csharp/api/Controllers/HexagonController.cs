@@ -12,7 +12,10 @@ namespace csharp.Controllers;
 
 [Route("hexagon")]
 [ApiController]
-public class HexagonController(PostgresContext postgresContext, IConnectionMultiplexer redis, IConfiguration configuration) : ControllerBase
+public class HexagonController(
+    PostgresContext postgresContext,
+    IConnectionMultiplexer redis,
+    IConfiguration configuration) : ControllerBase
 {
     // Fetch available locations directly from Cities table (Optimized)
     [HttpGet("get-countries-with-cities")]
@@ -343,9 +346,9 @@ public class HexagonController(PostgresContext postgresContext, IConnectionMulti
         {
             JobId = jobId,
             UserId = user.Id,
-            UserLatitude = generateRouteRequestDto.UserLatitude,
-            UserLongitude = generateRouteRequestDto.UserLongitude,
-            Duration = generateRouteRequestDto.Duration,
+            generateRouteRequestDto.UserLatitude,
+            generateRouteRequestDto.UserLongitude,
+            generateRouteRequestDto.Duration,
             CreatedAt = DateTime.UtcNow
         };
 
