@@ -1,7 +1,6 @@
 package com.example.cityexplorer.ui.generateroute
 
-import android.Manifest
-import android.widget.Toast
+import android.location.Location
 import androidx.compose.runtime.Composable
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.background
@@ -29,6 +28,7 @@ import com.example.cityexplorer.ui.theme.CustomWhite
 
 @Composable
 fun GenerateRouteDialog(
+    userLocation: Location?,
     onNavigateToLogin: () -> Unit,
     onDismiss: () -> Unit,
     onRouteGenerated: (WorkerResultDto) -> Unit,

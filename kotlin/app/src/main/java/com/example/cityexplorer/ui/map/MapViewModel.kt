@@ -6,7 +6,6 @@ import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
 import com.example.cityexplorer.data.repositories.HexagonRepository
 import kotlinx.coroutines.launch
 import android.location.Location
-import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import com.example.cityexplorer.Screen
 import com.example.cityexplorer.data.dtos.HexagonProgressDto
@@ -333,7 +332,6 @@ class MapViewModel @Inject constructor(
     }
 
     fun handleNewRoute(route: WorkerResultDto) {
-        Log.e("DEBUG_ROUTE", route.route.toString())
         _state.update { it.copy(route = route) }
     }
 

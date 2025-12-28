@@ -1,6 +1,5 @@
 package com.example.cityexplorer.data.repositories
 
-import android.util.Log
 import com.example.cityexplorer.BuildConfig
 import com.example.cityexplorer.data.api.HexagonApiClient
 import com.example.cityexplorer.data.api.VersionApiClient
@@ -162,53 +161,41 @@ class HexagonRepository @Inject constructor(
     }
 
     suspend fun generateRoute(startHexId: String, duration: Int): WorkerResultDto {
-        Log.d("DEBUG_ROUTE", "1. Start generateRoute hex=$startHexId, dur=$duration")
-
         val token = tokenService.getToken()
 
         if (token.isNullOrBlank()) {
-            Log.e("DEBUG_ROUTE", "Błąd: Brak tokenu na starcie")
             throw InvalidTokenException()
         }
 
         try {
-            Log.d("DEBUG_ROUTE", "2. Wysyłanie requestu REST...")
             val response = hexagonApiClient.generateRoute(
                 "Bearer $token",
                 GenerateRouteRequestDto(startHexId, duration)
             )
 
-            Log.d("DEBUG_ROUTE", "3. Odpowiedź REST Code: ${response.code()}")
-
             if (response.isSuccessful) {
                 val responseBody = response.body() ?: throw Exception()
 
                 if (responseBody.token != null) {
-                    Log.d("DEBUG_ROUTE", "4. Zapisywanie nowego tokenu")
                     tokenService.saveToken(responseBody.token)
                 }
 
                 val jobId = responseBody.jobId
-                Log.d("DEBUG_ROUTE", "5. Otrzymano JobId: $jobId")
 
                 val token = tokenService.getToken()
 
                 if (token.isNullOrBlank()) {
-                    Log.e("DEBUG_ROUTE", "Błąd: Token pusty przed SignalR")
                     throw InvalidTokenException()
                 }
 
-                Log.d("DEBUG_ROUTE", "6. Wchodzę w withTimeout i SignalR...")
                 return withTimeout(10000L) {
                     listenForRouteCompletion(jobId, token)
                 }
 
             } else {
-                Log.e("DEBUG_ROUTE", "Błąd API: ${response.errorBody()?.string()}")
                 throw Exception("Failed to generate route.")
             }
-        } catch (e: Exception) {
-            Log.e("DEBUG_ROUTE", "WYJĄTEK (CATCH): ${e.message}", e)
+        } catch (_: Exception) {
             throw Exception("Failed to generate route.")
         }
     }
@@ -218,11 +205,9 @@ class HexagonRepository @Inject constructor(
             val baseUrl = BuildConfig.BASE_URL.trimEnd('/')
             val hubUrl = "$baseUrl/hubs/worker"
 
-            // 2. Konfiguracja połączenia
             val hubConnection = HubConnectionBuilder.create(hubUrl)
                 .withAccessTokenProvider(Single.just(token))
                 .withHeader("X-Api-Key", BuildConfig.API_KEY)
-                // Jeśli potrzebujesz Unsafe SSL (wersja DEBUG), tutaj trzeba dodać .setHttpClient
                 .build()
 
             hubConnection.on("JobCompleted", { result: WorkerResultDto ->

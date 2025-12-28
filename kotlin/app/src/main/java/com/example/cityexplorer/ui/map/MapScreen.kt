@@ -319,6 +319,7 @@ private fun MapSuccessContent(
 
     if (showGenerateRouteDialog) {
         GenerateRouteDialog(
+            userLocation = state.userLocation,
             onNavigateToLogin = { onNavigateToLogin() },
             onDismiss = { showGenerateRouteDialog = false },
             onRouteGenerated = { route -> handleNewRoute(route) },

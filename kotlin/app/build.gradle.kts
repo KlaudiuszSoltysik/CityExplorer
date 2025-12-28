@@ -31,6 +31,12 @@ android {
     namespace = "com.example.cityexplorer"
     compileSdk = 36
 
+    testOptions {
+        unitTests {
+            isReturnDefaultValues = true
+        }
+    }
+
     defaultConfig {
         applicationId = "com.example.cityexplorer"
         minSdk = 33

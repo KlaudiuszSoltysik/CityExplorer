@@ -1,13 +1,11 @@
 package com.example.cityexplorer.ui.generateroute
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cityexplorer.data.dtos.WorkerResultDto
 import com.example.cityexplorer.data.repositories.HexagonRepository
 import com.example.cityexplorer.data.repositories.UserRepository
 import com.example.cityexplorer.data.util.TokenService
-import com.example.cityexplorer.ui.map.MapUiEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
