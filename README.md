@@ -124,11 +124,13 @@ The API documentation is automatically generated during the build process. You c
 
 ### 🟡 High Impact
 
-- [ ] **Room migration**
+- [ ] **Singleton Repository** application state (Memory Cache)
 
 ### 🟢 Nice to Have
 
-- [ ] **Bug:** after user loggs out / deletes account progress is still displayed (cached)
+- [ ] **Bug fix:**
+  - [ ] Sometimes hexagon color isn't updated during exploration
+  - [ ] After user loggs out / deletes account progress is still displayed (cached)
 - [ ] **Code refactoring**
 - [ ] **Tests:** add more backend and application tests
 - [ ] **Social Features:** Friends etc.

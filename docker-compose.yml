@@ -36,6 +36,8 @@ services:
   api:
     container_name: city_explorer_api_prod
     image: ghcr.io/klaudiuszsoltysik/city-explorer/api:latest
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__PostgresConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
@@ -62,6 +64,8 @@ services:
 
   city_explorer_worker:
     image: ghcr.io/klaudiuszsoltysik/city-explorer/worker:latest
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     deploy:
       mode: replicated
       replicas: 2
@@ -105,7 +109,7 @@ services:
     container_name: city_explorer_watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 30 --cleanup city_explorer_api_prod city_explorer_worker_prod
+    command: --interval 30 --cleanup --label-enable
     environment:
       - DOCKER_API_VERSION=1.45
     networks:
