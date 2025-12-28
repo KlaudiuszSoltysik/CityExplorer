@@ -85,6 +85,14 @@ public class Worker(ILogger<Worker> logger,
                             .ToListAsync(cancellationToken: stoppingToken);
                     }
 
+                    logger.LogInformation("DEBUG: StartHex: {StartHex}, RangeSize: {Size}, Found Nodes in DB: {Count}",
+                        hexagonId, kRingSize, nodes.Count);
+
+                    if (nodes.Count == 0)
+                    {
+                        logger.LogWarning("CRITICAL: Math generated hexes, but DB returned 0 nodes! Check 'Hexagons' table in PROD DB.");
+                    }
+
                     var input = new AcoInput
                     {
                         StartHexagonId = hexagonId,

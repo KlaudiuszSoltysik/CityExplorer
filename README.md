@@ -129,6 +129,6 @@ The API documentation is automatically generated during the build process. You c
 ### 🟢 Nice to Have
 
 - [ ] **Bug:** after user loggs out / deletes account progress is still displayed (cached)
-- [ ] **Refactoring**
-- [ ] **Tests:** add more backend and app tests
+- [ ] **Code refactoring**
+- [ ] **Tests:** add more backend and application tests
 - [ ] **Social Features:** Friends etc.
