@@ -24,8 +24,6 @@ public class Worker(ILogger<Worker> logger,
         var db = redis.GetDatabase();
         const int blockSeconds = 3;
 
-        logger.LogInformation("Worker started: {QueueName}", QueueName);
-
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -36,8 +34,6 @@ public class Worker(ILogger<Worker> logger,
 
                 var resultArray = (RedisResult[])result!;
                 var jobJson = (string)resultArray[1]!;
-
-                logger.LogInformation("Job received: {Job}", jobJson);
 
                 try
                 {
@@ -52,8 +48,6 @@ public class Worker(ILogger<Worker> logger,
                     var duration = root.GetProperty("Duration").GetInt32();
 
                     if (jobId is null || userId is null) continue;
-
-                    logger.LogInformation("Processing JobId: {JobId}...", jobId);
 
                     var totalStepsBudget = (int)(duration / MinutesPerHexagon);
                     var kRingSize = (int)(duration / 2.0 / MinutesPerHexagon) + 2;
@@ -85,14 +79,6 @@ public class Worker(ILogger<Worker> logger,
                             .ToListAsync(cancellationToken: stoppingToken);
                     }
 
-                    logger.LogInformation("DEBUG: StartHex: {StartHex}, RangeSize: {Size}, Found Nodes in DB: {Count}",
-                        hexagonId, kRingSize, nodes.Count);
-
-                    if (nodes.Count == 0)
-                    {
-                        logger.LogWarning("CRITICAL: Math generated hexes, but DB returned 0 nodes! Check 'Hexagons' table in PROD DB.");
-                    }
-
                     var input = new AcoInput
                     {
                         StartHexagonId = hexagonId,
@@ -112,10 +98,6 @@ public class Worker(ILogger<Worker> logger,
                     await jobStateService.SaveResultAsync(jobId, workerResult);
 
                     await hubContext.Clients.Group(jobId).JobCompleted(workerResult);
-
-                    var routeString = string.Join(" -> ", route);
-
-                    logger.LogInformation("Completed JobId: {JobId}, route: {route}", jobId, routeString);
                 }
                 catch (Exception e)
                 {
