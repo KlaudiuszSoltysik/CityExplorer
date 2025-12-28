@@ -160,7 +160,7 @@ class HexagonRepository @Inject constructor(
             throw e
         }
     }
-    
+
     suspend fun generateRoute(latitude: Double, longitude: Double, duration: Int): WorkerResultDto {
         val token = tokenService.getToken()
         if (token.isNullOrBlank()) throw InvalidTokenException()

@@ -134,3 +134,5 @@ The API documentation is automatically generated during the build process. You c
 - [ ] **Code refactoring**
 - [ ] **Tests:** add more backend and application tests
 - [ ] **Social Features:** Friends etc.
+- The `set-output` command is deprecated and will be disabled soon. Please upgrade to using Environment Files. For more information see: https://github.blog/changelog/2022-10-11-github-actions-deprecating-save-state-and-set-output-commands/
+- kapt 2.0 cośtam warning
