@@ -12,47 +12,47 @@
         <PackageReference Include="Google.Apis.Auth" Version="1.73.0"/>
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.11"/>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0"/>
-        <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="9.0.11" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.11" />
+        <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="9.0.11"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.11"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.11">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="9.0.11">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.11" />
+        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.11"/>
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4"/>
         <PackageReference Include="pocketken.H3" Version="4.0.0"/>
         <PackageReference Include="Scalar.AspNetCore" Version="2.11.0"/>
-        <PackageReference Include="StackExchange.Redis" Version="2.10.1" />
-        <PackageReference Include="xunit.extensibility.core" Version="2.9.2" />
+        <PackageReference Include="StackExchange.Redis" Version="2.10.1"/>
+        <PackageReference Include="xunit.extensibility.core" Version="2.9.2"/>
     </ItemGroup>
 
     <ItemGroup>
-      <_ContentIncludedByDefault Remove="unit_tests\obj\project.assets.json" />
-      <_ContentIncludedByDefault Remove="unit_tests\obj\project.packagespec.json" />
-      <_ContentIncludedByDefault Remove="unit_tests\obj\unit_tests.csproj.nuget.dgspec.json" />
+        <_ContentIncludedByDefault Remove="unit_tests\obj\project.assets.json"/>
+        <_ContentIncludedByDefault Remove="unit_tests\obj\project.packagespec.json"/>
+        <_ContentIncludedByDefault Remove="unit_tests\obj\unit_tests.csproj.nuget.dgspec.json"/>
     </ItemGroup>
 
     <PropertyGroup>
-      <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)</OpenApiDocumentsDirectory>
+        <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)</OpenApiDocumentsDirectory>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-      <OpenApiGenerateDocumentsOnBuild>true</OpenApiGenerateDocumentsOnBuild>
+        <OpenApiGenerateDocumentsOnBuild>true</OpenApiGenerateDocumentsOnBuild>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-      <OpenApiGenerateDocumentsOnBuild>false</OpenApiGenerateDocumentsOnBuild>
+        <OpenApiGenerateDocumentsOnBuild>false</OpenApiGenerateDocumentsOnBuild>
     </PropertyGroup>
 
     <Target Name="RenameOpenApiFile" AfterTargets="GenerateOpenApiDocuments">
-      <Move SourceFiles="$(OpenApiDocumentsDirectory)\api.json" 
-            DestinationFiles="$(OpenApiDocumentsDirectory)\api_documentation.json" 
-            OverwriteReadOnlyFiles="true" 
-            Condition="Exists('$(OpenApiDocumentsDirectory)\api.json')" />
+        <Move SourceFiles="$(OpenApiDocumentsDirectory)\api.json"
+              DestinationFiles="$(OpenApiDocumentsDirectory)\api_documentation.json"
+              OverwriteReadOnlyFiles="true"
+              Condition="Exists('$(OpenApiDocumentsDirectory)\api.json')"/>
     </Target>
 
 </Project>

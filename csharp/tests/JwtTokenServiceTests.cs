@@ -9,10 +9,11 @@ public class JwtTokenServiceTests
     [Fact]
     public void CreateAppJwtToken_ShouldReturnValidString_WhenDataIsCorrect()
     {
-        var inMemoryConfig = new Dictionary<string, string> {
-            {"JwtSettings:SecretKey", "jwt_secret_key__________________"},
-            {"JwtSettings:Issuer", "my-api"},
-            {"JwtSettings:Audience", "my-app"}
+        var inMemoryConfig = new Dictionary<string, string>
+        {
+            { "JwtSettings:SecretKey", "jwt_secret_key__________________" },
+            { "JwtSettings:Issuer", "my-api" },
+            { "JwtSettings:Audience", "my-app" }
         };
 
         var config = new ConfigurationBuilder()

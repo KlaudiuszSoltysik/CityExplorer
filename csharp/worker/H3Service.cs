@@ -48,6 +48,6 @@ public class H3Service : IH3Service
         var latitudeRad = latitude * (Math.PI / 180.0);
         var longitudeRad = longitude * (Math.PI / 180.0);
 
-        return  H3Index.FromLatLng(new LatLng(latitudeRad, longitudeRad), h3Res).ToString();
+        return H3Index.FromLatLng(new LatLng(latitudeRad, longitudeRad), h3Res).ToString();
     }
 }
