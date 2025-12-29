@@ -128,6 +128,7 @@ The API documentation is automatically generated during the build process. You c
 
 ### 🟢 Nice to Have
 
+- error 530 przy logowaniu
 - [ ] **Bug fix:**
   - [ ] Sometimes hexagon color isn't updated during exploration
   - [ ] After user loggs out / deletes account progress is still displayed (cached)
