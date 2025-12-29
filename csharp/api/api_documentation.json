@@ -24,7 +24,7 @@
         ],
         "parameters": [
           {
-            "name": "city",
+            "name": "City",
             "in": "query",
             "schema": {
               "type": "string"
@@ -45,7 +45,7 @@
         ],
         "parameters": [
           {
-            "name": "hexagonId",
+            "name": "HexagonId",
             "in": "query",
             "schema": {
               "type": "string"
@@ -68,17 +68,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PostLocationBatchDto"
+                "$ref": "#/components/schemas/PostLocationBatchRequestDto"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/PostLocationBatchDto"
+                "$ref": "#/components/schemas/PostLocationBatchRequestDto"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/PostLocationBatchDto"
+                "$ref": "#/components/schemas/PostLocationBatchRequestDto"
               }
             }
           },
@@ -98,7 +98,7 @@
         ],
         "parameters": [
           {
-            "name": "city",
+            "name": "City",
             "in": "query",
             "schema": {
               "type": "string"
@@ -153,17 +153,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "string"
+                "$ref": "#/components/schemas/ValidateLoginTokenRequestDto"
               }
             },
             "text/json": {
               "schema": {
-                "type": "string"
+                "$ref": "#/components/schemas/ValidateLoginTokenRequestDto"
               }
             },
             "application/*+json": {
               "schema": {
-                "type": "string"
+                "$ref": "#/components/schemas/ValidateLoginTokenRequestDto"
               }
             }
           },
@@ -195,7 +195,7 @@
         ],
         "parameters": [
           {
-            "name": "city",
+            "name": "City",
             "in": "query",
             "schema": {
               "type": "string"
@@ -228,7 +228,7 @@
         ],
         "parameters": [
           {
-            "name": "key",
+            "name": "Key",
             "in": "query",
             "schema": {
               "type": "string"
@@ -262,7 +262,7 @@
           }
         }
       },
-      "LocationDto": {
+      "Location": {
         "type": "object",
         "properties": {
           "latitude": {
@@ -279,7 +279,7 @@
           }
         }
       },
-      "PostLocationBatchDto": {
+      "PostLocationBatchRequestDto": {
         "required": [
           "locations"
         ],
@@ -288,8 +288,19 @@
           "locations": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/LocationDto"
+              "$ref": "#/components/schemas/Location"
             }
+          }
+        }
+      },
+      "ValidateLoginTokenRequestDto": {
+        "required": [
+          "googleToken"
+        ],
+        "type": "object",
+        "properties": {
+          "googleToken": {
+            "type": "string"
           }
         }
       }
