@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cityexplorer.data.dtos.WorkerResult
 import com.example.cityexplorer.data.repositories.HexagonRepository
-import com.example.cityexplorer.data.repositories.UserRepository
 import com.example.cityexplorer.data.util.TokenService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -29,8 +28,7 @@ sealed interface GenerateRouteUiState {
 @HiltViewModel
 class GenerateRouteViewModel @Inject constructor(
     private val tokenService: TokenService,
-    private val hexagonRepository: HexagonRepository,
-    private val userRepository: UserRepository
+    private val hexagonRepository: HexagonRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<GenerateRouteUiState>(GenerateRouteUiState.Choose)
     val uiState = _uiState.asStateFlow()

@@ -34,7 +34,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -59,9 +59,8 @@ fun GenerateRouteDialog(
     val uiState by viewModel.uiState.collectAsState()
 
     val lifecycleOwner = LocalLifecycleOwner.current
-    val configuration = LocalConfiguration.current
 
-    val screenWidth = configuration.screenWidthDp.dp
+    val screenWidth = LocalWindowInfo.current.containerSize.width.dp
     val dialogWidth = screenWidth * 0.8f
 
     val closeDialog = {
