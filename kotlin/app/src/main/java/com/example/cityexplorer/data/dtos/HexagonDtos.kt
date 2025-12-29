@@ -1,5 +1,6 @@
 package com.example.cityexplorer.data.dtos
 
+import androidx.annotation.Keep
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -130,6 +131,7 @@ data class GenerateRouteResponseDto(
     val token: String?
 )
 
+@Keep
 @Serializable
 data class WorkerResult(
     @SerialName("route")

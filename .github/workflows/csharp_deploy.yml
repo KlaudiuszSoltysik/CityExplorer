@@ -96,9 +96,8 @@ jobs:
         run: dotnet build csharp/api/api.csproj -c Release
 
       - name: Commit and push documentation
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add csharp/api/api_documentation.json 
-          git commit -m "docs: automatic api documentation update [skip ci]" || echo "No changes to commit"
-          git push
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "docs: automatic api documentation update [skip ci]"
+          file_pattern: csharp/api/api_documentation.json
+          branch: master
