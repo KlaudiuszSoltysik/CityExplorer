@@ -100,5 +100,5 @@ jobs:
         with:
           commit_message: "docs: automatic api documentation update [skip ci]"
           file_pattern: csharp/api/api_documentation.json
-          branch: master
+          branch: refs/heads/master
           push_options: "--force"
