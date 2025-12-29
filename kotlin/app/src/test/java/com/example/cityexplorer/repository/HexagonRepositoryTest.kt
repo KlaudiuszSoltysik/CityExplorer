@@ -1,26 +1,25 @@
 package com.example.cityexplorer.repository
 
+import android.content.Context
+import android.content.SharedPreferences
 import com.example.cityexplorer.data.api.HexagonApiClient
 import com.example.cityexplorer.data.api.VersionApiClient
 import com.example.cityexplorer.data.dtos.GetCountriesWithCitiesResponseDto
-import com.example.cityexplorer.data.dtos.GetHexagonsFromCityResponseDto
-import com.example.cityexplorer.data.dtos.HexagonProgress
-import com.example.cityexplorer.data.dtos.PostLocationBatchRequestDto
-import com.example.cityexplorer.data.dtos.PostLocationBatchResponseDto
+import com.example.cityexplorer.data.dtos.GetCurrentVersionResponseDto
 import com.example.cityexplorer.data.repositories.HexagonRepository
-import com.example.cityexplorer.data.repositories.InvalidTokenException
 import com.example.cityexplorer.data.util.CacheService
 import com.example.cityexplorer.data.util.TokenService
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.runBlocking
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.ResponseBody.Companion.toResponseBody
+import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import retrofit2.HttpException
 import retrofit2.Response
+
 
 class HexagonRepositoryTest {
     private val hexagonApiClient = mockk<HexagonApiClient>()
@@ -31,22 +30,41 @@ class HexagonRepositoryTest {
     private val repository = HexagonRepository(hexagonApiClient, versionApiClient, cacheService, tokenService)
 
     @Test
-    fun `getCountriesWithCities returns cached data when versions match`() =
-        runBlocking {
-            val key = "get-countries-with-cities"
-            val version = "1"
-            val cachedList = listOf(GetCountriesWithCitiesResponseDto("Poland", listOf("Poznań")))
+    fun `getCountriesWithCities returns cached data when versions match`() = runTest {
+        val key = "get-countries-with-cities"
+        val version = "1"
+        val cachedDto = listOf(GetCountriesWithCitiesResponseDto("Poland", listOf("Poznań")))
 
-            coEvery { versionApiClient.getCurrentVersion(key).body().toString() } returns version
-            coEvery { cacheService.getCachedVersion(key) } returns version
+        val jsonFormat = Json { ignoreUnknownKeys = true }
+        val cachedJson = jsonFormat.encodeToString(cachedDto)
 
-            coEvery { cacheService.getCachedData<List<GetCountriesWithCitiesResponseDto>>(key, any()) } returns cachedList
+        val sharedPrefs = mockk<SharedPreferences>(relaxed = true)
+        every { sharedPrefs.getString("$key.version", null) } returns version
+        every { sharedPrefs.getString("$key.data", null) } returns cachedJson
 
-            val result = repository.getCountriesWithCities(forceRefresh = false)
+        val context = mockk<Context>(relaxed = true)
+        every { context.getSharedPreferences(any(), any()) } returns sharedPrefs
 
-            assertEquals(cachedList, result)
-            coVerify(exactly = 0) { hexagonApiClient.getCountriesWithCities() }
-        }
+        val realCacheService = CacheService(context)
+
+        val versionResponseDto =
+            GetCurrentVersionResponseDto(version = "1")
+        val successResponse = Response.success(versionResponseDto)
+
+        coEvery { versionApiClient.getCurrentVersion(key) } returns successResponse
+
+        val repository = HexagonRepository(
+            hexagonApiClient = hexagonApiClient,
+            versionApiClient = versionApiClient,
+            cacheService = realCacheService,
+            tokenService = tokenService
+        )
+
+        val result = repository.getCountriesWithCities(forceRefresh = false)
+
+        assertEquals(cachedDto, result)
+        coVerify(exactly = 0) { hexagonApiClient.getCountriesWithCities() }
+    }
 //
 //    @Test
 //    fun `getCountriesWithCities returns fallback data when network fails`() =
