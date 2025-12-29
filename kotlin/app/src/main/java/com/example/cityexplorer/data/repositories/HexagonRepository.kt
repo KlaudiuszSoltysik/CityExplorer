@@ -259,22 +259,30 @@ class HexagonRepository @Inject constructor(
                 hubConnection.stop()
             }, String::class.java)
 
-            continuation.invokeOnCancellation {
-                if (hubConnection.connectionState != HubConnectionState.DISCONNECTED) {
-                    hubConnection.stop()
+            hubConnection.onClosed { exception ->
+                if (continuation.isActive && exception != null) {
+                    continuation.resumeWithException(exception)
                 }
             }
 
-            try {
-                hubConnection.start().blockingAwait()
-
-                hubConnection.send("JoinJobGroup", jobId)
-
-            } catch (e: Exception) {
-                if (continuation.isActive) {
-                    continuation.resumeWithException(e)
+            val startDisposable = hubConnection.start().subscribe({
+                try {
+                    hubConnection.send("JoinJobGroup", jobId)
+                } catch (e: Exception) {
+                    if (continuation.isActive) continuation.resumeWithException(e)
                 }
-                hubConnection.stop()
+            }, { error ->
+                if (continuation.isActive) {
+                    continuation.resumeWithException(error)
+                }
+            })
+
+            continuation.invokeOnCancellation {
+                startDisposable.dispose()
+
+                if (hubConnection.connectionState != HubConnectionState.DISCONNECTED) {
+                    hubConnection.stop()
+                }
             }
         }
 
