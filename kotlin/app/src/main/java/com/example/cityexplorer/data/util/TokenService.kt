@@ -1,5 +1,3 @@
-@file:Suppress("DEPRECATION")
-
 package com.example.cityexplorer.data.util
 
 import android.content.Context
