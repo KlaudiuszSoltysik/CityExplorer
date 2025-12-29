@@ -1,4 +1,4 @@
-# City Explorer (during development)
+# City Explorer
 
 ![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen)
 ![Tech Stack](https://img.shields.io/badge/Stack-Kotlin%20|%20.NET%20|%20Python-blue)
@@ -124,15 +124,13 @@ The API documentation is automatically generated during the build process. You c
 
 ### 🟡 High Impact
 
-- [ ] **Singleton Repository** application state (Memory Cache)
+- **Singleton Repository** application state (Memory Cache)
 
 ### 🟢 Nice to Have
 
-- error 530 przy logowaniu
-- [ ] **Bug fix:**
-  - [ ] Sometimes hexagon color isn't updated during exploration
-  - [ ] After user loggs out / deletes account progress is still displayed (cached)
-- [ ] **Tests:** add more backend and application tests
+- **Bug fix:**
+  - Sometimes hexagon color isn't updated during exploration
+  - After user loggs out / deletes account progress is still displayed (cached)
+- **Tests:** add more backend and application tests
 - clean proguard-rules
-- android vitals
-- firebase crashalitycs
+- android vitals / firebase crashalitycs
