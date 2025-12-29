@@ -5,6 +5,7 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cityexplorer.BuildConfig.WEB_CLIENT_ID
@@ -58,10 +59,14 @@ class LoginViewModel @Inject constructor(
                 val result = credentialManager.getCredential(context, request)
                 handleCredentialResult(result.credential, onNavigateNext)
 
-            } catch (_: GetCredentialException) {
-                _uiEvent.send(LoginUiEvent.ShowToast("Google credential error."))
-            } catch (_: Exception) {
-                _uiEvent.send(LoginUiEvent.ShowToast("Login process failed."))
+            } catch (e: GetCredentialException) {
+                _uiEvent.send(LoginUiEvent.ShowToast(e.message ?: "Unknown error."))
+            }
+            catch (e: NoCredentialException) {
+                _uiEvent.send(LoginUiEvent.ShowToast(e.message ?: "Unknown error."))
+            }
+            catch (e: Exception) {
+                _uiEvent.send(LoginUiEvent.ShowToast(e.message ?: "Unknown error."))
             }
         }
     }
