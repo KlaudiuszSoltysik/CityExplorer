@@ -20,7 +20,6 @@ import com.example.cityexplorer.data.dtos.PostLocationBatchRequestDto
 import com.example.cityexplorer.data.repositories.HexagonRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
-import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -162,12 +161,7 @@ class LocationTrackingService : Service() {
     // Triggers localization stream
     private fun startTrackingLogic() {
         serviceScope.launch {
-            val typeToken = object : TypeToken<List<CustomLocationDoubleTimestamp>>() {}.type
-            val cachedData =
-                cacheService.getCachedData<List<CustomLocationDoubleTimestamp>>(
-                    "location-buffer",
-                    typeToken
-                )
+            val cachedData = cacheService.getCachedData<List<CustomLocationDoubleTimestamp>>("location-buffer")
 
             if (cachedData != null && cachedData.isNotEmpty()) {
                 bufferMutex.withLock {
