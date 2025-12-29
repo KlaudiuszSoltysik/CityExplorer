@@ -89,8 +89,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: kotlin/app/build/outputs/apk/release/app-release.apk
-          name: "v1.0.0"
-          tag_name: ${{ github.ref_name }}
+          name: "Latest Beta"
+          tag_name: beta
+          prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
