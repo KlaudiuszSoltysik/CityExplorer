@@ -35,9 +35,12 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    @Inject lateinit var tokenService: TokenService
-    @Inject lateinit var hexagonRepository: HexagonRepository
-    @Inject lateinit var userRepository: UserRepository
+    @Inject
+    lateinit var tokenService: TokenService
+    @Inject
+    lateinit var hexagonRepository: HexagonRepository
+    @Inject
+    lateinit var userRepository: UserRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
@@ -58,10 +61,10 @@ class MainActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     CityExplorerAppHost(
                         startDestination = startDestination,
+                        contentPadding = innerPadding,
                         modifier = Modifier
                             .background(CustomBlack)
                             .fillMaxSize(),
-                        contentPadding = innerPadding,
                     )
                 }
             }
@@ -72,8 +75,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun CityExplorerAppHost(
     startDestination: String,
-    modifier: Modifier,
     contentPadding: PaddingValues,
+    modifier: Modifier,
 ) {
     val navController = rememberNavController()
 
@@ -97,24 +100,24 @@ fun CityExplorerAppHost(
                 val returnRoute = backStackEntry.arguments?.getString(Screen.Args.RETURN_ROUTE)
 
                 LoginScreen(
-                    modifier = Modifier.padding(contentPadding),
                     onNavigateToNextScreen = {
                         val targetDestination = returnRoute ?: Screen.CitySelectorScreen.route
 
                         navController.navigate(targetDestination) {
                             popUpTo(Screen.LoginScreen.route) { inclusive = true }
                         }
-                    }
+                    },
+                    modifier = Modifier.padding(contentPadding)
                 )
             }
 
             // City Selector Screen
             composable(Screen.CitySelectorScreen.route) {
                 CitySelectorScreen(
-                    modifier = Modifier.padding(contentPadding),
                     onNavigateToMapScreen = { city ->
                         navController.navigate(Screen.MapScreen.createRoute(city))
-                    }
+                    },
+                    modifier = Modifier.padding(contentPadding)
                 )
             }
 

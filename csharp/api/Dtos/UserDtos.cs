@@ -1,29 +1,37 @@
-﻿namespace csharp.Dtos;
+﻿using System.Text.Json.Serialization;
 
-public class LoginResponseDto
+namespace csharp.Dtos;
+
+public class ValidateLoginTokenRequestDto
 {
-    public bool IsSuccess { get; set; }
-    public string? Token { get; set; }
+    [JsonPropertyName("googleToken")] public required string GoogleToken { get; init; }
 }
 
-public class AuthorizationResponseDto
+public class ValidateLoginTokenResponseDto
 {
-    public bool IsAuthorized { get; set; }
-    public GetUserResponseDto? UserDto { get; set; }
+    [JsonPropertyName("isSuccess")] public bool IsSuccess { get; init; }
+
+    [JsonPropertyName("token")] public required string Token { get; init; }
 }
 
-public class GetUserResponseDto
+public class ValidateAuthorizationTokenResponseDto
 {
-    public string Id { get; set; } = string.Empty;
+    [JsonPropertyName("id")] public string Id { get; init; } = string.Empty;
 }
 
-public class GetUserStatisticsDto
+public class GetUserStatisticsResponseDto
 {
-    public double Explored { get; set; }
-    public int Progress { get; set; }
-    public int HexagonCount { get; set; }
-    public int PlayTime { get; set; }
-    public int Distance { get; set; }
-    public int Ranking { get; set; }
-    public int UserCount { get; set; }
+    [JsonPropertyName("explored")] public double Explored { get; init; }
+
+    [JsonPropertyName("progress")] public int Progress { get; init; }
+
+    [JsonPropertyName("hexagonCount")] public int HexagonCount { get; init; }
+
+    [JsonPropertyName("playTime")] public int PlayTime { get; init; }
+
+    [JsonPropertyName("distance")] public int Distance { get; init; }
+
+    [JsonPropertyName("ranking")] public int Ranking { get; init; }
+
+    [JsonPropertyName("userCount")] public int UserCount { get; init; }
 }

@@ -14,9 +14,9 @@ import androidx.core.app.ServiceCompat
 import androidx.core.net.toUri
 import com.example.cityexplorer.MainActivity
 import com.example.cityexplorer.R
-import com.example.cityexplorer.data.dtos.LocationDto
-import com.example.cityexplorer.data.dtos.PostLocationBatchDto
-import com.example.cityexplorer.data.dtos.SimpleLocation
+import com.example.cityexplorer.data.dtos.CustomLocationDoubleTimestamp
+import com.example.cityexplorer.data.dtos.CustomLocationStringTimestamp
+import com.example.cityexplorer.data.dtos.PostLocationBatchRequestDto
 import com.example.cityexplorer.data.repositories.HexagonRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -45,14 +45,20 @@ const val SEND_BATCH_INTERVAL_MS = 15_000L
 
 @AndroidEntryPoint
 class LocationTrackingService : Service() {
-    @Inject lateinit var cacheService: CacheService
-    @Inject lateinit var hexagonRepository: HexagonRepository
+    @Inject
+    lateinit var cacheService: CacheService
+    @Inject
+    lateinit var hexagonRepository: HexagonRepository
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val locationBuffer = mutableListOf<SimpleLocation>()
+
+    private val locationBuffer = mutableListOf<CustomLocationDoubleTimestamp>()
+
     private val bufferMutex = Mutex()
+
     private lateinit var locationClient: FusedLocationProviderClient
     private var lastLocation: Location? = null
+
     private var consecutiveFailedSendBatchData: Int = 0
     private var isServiceRunning = false
 
@@ -66,7 +72,7 @@ class LocationTrackingService : Service() {
 
     // Initializes service
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-         when (intent?.action) {
+        when (intent?.action) {
             ACTION_START -> {
                 isServiceRunning = true
 
@@ -156,21 +162,28 @@ class LocationTrackingService : Service() {
     // Triggers localization stream
     private fun startTrackingLogic() {
         serviceScope.launch {
-            val typeToken = object : TypeToken<List<SimpleLocation>>() {}.type
+            val typeToken = object : TypeToken<List<CustomLocationDoubleTimestamp>>() {}.type
             val cachedData =
-                cacheService.getCachedData<List<SimpleLocation>>("location-buffer", typeToken)
+                cacheService.getCachedData<List<CustomLocationDoubleTimestamp>>(
+                    "location-buffer",
+                    typeToken
+                )
 
             if (cachedData != null && cachedData.isNotEmpty()) {
                 bufferMutex.withLock {
                     locationBuffer.addAll(cachedData)
                 }
-                cacheService.saveToCache("location-buffer", "0", emptyList<SimpleLocation>())
+                cacheService.saveToCache(
+                    "location-buffer",
+                    "0",
+                    emptyList<CustomLocationDoubleTimestamp>()
+                )
             }
 
             locationClient.getLocationFlow()
                 .collect { androidLocation ->
                     if (consecutiveFailedSendBatchData >= 3) {
-                        if (ServiceStateManager.currentState.value == ExplorationState.RUNNING){
+                        if (ServiceStateManager.currentState.value == ExplorationState.RUNNING) {
                             ServiceStateManager.updateState(ExplorationState.SUSPENDED)
                             showConnectionLostAlert()
                         }
@@ -191,7 +204,7 @@ class LocationTrackingService : Service() {
                                 val actualDist = androidLocation.distanceTo(currentLast)
 
                                 if (actualDist <= maxDist) {
-                                    val simpleLoc = SimpleLocation(
+                                    val simpleLoc = CustomLocationDoubleTimestamp(
                                         androidLocation.latitude,
                                         androidLocation.longitude,
                                         androidLocation.time
@@ -201,7 +214,7 @@ class LocationTrackingService : Service() {
                                 }
                             }
                         } else {
-                            val simpleLoc = SimpleLocation(
+                            val simpleLoc = CustomLocationDoubleTimestamp(
                                 androidLocation.latitude,
                                 androidLocation.longitude,
                                 androidLocation.time
@@ -224,7 +237,7 @@ class LocationTrackingService : Service() {
     // Saves data during exploring
     private suspend fun sendBatchData() {
         val pointsToSend = bufferMutex.withLock {
-            if (locationBuffer.isEmpty()) return@withLock emptyList<SimpleLocation>()
+            if (locationBuffer.isEmpty()) return@withLock emptyList<CustomLocationDoubleTimestamp>()
             ArrayList(locationBuffer)
         }
 
@@ -238,14 +251,15 @@ class LocationTrackingService : Service() {
 
         try {
             val locationsDtos = pointsToSend.map { point ->
-                LocationDto(
+                CustomLocationStringTimestamp(
                     latitude = point.latitude,
                     longitude = point.longitude,
                     timestamp = format.format(Date(point.timestamp))
                 )
             }
 
-            uploadSuccess = hexagonRepository.postLocationBatch(PostLocationBatchDto(locationsDtos))
+            uploadSuccess =
+                hexagonRepository.postLocationBatch(PostLocationBatchRequestDto(locationsDtos))
         } catch (_: Exception) {
             consecutiveFailedSendBatchData++
         }
@@ -271,7 +285,7 @@ class LocationTrackingService : Service() {
         sendBatchData()
 
         val remainingPoints = bufferMutex.withLock {
-            if (locationBuffer.isEmpty()) return@withLock emptyList<SimpleLocation>()
+            if (locationBuffer.isEmpty()) return@withLock emptyList<CustomLocationDoubleTimestamp>()
             ArrayList(locationBuffer)
         }
 
@@ -333,8 +347,10 @@ class LocationTrackingService : Service() {
             .setContentTitle("Connection lost")
             .setContentText("Error while uploading data at $currentTime. Check internet access.")
             .setSmallIcon(R.drawable.baseline_explore_24)
-            .setStyle(NotificationCompat.BigTextStyle()
-                .bigText("Error while uploading data at $currentTime. Check internet access."))
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText("Error while uploading data at $currentTime. Check internet access.")
+            )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ERROR)
             .setContentIntent(pendingIntent)
@@ -346,9 +362,25 @@ class LocationTrackingService : Service() {
         notificationManager.notify(ALERT_NOTIFICATION_ID, notification)
     }
 
+    object ServiceStateManager {
+        private val _currentState = MutableStateFlow(ExplorationState.STOPPED)
+        val currentState = _currentState.asStateFlow()
+
+        fun updateState(newState: ExplorationState) {
+            _currentState.value = newState
+        }
+    }
+
+    enum class ExplorationState {
+        STOPPED,
+        RUNNING,
+        SUSPENDED
+    }
+
     companion object {
         var activeCity: String? = null
             private set
+
         const val LOCATION_CHANNEL_ID = "location_channel"
         const val ALERT_CHANNEL_ID = "alert_channel"
 
@@ -358,20 +390,5 @@ class LocationTrackingService : Service() {
         const val ACTION_STOP = "ACTION_STOP"
         const val ACTION_STOPPED_FROM_NOTIFICATION = "ACTION_STOPPED_FROM_NOTIF"
         const val EXTRA_CITY = "city"
-    }
-}
-
-enum class ExplorationState {
-    STOPPED,
-    RUNNING,
-    SUSPENDED
-}
-
-object ServiceStateManager {
-    private val _currentState = MutableStateFlow(ExplorationState.STOPPED)
-    val currentState = _currentState.asStateFlow()
-
-    fun updateState(newState: ExplorationState) {
-        _currentState.value = newState
     }
 }

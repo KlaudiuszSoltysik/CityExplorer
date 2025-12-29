@@ -8,12 +8,13 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.secrets.gradle.plugin)
-    id("org.jetbrains.kotlin.kapt")
+    alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
 }
 
 val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
+
 if (localPropertiesFile.exists()) {
     localProperties.load(FileInputStream(localPropertiesFile))
 }
@@ -25,6 +26,10 @@ fun getSecret(key: String): String {
 secrets {
     propertiesFileName = "secrets.properties"
     defaultPropertiesFileName = "local.defaults.properties"
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
 }
 
 android {
@@ -46,10 +51,6 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         val apiKey = getSecret("API_KEY")
         buildConfigField("String", "API_KEY", "\"$apiKey\"")
-    }
-
-    buildFeatures {
-        buildConfig = true
     }
 
     signingConfigs {
@@ -128,26 +129,24 @@ dependencies {
     implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.androidx.compose.ui.text)
     implementation(libs.androidx.compose.foundation)
-    implementation("com.google.android.gms:play-services-location:21.3.0")
-    implementation("androidx.credentials:credentials:1.5.0")
-    implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
-    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
-    implementation("androidx.security:security-crypto:1.1.0-alpha03")
-    implementation("com.google.code.gson:gson:2.13.2")
+    implementation(libs.play.services.location)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+    implementation(libs.androidx.security.crypto)
+    implementation(libs.gson)
     implementation(libs.hilt.android)
     implementation(libs.firebase.crashlytics.buildtools)
-    kapt(libs.hilt.compiler)
-    kapt("org.jetbrains.kotlin:kotlin-metadata-jvm:2.1.0")
-    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
-    testImplementation("io.mockk:mockk:1.14.7")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
-    testImplementation("com.google.truth:truth:1.4.5")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    implementation("io.reactivex.rxjava3:rxjava:3.1.8")
-    implementation("org.slf4j:slf4j-android:1.7.36")
-    implementation("com.microsoft.signalr:signalr:7.0.0")
-
+    ksp(libs.hilt.android.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
+    testImplementation(libs.junit.jupiter)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.truth)
+    testRuntimeOnly(libs.junit.platform.launcher)
+    implementation(libs.rxjava)
+    implementation(libs.slf4j.android)
+    implementation(libs.signalr)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -163,12 +162,4 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-}
-
-kapt {
-    correctErrorTypes = true
-}
-
-tasks.withType<Test> {
-    useJUnitPlatform()
 }

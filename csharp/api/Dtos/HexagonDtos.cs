@@ -1,70 +1,96 @@
-﻿namespace csharp.Dtos;
+﻿using System.Text.Json.Serialization;
 
-public class GetCountriesWithCitiesDto
+namespace csharp.Dtos;
+
+public class GetCountriesWithCitiesResponseDto
 {
-    public required string Country { get; init; }
-    public required List<string> Cities { get; set; }
+    [JsonPropertyName("country")] public required string Country { get; init; }
+
+    [JsonPropertyName("cities")] public required List<string> Cities { get; init; }
 }
 
-public class GetCityHexagonsDataDto
+public class GetHexagonsFromCityRequestDto
 {
-    public required List<double> Bbox { get; set; }
-    public List<HexagonsDto> Hexagons { get; set; } = [];
+    [JsonPropertyName("city")] public required string City { get; init; }
 }
 
-public class HexagonsDto
+public class GetHexagonsFromCityResponseDto
 {
-    public required string Id { get; set; }
-    public required List<List<double>> Boundaries { get; set; }
-    public required List<double> Center { get; set; }
-    public double Weight { get; set; }
+    [JsonPropertyName("bbox")] public required List<double> Bbox { get; init; }
+
+    [JsonPropertyName("hexagons")] public List<Hexagon> Hexagons { get; init; } = [];
 }
 
-public class GetPoisFromHexagonDto
+public class GetPoisFromHexagonRequestDto
 {
-    public required string Name { get; set; }
-    public required string Type { get; set; }
-    public required bool IsPromoted { get; set; }
+    [JsonPropertyName("hexagonId")] public required string HexagonId { get; init; }
 }
 
-public class LocationDto
+public class GetPoisFromHexagonResponseDto
 {
-    public double Latitude { get; set; }
-    public double Longitude { get; set; }
-    public DateTime Timestamp { get; set; }
+    [JsonPropertyName("name")] public required string Name { get; init; }
+
+    [JsonPropertyName("type")] public required string Type { get; init; }
+
+    [JsonPropertyName("isPromoted")] public required bool IsPromoted { get; init; }
 }
 
-public class PostLocationBatchDto
+public class PostLocationBatchRequestDto
 {
-    public required List<LocationDto> Locations { get; set; }
+    [JsonPropertyName("locations")] public required List<Location> Locations { get; init; }
 }
 
-public class HexagonProgressDto
+public class Location
 {
-    public string HexagonId { get; set; } = string.Empty;
-    public double Progress { get; set; }
+    [JsonPropertyName("latitude")] public double Latitude { get; init; }
+
+    [JsonPropertyName("longitude")] public double Longitude { get; init; }
+
+    [JsonPropertyName("timestamp")] public DateTime Timestamp { get; init; }
 }
 
-public class SyncResponseDto
+public class PostLocationBatchResponseDto
 {
-    public List<HexagonProgressDto>? UpdatedHexagons { get; set; }
-    public string? Token { get; set; }
+    [JsonPropertyName("updatedHexagons")] public List<HexagonProgress>? UpdatedHexagons { get; init; }
+
+    [JsonPropertyName("token")] public string? Token { get; init; }
+}
+
+public class HexagonProgress
+{
+    [JsonPropertyName("hexagonId")] public string HexagonId { get; init; } = string.Empty;
+
+    [JsonPropertyName("progress")] public double Progress { get; init; }
+}
+
+public class Hexagon
+{
+    [JsonPropertyName("id")] public required string Id { get; init; }
+
+    [JsonPropertyName("boundaries")] public required List<List<double>> Boundaries { get; init; }
+
+    [JsonPropertyName("center")] public required List<double> Center { get; init; }
+
+    [JsonPropertyName("weight")] public double Weight { get; init; }
 }
 
 public class GenerateRouteRequestDto
 {
-    public double UserLatitude { get; set; }
-    public double UserLongitude { get; set; }
-    public int Duration { get; set; }
+    [JsonPropertyName("userLatitude")] public double UserLatitude { get; init; }
+
+    [JsonPropertyName("userLongitude")] public double UserLongitude { get; init; }
+
+    [JsonPropertyName("duration")] public int Duration { get; init; }
 }
 
 public class GenerateRouteResponseDto
 {
-    public required string JobId { get; set; }
-    public string? Token { get; set; }
+    [JsonPropertyName("jobId")] public required string JobId { get; init; }
+
+    [JsonPropertyName("token")] public string? Token { get; init; }
 }
 
 public class WorkerResult
 {
-    public List<string> Route { get; set; } = [];
+    [JsonPropertyName("route")] public List<string> Route { get; init; } = [];
 }

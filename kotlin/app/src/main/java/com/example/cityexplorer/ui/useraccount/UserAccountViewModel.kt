@@ -2,27 +2,26 @@ package com.example.cityexplorer.ui.useraccount
 
 import android.content.Context
 import android.content.Intent
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cityexplorer.Screen
-import com.example.cityexplorer.data.dtos.GetUserStatisticsDto
+import com.example.cityexplorer.data.dtos.GetUserStatisticsResponseDto
 import com.example.cityexplorer.data.repositories.UserRepository
 import com.example.cityexplorer.data.util.LocationTrackingService
 import com.example.cityexplorer.data.util.TokenService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 sealed interface UserAccountUiState {
     data object Loading : UserAccountUiState
-    data class Success(val data: GetUserStatisticsDto): UserAccountUiState
+    data class Success(val data: GetUserStatisticsResponseDto) : UserAccountUiState
     data class Error(val message: String) : UserAccountUiState
 }
 
@@ -39,14 +38,14 @@ class UserAccountViewModel @Inject constructor(
 ) : ViewModel() {
     val city: String = savedStateHandle[Screen.Args.CITY] ?: ""
 
-    var uiState: UserAccountUiState by mutableStateOf(UserAccountUiState.Loading)
-        private set
+    private val _uiState = MutableStateFlow<UserAccountUiState>(UserAccountUiState.Loading)
+    val uiState = _uiState.asStateFlow()
 
     private val _uiEvent = Channel<UserAccountUiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
 
-    var isRefreshing: Boolean by mutableStateOf(false)
-        private set
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing = _isRefreshing.asStateFlow()
 
     init {
         loadData(false)
@@ -57,23 +56,25 @@ class UserAccountViewModel @Inject constructor(
     }
 
     private fun loadData(forceRefresh: Boolean) {
-        if (!forceRefresh) uiState = UserAccountUiState.Loading else isRefreshing = true
-
         viewModelScope.launch {
-           uiState = UserAccountUiState.Loading
+            if (!forceRefresh) {
+                _uiState.value = UserAccountUiState.Loading
+            } else {
+                _isRefreshing.value = true
+            }
 
             try {
                 userRepository.getUserStatistics(city)
                     .onSuccess { response ->
-                        uiState = UserAccountUiState.Success(response)
+                        _uiState.value = UserAccountUiState.Success(response)
                     }
                     .onFailure {
-                        uiState = UserAccountUiState.Error("Couldn't load data.")
+                        _uiState.value = UserAccountUiState.Error(it.message ?: "Unknown error.")
                     }
-            } catch (_: Exception) {
-                uiState = UserAccountUiState.Error("Couldn't load data.")
+            } catch (e: Exception) {
+                _uiState.value = UserAccountUiState.Error(e.message ?: "Unknown error.")
             } finally {
-                isRefreshing = false
+                _isRefreshing.value = false
             }
         }
     }

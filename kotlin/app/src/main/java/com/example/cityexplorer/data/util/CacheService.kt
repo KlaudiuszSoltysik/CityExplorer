@@ -37,6 +37,7 @@ class CacheService @Inject constructor(
     }
 
     private fun getVersionKey(baseKey: String) = "$baseKey.version"
+
     private fun getDataKey(baseKey: String) = "$baseKey.data"
 
     companion object {

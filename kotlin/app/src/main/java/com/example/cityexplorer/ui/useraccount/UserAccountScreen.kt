@@ -36,8 +36,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import com.example.cityexplorer.data.dtos.GetUserStatisticsDto
+import com.example.cityexplorer.data.dtos.GetUserStatisticsResponseDto
 import com.example.cityexplorer.ui.theme.CustomError
 import com.example.cityexplorer.ui.theme.CustomWarning
 import com.example.cityexplorer.ui.theme.CustomWhite
@@ -50,6 +51,9 @@ fun UserAccountScreen(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
 
     var lastBackPressTime by remember { mutableLongStateOf(0L) }
 
@@ -66,8 +70,8 @@ fun UserAccountScreen(
     }
 
     UserAccountContent(
-        uiState = viewModel.uiState,
-        isRefreshing = viewModel.isRefreshing,
+        uiState = uiState,
+        isRefreshing = isRefreshing,
         onRefresh = { viewModel.refreshData() },
         onLogoutButton = { viewModel.handleLogout() },
         onDeleteButton = {
@@ -79,7 +83,8 @@ fun UserAccountScreen(
             } else {
                 lastBackPressTime = currentTime
                 Toast.makeText(context, "Press again to delete account.", Toast.LENGTH_SHORT).show()
-            }},
+            }
+        },
         modifier = modifier,
     )
 }
@@ -103,6 +108,7 @@ fun UserAccountContent(
             is UserAccountUiState.Loading -> {
                 CircularProgressIndicator()
             }
+
             is UserAccountUiState.Success -> {
                 UserAccount(
                     data = uiState.data,
@@ -111,6 +117,7 @@ fun UserAccountContent(
                     modifier = Modifier.fillMaxSize()
                 )
             }
+
             is UserAccountUiState.Error -> {
                 ErrorMessage(
                     message = uiState.message,
@@ -123,7 +130,7 @@ fun UserAccountContent(
 
 @Composable
 fun UserAccount(
-    data: GetUserStatisticsDto,
+    data: GetUserStatisticsResponseDto,
     onLogoutButton: () -> Unit,
     onDeleteButton: () -> Unit,
     modifier: Modifier = Modifier
@@ -145,7 +152,10 @@ fun UserAccount(
         StatisticRow(label = "Exploring time", value = formatPlayTime(data.playTime))
         HorizontalDivider()
 
-        StatisticRow(label = "Hexagons discovered", value = "${data.progress} / ${data.hexagonCount}")
+        StatisticRow(
+            label = "Hexagons discovered",
+            value = "${data.progress} / ${data.hexagonCount}"
+        )
         HorizontalDivider()
 
         StatisticRow(label = "City explored", value = "${data.explored}%")

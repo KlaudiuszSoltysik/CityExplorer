@@ -1,101 +1,137 @@
 package com.example.cityexplorer.data.dtos
 
-import androidx.annotation.Keep
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-@Keep
-data class GetCountriesWithCitiesDto(
+data class GetCountriesWithCitiesResponseDto(
+    @SerialName("country")
     val country: String,
+
+    @SerialName("cities")
     val cities: List<String>
 )
 
 @Serializable
-@Keep
-data class GetCityHexagonsDataDto(
+data class GetHexagonsFromCityResponseDto(
+    @SerialName("bbox")
     val bbox: List<Double>,
-    val hexagons: List<HexagonsDto>
+
+    @SerialName("hexagons")
+    val hexagons: List<Hexagon> = emptyList()
 )
 
 @Serializable
-@Keep
-data class HexagonsDto(
-    val id: String,
-    val boundaries: List<List<Double>>,
-    val center: List<Double>,
-    val weight: Double,
-    val progress: Double = 0.0
-)
-
-@Serializable
-@Keep
-data class GetPoisFromHexagonDto(
+data class GetPoisFromHexagonResponseDto(
+    @SerialName("name")
     val name: String,
+
+    @SerialName("type")
     val type: String,
+
+    @SerialName("isPromoted")
     val isPromoted: Boolean
 )
 
 @Serializable
-@Keep
-data class SelectedHexagonDto(
-    val weight: Double = 0.0,
-    val pois: List<GetPoisFromHexagonDto> = emptyList()
+data class PostLocationBatchRequestDto(
+    @SerialName("locations")
+    val locations: List<CustomLocationStringTimestamp>
 )
 
 @Serializable
-@Keep
-data class LocationDto(
+data class CustomLocationStringTimestamp(
+    @SerialName("latitude")
     val latitude: Double,
+
+    @SerialName("longitude")
     val longitude: Double,
+
+    @SerialName("timestamp")
     val timestamp: String
 )
 
 @Serializable
-@Keep
-data class PostLocationBatchDto(
-    val locations: List<LocationDto>
-)
-
-
-@Serializable
-@Keep
-data class SyncResponseDto(
-    val updatedHexagons: List<HexagonProgressDto>,
-    val token: String?
-)
-
-@Serializable
-@Keep
-data class HexagonProgressDto(
-    val hexagonId: String,
-    val progress: Double
-)
-
-@Serializable
-@Keep
-data class SimpleLocation(
+data class CustomLocationDoubleTimestamp(
+    @SerialName("latitude")
     val latitude: Double,
+
+    @SerialName("longitude")
     val longitude: Double,
+
+    @SerialName("timestamp")
     val timestamp: Long
 )
 
 @Serializable
-@Keep
-data class GenerateRouteRequestDto(
-    val userLatitude: Double,
-    val userLongitude: Double,
-    val duration: Int
-)
+data class PostLocationBatchResponseDto(
+    @SerialName("updatedHexagons")
+    val updatedHexagons: List<HexagonProgress>?,
 
-@Serializable
-@Keep
-data class GenerateRouteResponseDto(
-    val jobId: String,
+    @SerialName("token")
     val token: String?
 )
 
 @Serializable
-@Keep
-data class WorkerResultDto(
-    val route: List<String>
+data class HexagonProgress(
+    @SerialName("hexagonId")
+    val hexagonId: String = "",
+
+    @SerialName("progress")
+    val progress: Double
+)
+
+@Serializable
+data class Hexagon(
+    @SerialName("id")
+    val id: String,
+
+    @SerialName("boundaries")
+    val boundaries: List<List<Double>>,
+
+    @SerialName("center")
+    val center: List<Double>,
+
+    @SerialName("weight")
+    val weight: Double,
+
+    @SerialName("progress")
+    val progress: Double = 0.0
+)
+
+@Serializable
+data class SelectedHexagon(
+    @SerialName("weight")
+    val weight: Double = 0.0,
+
+    @SerialName("pois")
+    val pois: List<GetPoisFromHexagonResponseDto> = emptyList()
+)
+
+
+@Serializable
+data class GenerateRouteRequestDto(
+    @SerialName("userLatitude")
+    val userLatitude: Double,
+
+    @SerialName("userLongitude")
+    val userLongitude: Double,
+
+    @SerialName("duration")
+    val duration: Int
+)
+
+@Serializable
+data class GenerateRouteResponseDto(
+    @SerialName("jobId")
+    val jobId: String,
+
+    @SerialName("token")
+    val token: String?
+)
+
+@Serializable
+data class WorkerResult(
+    @SerialName("route")
+    val route: List<String> = emptyList()
 )

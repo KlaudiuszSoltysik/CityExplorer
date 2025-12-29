@@ -75,8 +75,6 @@ services:
           memory: 256M
         reservations:
           memory: 128M
-      restart_policy:
-        condition: on-failure
     environment:
       - DOTNET_ENVIRONMENT=Production
       - ConnectionStrings__PostgresConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}

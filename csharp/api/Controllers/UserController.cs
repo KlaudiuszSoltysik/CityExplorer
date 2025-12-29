@@ -13,7 +13,7 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
 {
     // Handles Google Sign-In verification and creates a local application session
     [HttpPost("validate-login-token")]
-    public async Task<IActionResult> ValidateLoginToken([FromBody] string googleToken)
+    public async Task<IActionResult> ValidateLoginToken([FromBody] ValidateLoginTokenRequestDto requestDto)
     {
         try
         {
@@ -26,7 +26,7 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
                 }
             };
 
-            var googlePayload = await GoogleJsonWebSignature.ValidateAsync(googleToken, validationSettings);
+            var googlePayload = await GoogleJsonWebSignature.ValidateAsync(requestDto.GoogleToken, validationSettings);
             var userId = googlePayload.Subject;
 
             var newAppToken = JwtTokenService.CreateAppJwtToken(userId, googlePayload.Email, configuration);
@@ -64,7 +64,7 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
 
             await postgresContext.SaveChangesAsync();
 
-            return Ok(new LoginResponseDto
+            return Ok(new ValidateLoginTokenResponseDto
             {
                 IsSuccess = true,
                 Token = newAppToken
@@ -72,7 +72,7 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
         }
         catch (Exception)
         {
-            return Unauthorized(new LoginResponseDto { IsSuccess = false });
+            return Unauthorized("Invalid token or session expired.");
         }
     }
 
@@ -92,23 +92,19 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
             .FirstOrDefaultAsync(s => s.Token == token);
 
         if (session == null || session.ExpiresAt < DateTime.UtcNow)
-            return Ok(new AuthorizationResponseDto { IsAuthorized = false });
+            return Unauthorized("Invalid token or session expired.");
 
-        return Ok(new AuthorizationResponseDto
+        return Ok(new ValidateAuthorizationTokenResponseDto
         {
-            IsAuthorized = true,
-            UserDto = new GetUserResponseDto
-            {
-                Id = session.User.Id
-            }
+            Id = session.User.Id
         });
     }
 
-    // Returns user statistics
+    // Returns user statistics for given city
     [HttpGet("get-user-statistics")]
     public async Task<IActionResult> GetUserStatistics(
         [FromHeader(Name = "Authorization")] string authorization,
-        [FromQuery] string city)
+        [FromQuery] GetHexagonsFromCityRequestDto requestDto)
     {
         if (string.IsNullOrEmpty(authorization))
             return Unauthorized("Missing token.");
@@ -121,16 +117,16 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
             .FirstOrDefaultAsync(s => s.Token == token);
 
         if (session == null || session.ExpiresAt < DateTime.UtcNow)
-            return Ok(new AuthorizationResponseDto { IsAuthorized = false });
+            return Unauthorized("Invalid token or session expired.");
 
         var user = session.User;
 
         var userStatistics = await postgresContext
             .Set<UserCityProgress>()
-            .FirstOrDefaultAsync(u => u.UserId == user.Id && u.CityId == city);
+            .FirstOrDefaultAsync(u => u.UserId == user.Id && u.CityId == requestDto.City);
 
         if (userStatistics == null)
-            return Ok(new GetUserStatisticsDto
+            return Ok(new GetUserStatisticsResponseDto
             {
                 Explored = 0.0,
                 Progress = 0,
@@ -142,19 +138,19 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
             });
 
         var totalUsers = await postgresContext.Set<UserCityProgress>()
-            .CountAsync(x => x.CityId == city);
+            .CountAsync(x => x.CityId == requestDto.City);
 
         var betterPlayersCount = await postgresContext.Set<UserCityProgress>()
-            .CountAsync(x => x.CityId == city && x.Progress > userStatistics.Progress);
+            .CountAsync(x => x.CityId == requestDto.City && x.Progress > userStatistics.Progress);
 
         var hexagonCount = await postgresContext.Hexagons
-            .CountAsync(h => h.CityId == city);
+            .CountAsync(h => h.CityId == requestDto.City);
 
         var exploredSum = await postgresContext.Progresses
-            .Where(p => p.UserId == user.Id && p.Hexagon != null && p.Hexagon.CityId == city)
+            .Where(p => p.UserId == user.Id && p.Hexagon != null && p.Hexagon.CityId == requestDto.City)
             .SumAsync(p => p.Progress * p.Hexagon!.Weight);
 
-        return Ok(new GetUserStatisticsDto
+        return Ok(new GetUserStatisticsResponseDto
         {
             Explored = Math.Round(exploredSum * 100, 2, MidpointRounding.AwayFromZero),
             Progress = userStatistics.Progress,
@@ -185,7 +181,7 @@ public class UserController(PostgresContext postgresContext, IConfiguration conf
                 .FirstOrDefaultAsync(s => s.Token == token);
 
             if (session == null || session.ExpiresAt < DateTime.UtcNow)
-                return Unauthorized(new AuthorizationResponseDto { IsAuthorized = false });
+                return Unauthorized("Invalid token or session expired.");
 
             var user = session.User;
 

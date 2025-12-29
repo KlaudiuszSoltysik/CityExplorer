@@ -1,5 +1,7 @@
 ﻿using System.Net;
+using System.Net.Http.Json;
 using csharp;
+using csharp.Dtos;
 using csharp.Models;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
@@ -61,8 +63,9 @@ public class VersionControllerTests : IClassFixture<WebApplicationFactory<Progra
         var response = await client.GetAsync("/version/get-current-version?key=non-existent");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().Be("0");
+
+        var result = await response.Content.ReadFromJsonAsync<GetCurrentVersionResponseDto>();
+        result!.Version.Should().Be("0");
     }
 
     [Fact]
@@ -79,7 +82,7 @@ public class VersionControllerTests : IClassFixture<WebApplicationFactory<Progra
 
         var response = await client.GetAsync("/version/get-current-version?key=get-countries-with-cities");
 
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().Be("1");
+        var result = await response.Content.ReadFromJsonAsync<GetCurrentVersionResponseDto>();
+        result!.Version.Should().Be("1");
     }
 }

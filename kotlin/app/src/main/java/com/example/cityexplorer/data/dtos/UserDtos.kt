@@ -1,29 +1,49 @@
 package com.example.cityexplorer.data.dtos
 
-import androidx.annotation.Keep
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-@Keep
-data class LoginResponseDto(
+data class ValidateLoginTokenRequestDto(
+    @SerialName("googleToken")
+    val googleToken: String
+)
+
+@Serializable
+data class ValidateLoginTokenResponseDto(
+    @SerialName("isSuccess")
     val isSuccess: Boolean,
-    val token: String?
+
+    @SerialName("token")
+    val token: String
 )
 
 @Serializable
-@Keep
-data class GetUserResponseDto(
-    val isAuthorized: Boolean
+data class ValidateAuthorizationTokenResponseDto(
+    @SerialName("id")
+    val id: String = ""
 )
 
 @Serializable
-@Keep
-data class GetUserStatisticsDto(
+data class GetUserStatisticsResponseDto(
+    @SerialName("explored")
     val explored: Double,
+
+    @SerialName("progress")
     val progress: Int,
+
+    @SerialName("hexagonCount")
     val hexagonCount: Int,
+
+    @SerialName("playTime")
     val playTime: Int,
+
+    @SerialName("distance")
     val distance: Int,
+
+    @SerialName("ranking")
     val ranking: Int,
+
+    @SerialName("userCount")
     val userCount: Int
 )

@@ -21,10 +21,10 @@ public class HexagonController(
     [HttpGet("get-countries-with-cities")]
     public async Task<IActionResult> GetCountriesWithCities()
     {
-        var countriesData = await postgresContext.Cities
+        var responseDto = await postgresContext.Cities
             .AsNoTracking()
             .GroupBy(c => c.Country)
-            .Select(g => new GetCountriesWithCitiesDto
+            .Select(g => new GetCountriesWithCitiesResponseDto
             {
                 Country = g.Key,
                 Cities = g.Select(c => c.City)
@@ -34,27 +34,27 @@ public class HexagonController(
             .OrderBy(d => d.Country)
             .ToListAsync();
 
-        return Ok(countriesData);
+        return Ok(responseDto);
     }
 
     // Fetch full hexagon data for a specific city
     [HttpGet("get-hexagons-from-city")]
-    public async Task<IActionResult> GetHexagonsFromCity([FromQuery] string city)
+    public async Task<IActionResult> GetHexagonsFromCity([FromQuery] GetHexagonsFromCityRequestDto requestDto)
     {
         var hexagonsData = await postgresContext.Hexagons
             .AsNoTracking()
             .Include(h => h.City)
-            .Where(h => h.City.City == city)
+            .Where(h => h.City.City == requestDto.City)
             .ToListAsync();
 
         if (hexagonsData.Count == 0) return NotFound("City or hexagons data not found.");
 
         var cityBbox = hexagonsData[0].City.Bbox;
 
-        var resultDto = new GetCityHexagonsDataDto
+        var responseDto = new GetHexagonsFromCityResponseDto
         {
             Bbox = cityBbox,
-            Hexagons = hexagonsData.Select(h => new HexagonsDto
+            Hexagons = hexagonsData.Select(h => new Hexagon
             {
                 Id = h.Id,
                 Boundaries = h.Boundaries,
@@ -63,21 +63,21 @@ public class HexagonController(
             }).ToList()
         };
 
-        return Ok(resultDto);
+        return Ok(responseDto);
     }
 
     // Fetch randomized/promoted POIs for a specific hexagon
     [HttpGet("get-pois-from-hexagon")]
-    public async Task<IActionResult> GetPoisFromHexagon([FromQuery] string hexagonId)
+    public async Task<IActionResult> GetPoisFromHexagon([FromQuery] GetPoisFromHexagonRequestDto requestDto)
     {
-        var poisData = await postgresContext.Pois
+        var responseDto = await postgresContext.Pois
             .AsNoTracking()
-            .Where(p => p.HexagonId == hexagonId)
+            .Where(p => p.HexagonId == requestDto.HexagonId)
             .Where(p => p.Name != null && p.Name.Length >= 2)
             .OrderByDescending(p => p.IsPromoted)
             .ThenBy(r => EF.Functions.Random())
             .Take(3)
-            .Select(p => new GetPoisFromHexagonDto
+            .Select(p => new GetPoisFromHexagonResponseDto
             {
                 Name = p.Name ?? string.Empty,
                 Type = p.PoiType,
@@ -85,18 +85,18 @@ public class HexagonController(
             })
             .ToListAsync();
 
-        return Ok(poisData);
+        return Ok(responseDto);
     }
 
     // Saves batch locations to database and returns progress
     [HttpPost("post-location-batch")]
     public async Task<IActionResult> PostLocationBatch(
         [FromHeader(Name = "Authorization")] string authorization,
-        [FromBody] PostLocationBatchDto postLocationBatchDto)
+        [FromBody] PostLocationBatchRequestDto requestDto)
     {
         const int h3Res = 9;
 
-        if (postLocationBatchDto.Locations.Count == 0) return BadRequest("No locations provided.");
+        if (requestDto.Locations.Count == 0) return BadRequest("No locations provided.");
 
         if (string.IsNullOrEmpty(authorization))
             return Unauthorized("Missing token.");
@@ -127,7 +127,7 @@ public class HexagonController(
             session.ExpiresAt = DateTime.UtcNow.AddDays(30);
         }
 
-        var sortedLocationsWithHexagonId = postLocationBatchDto.Locations
+        var sortedLocationsWithHexagonId = requestDto.Locations
             .OrderBy(l => l.Timestamp)
             .Select(l =>
             {
@@ -154,7 +154,7 @@ public class HexagonController(
             .Where(x => hexagonDataMap.ContainsKey(x.HexagonId))
             .ToList();
 
-        if (locationsInSupportedArea.Count == 0) return Ok(new { updatedHexagons = new List<HexagonProgressDto>() });
+        if (locationsInSupportedArea.Count == 0) return Ok(new { updatedHexagons = new List<HexagonProgress>() });
 
         var firstLocationHexId = locationsInSupportedArea[0].HexagonId;
         var targetCityId = hexagonDataMap[firstLocationHexId].CityId;
@@ -201,7 +201,7 @@ public class HexagonController(
             .Where(u => u.UserId == userId && affectedHexagonIds.Contains(u.HexagonId))
             .ToListAsync();
 
-        var changesToReturn = new List<HexagonProgressDto>();
+        var changesToReturn = new List<HexagonProgress>();
 
         var newlyDiscoveredCount = 0;
 
@@ -235,7 +235,7 @@ public class HexagonController(
 
             if (!wasAlreadyFinished && record.Progress >= 1.0) newlyDiscoveredCount++;
 
-            changesToReturn.Add(new HexagonProgressDto
+            changesToReturn.Add(new HexagonProgress
             {
                 HexagonId = hexagonId,
                 Progress = record.Progress
@@ -265,7 +265,7 @@ public class HexagonController(
 
         await postgresContext.SaveChangesAsync();
 
-        return Ok(new SyncResponseDto
+        return Ok(new PostLocationBatchResponseDto
         {
             UpdatedHexagons = changesToReturn,
             Token = newRefreshedToken
@@ -276,7 +276,7 @@ public class HexagonController(
     [HttpGet("get-hexagon-progresses")]
     public async Task<IActionResult> GetHexagonProgresses(
         [FromHeader(Name = "Authorization")] string authorization,
-        [FromQuery] string city)
+        [FromQuery] GetHexagonsFromCityRequestDto requestDto)
     {
         if (string.IsNullOrEmpty(authorization))
             return Unauthorized("Missing token.");
@@ -293,23 +293,23 @@ public class HexagonController(
 
         var user = session.User;
 
-        var progresses = await postgresContext.Progresses
+        var responseDto = await postgresContext.Progresses
             .AsNoTracking()
-            .Where(p => p.UserId == user.Id && p.Hexagon != null && p.Hexagon.City.City == city)
-            .Select(p => new HexagonProgressDto
+            .Where(p => p.UserId == user.Id && p.Hexagon != null && p.Hexagon.City.City == requestDto.City)
+            .Select(p => new HexagonProgress
             {
                 HexagonId = p.HexagonId.ToString(),
                 Progress = p.Progress
             })
             .ToListAsync();
 
-        return Ok(progresses);
+        return Ok(responseDto);
     }
 
     [HttpPost("generate-route")]
     public async Task<IActionResult> GenerateRoute(
         [FromHeader(Name = "Authorization")] string authorization,
-        [FromBody] GenerateRouteRequestDto generateRouteRequestDto)
+        [FromBody] GenerateRouteRequestDto requestDto)
     {
         if (string.IsNullOrEmpty(authorization))
             return Unauthorized("Missing token.");
@@ -346,9 +346,9 @@ public class HexagonController(
         {
             JobId = jobId,
             UserId = user.Id,
-            generateRouteRequestDto.UserLatitude,
-            generateRouteRequestDto.UserLongitude,
-            generateRouteRequestDto.Duration,
+            requestDto.UserLatitude,
+            requestDto.UserLongitude,
+            requestDto.Duration,
             CreatedAt = DateTime.UtcNow
         };
 

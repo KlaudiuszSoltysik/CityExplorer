@@ -11,48 +11,51 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.example.cityexplorer.ui.theme.CustomBlack
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Icon
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.sp
-import com.example.cityexplorer.R
-import com.example.cityexplorer.ui.theme.CustomWhite
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.cityexplorer.R
+import com.example.cityexplorer.ui.theme.CustomBlack
+import com.example.cityexplorer.ui.theme.CustomWhite
 
 @Composable
 fun LoginScreen(
-    modifier: Modifier = Modifier,
     onNavigateToNextScreen: () -> Unit,
+    modifier: Modifier = Modifier,
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val uiState = viewModel.uiState
+
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     // Handle one-off UI side effects
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.uiEvent.collect { event ->
                 when (event) {
-                    is LoginUiEvent.ShowError -> {
+                    is LoginUiEvent.ShowToast -> {
                         Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
                     }
                 }
@@ -62,18 +65,18 @@ fun LoginScreen(
 
     LoginContent(
         uiState = uiState,
-        modifier = modifier,
         onLoginClick = {
             viewModel.onSignInClick(context, onNavigateToNextScreen)
-        }
+        },
+        modifier = modifier
     )
 }
 
 @Composable
 private fun LoginContent(
     uiState: LoginUiState,
-    modifier: Modifier,
-    onLoginClick: () -> Unit
+    onLoginClick: () -> Unit,
+    modifier: Modifier
 ) {
     Box(
         modifier = modifier.fillMaxSize(),
@@ -83,6 +86,7 @@ private fun LoginContent(
             is LoginUiState.Loading -> {
                 CircularProgressIndicator(color = CustomWhite)
             }
+
             is LoginUiState.Waiting -> {
                 LoginForm(
                     onLoginClick = onLoginClick
@@ -94,8 +98,8 @@ private fun LoginContent(
 
 @Composable
 private fun LoginForm(
-    modifier: Modifier = Modifier,
-    onLoginClick: () -> Unit
+    onLoginClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier.padding(16.dp),
@@ -121,8 +125,8 @@ private fun LoginForm(
 
 @Composable
 private fun GoogleLoginButton(
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Button(
         onClick = onClick,

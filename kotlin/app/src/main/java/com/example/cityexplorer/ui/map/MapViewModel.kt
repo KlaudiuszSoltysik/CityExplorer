@@ -1,18 +1,17 @@
 package com.example.cityexplorer.ui.map
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
-import com.example.cityexplorer.data.repositories.HexagonRepository
-import kotlinx.coroutines.launch
 import android.location.Location
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.cityexplorer.Screen
-import com.example.cityexplorer.data.dtos.HexagonProgressDto
-import com.example.cityexplorer.data.dtos.SelectedHexagonDto
+import com.example.cityexplorer.data.dtos.GetHexagonsFromCityResponseDto
+import com.example.cityexplorer.data.dtos.HexagonProgress
+import com.example.cityexplorer.data.dtos.SelectedHexagon
+import com.example.cityexplorer.data.dtos.WorkerResult
+import com.example.cityexplorer.data.repositories.HexagonRepository
 import com.example.cityexplorer.data.repositories.UserRepository
-import com.example.cityexplorer.data.util.ExplorationState
-import com.example.cityexplorer.data.util.ServiceStateManager
+import com.example.cityexplorer.data.util.LocationTrackingService
 import com.example.cityexplorer.data.util.TokenService
 import com.example.cityexplorer.data.util.getLocationFlow
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -23,12 +22,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
-import com.example.cityexplorer.data.dtos.WorkerResultDto
 
 sealed interface MapUiState {
     data object Loading : MapUiState
-    data class Success(val cityHexagonsDataDto: GetCityHexagonsDataDto) : MapUiState
+    data class Success(val data: GetHexagonsFromCityResponseDto) : MapUiState
     data class Error(val message: String) : MapUiState
 }
 
@@ -46,16 +45,16 @@ data class MapScreenState(
     val isExplorerButtonLoading: Boolean = false,
     val isUserAccountButtonLoading: Boolean = false,
     val userLocation: Location? = null,
-    val explorationState: ExplorationState = ExplorationState.STOPPED,
+    val explorationState: LocationTrackingService.ExplorationState = LocationTrackingService.ExplorationState.STOPPED,
     val arePermissionsGranted: Boolean = false,
-    val selectedHexagonPois: SelectedHexagonDto? = null,
-    val route: WorkerResultDto? = null
+    val selectedHexagonPois: SelectedHexagon? = null,
+    val route: WorkerResult? = null
 ) {
     val isUserInCity: Boolean
         get() {
             val location = userLocation ?: return false
             val successState = dataState as? MapUiState.Success ?: return false
-            val bbox = successState.cityHexagonsDataDto.bbox
+            val bbox = successState.data.bbox
 
             if (bbox.size < 4) {
                 return false
@@ -87,7 +86,7 @@ class MapViewModel @Inject constructor(
     // Initializes view model and starts location tracking if service is active
     init {
         viewModelScope.launch {
-            ServiceStateManager.currentState
+            LocationTrackingService.ServiceStateManager.currentState
                 .collect { realServiceState ->
                     _state.update {
                         it.copy(
@@ -144,7 +143,7 @@ class MapViewModel @Inject constructor(
 
     // Stop location tracking service
     fun onServiceStoppedExternal() {
-        _state.update { it.copy(explorationState = ExplorationState.STOPPED) }
+        _state.update { it.copy(explorationState = LocationTrackingService.ExplorationState.STOPPED) }
     }
 
     // Toggles the exploration mode after validating requirements
@@ -165,8 +164,8 @@ class MapViewModel @Inject constructor(
                 return@launch
             }
 
-            val currentRealState = ServiceStateManager.currentState.value
-            if (currentRealState != ExplorationState.STOPPED) {
+            val currentRealState = LocationTrackingService.ServiceStateManager.currentState.value
+            if (currentRealState != LocationTrackingService.ExplorationState.STOPPED) {
                 _uiEvent.send(MapUiEvent.ToggleLocationTrackingService(false))
                 return@launch
             }
@@ -176,13 +175,6 @@ class MapViewModel @Inject constructor(
                 _uiEvent.send(MapUiEvent.ToggleLocationTrackingService(true))
 
                 userRepository.getLoggedUser()
-                    .onSuccess { response ->
-                        if (!response.isAuthorized) {
-                            _uiEvent.send(MapUiEvent.ToggleLocationTrackingService(false))
-
-                            handleLogout()
-                        }
-                    }
                     .onFailure {
                         _uiEvent.send(MapUiEvent.ToggleLocationTrackingService(false))
 
@@ -214,8 +206,8 @@ class MapViewModel @Inject constructor(
             }
 
             _state.update { it.copy(dataState = MapUiState.Success(data)) }
-        } catch (_: Exception) {
-            _state.update { it.copy(dataState = MapUiState.Error("Couldn't load data. Check internet connection.")) }
+        } catch (e: Exception) {
+            _state.update { it.copy(dataState = MapUiState.Error(e.message ?: "Unknown error.")) }
         } finally {
             _state.update { it.copy(isRefreshing = false) }
         }
@@ -241,7 +233,7 @@ class MapViewModel @Inject constructor(
                 try {
                     _state.update {
                         it.copy(
-                            selectedHexagonPois = SelectedHexagonDto(
+                            selectedHexagonPois = SelectedHexagon(
                                 weight = hexagonWeight,
                                 pois = emptyList()
                             )
@@ -252,26 +244,26 @@ class MapViewModel @Inject constructor(
 
                     _state.update {
                         it.copy(
-                            selectedHexagonPois = SelectedHexagonDto(
+                            selectedHexagonPois = SelectedHexagon(
                                 weight = hexagonWeight,
                                 pois = pois
                             )
                         )
                     }
-                } catch (_: Exception) {
-                    _uiEvent.send(MapUiEvent.ShowToast("Failed to load POIs."))
+                } catch (e: Exception) {
+                    _uiEvent.send(MapUiEvent.ShowToast(e.message ?: "Unknown error."))
                 }
             }
         }
     }
 
     // Updates state with new progresses
-    private fun applyProgressUpdatesToState(updates: List<HexagonProgressDto>) {
+    private fun applyProgressUpdatesToState(updates: List<HexagonProgress>) {
         val currentUiState = state.value.dataState
 
         if (currentUiState is MapUiState.Success) {
             val updatesMap = updates.associate { it.hexagonId to it.progress }
-            val currentCityData = currentUiState.cityHexagonsDataDto
+            val currentCityData = currentUiState.data
 
             val updatedHexagons = currentCityData.hexagons.map { hexagon ->
                 if (updatesMap.containsKey(hexagon.id)) {
@@ -284,7 +276,7 @@ class MapViewModel @Inject constructor(
             _state.update {
                 it.copy(
                     dataState = MapUiState.Success(
-                        cityHexagonsDataDto = currentCityData.copy(
+                        data = currentCityData.copy(
                             hexagons = updatedHexagons
                         )
                     )
@@ -301,11 +293,14 @@ class MapViewModel @Inject constructor(
                     .collect { location ->
                         _state.update { it.copy(userLocation = location) }
                     }
-            } catch (_: SecurityException) {
-                _state.update { it.copy(dataState = MapUiState.Error("Missing location permissions."))
+            } catch (e: SecurityException) {
+                _state.update {
+                    it.copy(
+                        dataState = MapUiState.Error(
+                            e.message ?: "Unknown error."
+                        )
+                    )
                 }
-            } catch (_: Exception) {
-                _state.update { it.copy(dataState = MapUiState.Error("Location error.")) }
             }
         }
     }
@@ -316,12 +311,8 @@ class MapViewModel @Inject constructor(
             _state.update { it.copy(isUserAccountButtonLoading = true) }
 
             userRepository.getLoggedUser()
-                .onSuccess { response ->
-                    if (response.isAuthorized) {
-                        _uiEvent.send(MapUiEvent.NavigateToUserAccount)
-                    } else {
-                        handleLogout()
-                    }
+                .onSuccess {
+                    _uiEvent.send(MapUiEvent.NavigateToUserAccount)
                 }
                 .onFailure {
                     handleLogout()
@@ -331,10 +322,12 @@ class MapViewModel @Inject constructor(
         }
     }
 
-    fun handleNewRoute(route: WorkerResultDto) {
+    // Handles new route from server by saving it to state
+    fun handleNewRoute(route: WorkerResult) {
         _state.update { it.copy(route = route) }
     }
 
+    // Clears route from state
     fun clearRoute() {
         _state.update { it.copy(route = null) }
     }

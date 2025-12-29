@@ -86,7 +86,7 @@ jobs:
           path: kotlin/app/build/outputs/apk/release/app-release.apk
 
       - name: Update GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: kotlin/app/build/outputs/apk/release/app-release.apk
           name: "v1.0.0"

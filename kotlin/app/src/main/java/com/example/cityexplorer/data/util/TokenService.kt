@@ -1,29 +1,45 @@
 package com.example.cityexplorer.data.util
 
 import android.content.Context
+import android.content.SharedPreferences
+import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class TokenService @Inject constructor(
-    @ApplicationContext context: Context
+    @ApplicationContext val context: Context
 ) {
-    private val sharedPreferences by lazy {
-        val masterKey = MasterKey.Builder(context)
+    private val masterKey by lazy {
+        MasterKey.Builder(context)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
+    }
 
-        EncryptedSharedPreferences.create(
+    private val sharedPreferences: SharedPreferences by lazy {
+        try {
+            createEncryptedPrefs()
+        } catch (_: Exception) {
+            deleteSharedPreferences()
+            createEncryptedPrefs()
+        }
+    }
+
+    private fun createEncryptedPrefs(): SharedPreferences {
+        return EncryptedSharedPreferences.create(
             context,
             PREFS_FILENAME,
             masterKey,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
+    }
+
+    private fun deleteSharedPreferences() {
+        context.deleteSharedPreferences(PREFS_FILENAME)
     }
 
     fun saveToken(token: String) {
