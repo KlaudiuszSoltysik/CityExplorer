@@ -34,20 +34,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.cityexplorer.data.dtos.GetCountriesWithCitiesDto
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.cityexplorer.data.dtos.GetCountriesWithCitiesResponseDto
 
 @Composable
 fun CitySelectorScreen(
-    modifier: Modifier = Modifier,
     onNavigateToMapScreen: (city: String) -> Unit,
+    modifier: Modifier = Modifier,
     viewModel: CitySelectorViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+
     CitySelectorContent(
-        uiState = viewModel.uiState,
-        isRefreshing = viewModel.isRefreshing,
-        modifier = modifier,
+        uiState = uiState,
+        isRefreshing = isRefreshing,
         onRefresh = { viewModel.refreshData() },
-        onCityClick = onNavigateToMapScreen
+        onCityClick = onNavigateToMapScreen,
+        modifier = modifier
     )
 }
 
@@ -55,9 +59,9 @@ fun CitySelectorScreen(
 fun CitySelectorContent(
     uiState: CitySelectorUiState,
     isRefreshing: Boolean,
-    modifier: Modifier = Modifier,
     onRefresh: () -> Unit,
-    onCityClick: (String) -> Unit
+    onCityClick: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     PullToRefreshBox(
         isRefreshing = isRefreshing,
@@ -69,13 +73,15 @@ fun CitySelectorContent(
             is CitySelectorUiState.Loading -> {
                 CircularProgressIndicator()
             }
+
             is CitySelectorUiState.Success -> {
                 CountriesList(
-                    countries = uiState.countriesWithCities,
-                    modifier = Modifier.fillMaxSize(),
-                    onCityClick = onCityClick
+                    countries = uiState.data,
+                    onCityClick = onCityClick,
+                    modifier = Modifier.fillMaxSize()
                 )
             }
+
             is CitySelectorUiState.Error -> {
                 ErrorMessage(
                     message = uiState.message,
@@ -88,18 +94,18 @@ fun CitySelectorContent(
 
 @Composable
 fun CountriesList(
-    countries: List<GetCountriesWithCitiesDto>,
-    modifier: Modifier = Modifier,
-    onCityClick: (String) -> Unit
+    countries: List<GetCountriesWithCitiesResponseDto>,
+    onCityClick: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     LazyColumn(
         modifier = modifier.padding(16.dp)
     ) {
-        items(countries) { dto ->
+        items(countries) { country ->
             CountryItem(
-                dto = dto,
-                modifier = Modifier.fillMaxWidth(),
-                onCityClick = onCityClick
+                country = country,
+                onCityClick = onCityClick,
+                modifier = Modifier.fillMaxWidth()
             )
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
         }
@@ -108,9 +114,9 @@ fun CountriesList(
 
 @Composable
 fun CountryItem(
-    dto: GetCountriesWithCitiesDto,
-    modifier: Modifier = Modifier,
-    onCityClick: (String) -> Unit
+    country: GetCountriesWithCitiesResponseDto,
+    onCityClick: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -126,7 +132,7 @@ fun CountryItem(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = dto.country,
+                text = country.country,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -138,11 +144,12 @@ fun CountryItem(
 
         if (expanded) {
             Column {
-                dto.cities.forEach { city ->
+                country.cities.forEach { city ->
                     Text(
                         text = city,
                         style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
                             .clickable(onClick = {
                                 onCityClick(city)
                             })

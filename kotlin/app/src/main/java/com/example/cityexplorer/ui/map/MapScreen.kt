@@ -1,89 +1,88 @@
 package com.example.cityexplorer.ui.map
 
 import android.Manifest
-import android.content.pm.PackageManager
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
-import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
-import com.example.cityexplorer.ui.theme.CustomBlack
-import com.example.cityexplorer.ui.theme.CustomWhite
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.LatLngBounds
-import com.google.android.gms.maps.model.MapStyleOptions
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapProperties
-import com.google.maps.android.compose.MapUiSettings
-import com.google.maps.android.compose.Polygon
-import com.google.maps.android.compose.rememberCameraPositionState
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import androidx.compose.runtime.DisposableEffect
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.repeatOnLifecycle
-import com.example.cityexplorer.data.util.LocationTrackingService
-import com.example.cityexplorer.R
+import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.LocationSearching
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Route
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.cityexplorer.data.dtos.SelectedHexagonDto
-import com.example.cityexplorer.data.dtos.WorkerResultDto
-import com.example.cityexplorer.data.util.ExplorationState
+import androidx.lifecycle.repeatOnLifecycle
+import com.example.cityexplorer.R
+import com.example.cityexplorer.data.dtos.GetHexagonsFromCityResponseDto
+import com.example.cityexplorer.data.dtos.SelectedHexagon
+import com.example.cityexplorer.data.dtos.WorkerResult
+import com.example.cityexplorer.data.util.LocationTrackingService
 import com.example.cityexplorer.ui.generateroute.GenerateRouteDialog
+import com.example.cityexplorer.ui.theme.CustomBlack
 import com.example.cityexplorer.ui.theme.CustomError
 import com.example.cityexplorer.ui.theme.CustomSuccess
 import com.example.cityexplorer.ui.theme.CustomWarning
+import com.example.cityexplorer.ui.theme.CustomWhite
 import com.example.cityexplorer.ui.theme.Tertiary
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
+import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.CameraMoveStartedReason
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.Polygon
+import com.google.maps.android.compose.rememberCameraPositionState
 
 @Composable
 fun MapScreen(
@@ -111,7 +110,8 @@ fun MapScreen(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val isFineLocationGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
-        val isCoarseLocationGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        val isCoarseLocationGranted =
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         val isNotificationGranted = permissions[Manifest.permission.POST_NOTIFICATIONS] == true
 
         val isGranted = isFineLocationGranted && isNotificationGranted
@@ -145,16 +145,20 @@ fun MapScreen(
                     is MapUiEvent.ToggleLocationTrackingService -> {
                         toggleLocalizationService(event.shouldStart)
                     }
+
                     is MapUiEvent.NavigateToLogin -> {
                         toggleLocalizationService(false)
                         onNavigateToLogin()
                     }
+
                     is MapUiEvent.NavigateToUserAccount -> {
                         onNavigateToUserAccount(viewModel.city)
                     }
+
                     is MapUiEvent.ShowToast -> {
                         Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
                     }
+
                     is MapUiEvent.RequestPermissions -> {
                         val permissionsToRequest = mutableListOf<String>()
 
@@ -171,9 +175,18 @@ fun MapScreen(
 
     // Initial checks
     LaunchedEffect(Unit) {
-        val hasFineLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        val hasNotification = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        val hasFineLocation = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        val hasNotification = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
 
         viewModel.updatePermissionStatus(hasFineLocation && hasNotification)
     }
@@ -188,7 +201,12 @@ fun MapScreen(
             }
         }
         val filter = IntentFilter(LocationTrackingService.ACTION_STOPPED_FROM_NOTIFICATION)
-        ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+        ContextCompat.registerReceiver(
+            context,
+            receiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
 
         onDispose {
             context.unregisterReceiver(receiver)
@@ -213,11 +231,13 @@ fun MapScreen(
     MapScreenContent(
         state = state,
         selectedHexagonId = selectedHexagonId,
-        modifier = modifier,
-        onRefresh = { viewModel.refreshData() },
         onExplorerToggle = { viewModel.onExplorerToggleClick() },
         onHexagonClick = { id, weight ->
-            selectedHexagonId = if (selectedHexagonId == id) { null } else { id }
+            selectedHexagonId = if (selectedHexagonId == id) {
+                null
+            } else {
+                id
+            }
 
             viewModel.getPoisFromHexagon(selectedHexagonId, weight)
         },
@@ -225,10 +245,12 @@ fun MapScreen(
             viewModel.getPoisFromHexagon(null, null)
             selectedHexagonId = null
         },
-        onUserAccountButtonClick = { viewModel.onUserAccountButtonClick() },
+        onRefresh = { viewModel.refreshData() },
         handleNewRoute = { route -> viewModel.handleNewRoute(route) },
         clearRoute = { viewModel.clearRoute() },
-        onNavigateToLogin = { onNavigateToLogin() }
+        onNavigateToLogin = { onNavigateToLogin() },
+        onUserAccountButtonClick = { viewModel.onUserAccountButtonClick() },
+        modifier = modifier
     )
 }
 
@@ -236,15 +258,15 @@ fun MapScreen(
 fun MapScreenContent(
     state: MapScreenState,
     selectedHexagonId: String?,
-    modifier: Modifier = Modifier,
-    onRefresh: () -> Unit,
     onExplorerToggle: () -> Unit,
     onHexagonClick: (String, Double) -> Unit,
     onMyLocationClick: () -> Unit,
-    onUserAccountButtonClick: () -> Unit,
-    handleNewRoute: (WorkerResultDto) -> Unit,
+    onRefresh: () -> Unit,
+    handleNewRoute: (WorkerResult) -> Unit,
     clearRoute: () -> Unit,
-    onNavigateToLogin: () -> Unit
+    onNavigateToLogin: () -> Unit,
+    onUserAccountButtonClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     PullToRefreshBox(
         isRefreshing = state.isRefreshing,
@@ -256,12 +278,12 @@ fun MapScreenContent(
             is MapUiState.Loading -> {
                 MapLoadingContent()
             }
+
             is MapUiState.Success -> {
                 MapSuccessContent(
-                    data = dataState.cityHexagonsDataDto,
+                    data = dataState.data,
                     state = state,
                     selectedHexagonId = selectedHexagonId,
-                    modifier = Modifier.fillMaxSize(),
                     onHexagonClick = onHexagonClick,
                     onMyLocationClick = onMyLocationClick,
                     onExplorerToggle = onExplorerToggle,
@@ -269,8 +291,10 @@ fun MapScreenContent(
                     handleNewRoute = handleNewRoute,
                     clearRoute = clearRoute,
                     onNavigateToLogin = onNavigateToLogin,
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
+
             is MapUiState.Error -> {
                 MapErrorContent(
                     message = dataState.message
@@ -282,17 +306,17 @@ fun MapScreenContent(
 
 @Composable
 private fun MapSuccessContent(
-    data: GetCityHexagonsDataDto,
+    data: GetHexagonsFromCityResponseDto,
     state: MapScreenState,
     selectedHexagonId: String?,
-    modifier: Modifier = Modifier,
     onHexagonClick: (String, Double) -> Unit,
     onMyLocationClick: () -> Unit,
     onExplorerToggle: () -> Unit,
     onUserAccountButtonClick: () -> Unit,
-    handleNewRoute: (WorkerResultDto) -> Unit,
+    handleNewRoute: (WorkerResult) -> Unit,
     clearRoute: () -> Unit,
-    onNavigateToLogin: () -> Unit
+    onNavigateToLogin: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     // Local state for generate route dialog
     var showGenerateRouteDialog by remember { mutableStateOf(false) }
@@ -331,7 +355,7 @@ private fun MapSuccessContent(
 @Composable
 fun HexagonMap(
     state: MapScreenState,
-    data: GetCityHexagonsDataDto,
+    data: GetHexagonsFromCityResponseDto,
     selectedHexagonId: String?,
     onHexagonClick: (String, Double) -> Unit,
     onMyLocationClick: () -> Unit
@@ -356,7 +380,9 @@ fun HexagonMap(
                 val sw = LatLng(data.bbox[0], data.bbox[1])
                 val ne = LatLng(data.bbox[2], data.bbox[3])
                 LatLngBounds(sw, ne)
-            } catch (_: Exception) { null }
+            } catch (_: Exception) {
+                null
+            }
         } else null
     }
 
@@ -370,7 +396,13 @@ fun HexagonMap(
     var shouldAnimateZoom by remember { mutableStateOf(false) }
     var visibleBounds by remember { mutableStateOf<LatLngBounds?>(null) }
 
-    val mapProperties = remember(state.isUserInCity, state.arePermissionsGranted, cityBounds, isAutoTracking, isMapLoaded) {
+    val mapProperties = remember(
+        state.isUserInCity,
+        state.arePermissionsGranted,
+        cityBounds,
+        isAutoTracking,
+        isMapLoaded
+    ) {
         val activeBounds = if (isMapLoaded && !isAutoTracking) cityBounds else null
 
         MapProperties(
@@ -508,8 +540,8 @@ fun HexagonMap(
 @Composable
 private fun MapUiOverlays(
     isExplorerButtonLoading: Boolean,
-    hexagonPois: SelectedHexagonDto?,
-    explorationState: ExplorationState,
+    hexagonPois: SelectedHexagon?,
+    explorationState: LocationTrackingService.ExplorationState,
     isUserInCity: Boolean,
     arePermissionsGranted: Boolean,
     modifier: Modifier = Modifier,
@@ -529,12 +561,14 @@ private fun MapUiOverlays(
             )
         }
 
-        Column(modifier = Modifier
-            .align(Alignment.BottomStart)
-            .statusBarsPadding()
-            .padding(bottom = 16.dp, start = 16.dp))
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .statusBarsPadding()
+                .padding(bottom = 16.dp, start = 16.dp)
+        )
         {
-            if(isUserInCity) {
+            if (isUserInCity) {
                 FloatingActionButton(
                     modifier = Modifier,
                     onClick = { onShowGenerateRouteButtonClick() },
@@ -569,17 +603,17 @@ private fun MapUiOverlays(
             explorationState = explorationState,
             isUserInCity = isUserInCity,
             arePermissionsGranted = arePermissionsGranted,
+            onClick = onExplorerToggle,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 16.dp),
-            onClick = onExplorerToggle
+                .padding(bottom = 16.dp)
         )
     }
 }
 
 @Composable
 private fun HexagonInfoPanel(
-    hexagonPois: SelectedHexagonDto,
+    hexagonPois: SelectedHexagon,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -644,21 +678,23 @@ private fun PoiInfoItem(
 @Composable
 private fun ExplorerControlButton(
     isExplorerButtonLoading: Boolean,
-    explorationState: ExplorationState,
+    explorationState: LocationTrackingService.ExplorationState,
     isUserInCity: Boolean,
     arePermissionsGranted: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val containerColor = if (isUserInCity && arePermissionsGranted) {
         when (explorationState) {
-            ExplorationState.RUNNING -> {
+            LocationTrackingService.ExplorationState.RUNNING -> {
                 CustomError
             }
-            ExplorationState.SUSPENDED -> {
+
+            LocationTrackingService.ExplorationState.SUSPENDED -> {
                 CustomWarning
             }
-            ExplorationState.STOPPED -> {
+
+            LocationTrackingService.ExplorationState.STOPPED -> {
                 CustomSuccess
             }
         }
@@ -677,17 +713,21 @@ private fun ExplorerControlButton(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         modifier = modifier
     ) {
-        Text(text = when (explorationState) {
-            ExplorationState.RUNNING -> {
-                "Stop exploring"
+        Text(
+            text = when (explorationState) {
+                LocationTrackingService.ExplorationState.RUNNING -> {
+                    "Stop exploring"
+                }
+
+                LocationTrackingService.ExplorationState.SUSPENDED -> {
+                    "Exploration suspended"
+                }
+
+                LocationTrackingService.ExplorationState.STOPPED -> {
+                    "Start exploring"
+                }
             }
-            ExplorationState.SUSPENDED -> {
-                "Exploration suspended"
-            }
-            ExplorationState.STOPPED -> {
-                "Start exploring"
-            }
-        })
+        )
     }
 }
 

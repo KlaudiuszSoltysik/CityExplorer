@@ -33,8 +33,8 @@ public class AntColonyOptimizer
     // Pheromone decay coefficient (0.0-1.0). Prevents stagnation in local optima by reducing old trail intensity over time.
     private const double EvaporationRate = 0.1;
     private readonly Dictionary<string, GraphNode> _graph;
-    private readonly IH3Service _h3Service;
 
+    private readonly IH3Service _h3Service;
     private readonly AcoInput _input;
 
     // Shared memory for pheromone trails on edges. Key is "HexA-HexB".

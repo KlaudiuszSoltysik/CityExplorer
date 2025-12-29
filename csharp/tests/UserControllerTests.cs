@@ -81,9 +81,8 @@ public class UserControllerTests : IClassFixture<WebApplicationFactory<Program>>
         var response = await client.PostAsync("/user/get-logged-user", null);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<AuthorizationResponseDto>();
-        result!.IsAuthorized.Should().BeTrue();
-        result.UserDto!.Id.Should().Be("user-1");
+        var result = await response.Content.ReadFromJsonAsync<ValidateAuthorizationTokenResponseDto>();
+        result!.Id.Should().Be("user-1");
     }
 
     [Fact]
@@ -119,7 +118,7 @@ public class UserControllerTests : IClassFixture<WebApplicationFactory<Program>>
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", testToken);
         var response = await client.GetAsync($"/user/get-user-statistics?city={cityId}");
 
-        var stats = await response.Content.ReadFromJsonAsync<GetUserStatisticsDto>();
+        var stats = await response.Content.ReadFromJsonAsync<GetUserStatisticsResponseDto>();
         stats!.Ranking.Should().Be(2);
         stats.UserCount.Should().Be(2);
     }

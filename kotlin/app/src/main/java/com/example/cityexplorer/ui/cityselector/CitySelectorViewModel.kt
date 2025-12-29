@@ -1,19 +1,18 @@
 package com.example.cityexplorer.ui.cityselector
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.cityexplorer.data.dtos.GetCountriesWithCitiesDto
+import com.example.cityexplorer.data.dtos.GetCountriesWithCitiesResponseDto
 import com.example.cityexplorer.data.repositories.HexagonRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 sealed interface CitySelectorUiState {
     data object Loading : CitySelectorUiState
-    data class Success(val countriesWithCities: List<GetCountriesWithCitiesDto>) : CitySelectorUiState
+    data class Success(val data: List<GetCountriesWithCitiesResponseDto>) : CitySelectorUiState
     data class Error(val message: String) : CitySelectorUiState
 }
 
@@ -21,11 +20,11 @@ sealed interface CitySelectorUiState {
 class CitySelectorViewModel @Inject constructor(
     private val hexagonRepository: HexagonRepository
 ) : ViewModel() {
-    var uiState: CitySelectorUiState by mutableStateOf(CitySelectorUiState.Loading)
-        private set
+    private val _uiState = MutableStateFlow<CitySelectorUiState>(CitySelectorUiState.Loading)
+    val uiState = _uiState.asStateFlow()
 
-    var isRefreshing: Boolean by mutableStateOf(false)
-        private set
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing = _isRefreshing.asStateFlow()
 
     init {
         loadData(false)
@@ -37,15 +36,19 @@ class CitySelectorViewModel @Inject constructor(
 
     private fun loadData(forceRefresh: Boolean) {
         viewModelScope.launch {
-            if (!forceRefresh) uiState = CitySelectorUiState.Loading else isRefreshing = true
+            if (!forceRefresh) {
+                _uiState.value = CitySelectorUiState.Loading
+            } else {
+                _isRefreshing.value = true
+            }
 
             try {
                 val data = hexagonRepository.getCountriesWithCities(forceRefresh)
-                uiState = CitySelectorUiState.Success(data)
-            } catch (_: Exception) {
-                uiState = CitySelectorUiState.Error("Couldn't load data")
+                _uiState.value = CitySelectorUiState.Success(data)
+            } catch (e: Exception) {
+                _uiState.value = CitySelectorUiState.Error(e.message ?: "Unknown error.")
             } finally {
-                isRefreshing = false
+                _isRefreshing.value = false
             }
         }
     }

@@ -131,8 +131,7 @@ The API documentation is automatically generated during the build process. You c
 - [ ] **Bug fix:**
   - [ ] Sometimes hexagon color isn't updated during exploration
   - [ ] After user loggs out / deletes account progress is still displayed (cached)
-- [ ] **Code refactoring**
 - [ ] **Tests:** add more backend and application tests
-- [ ] **Social Features:** Friends etc.
-- The `set-output` command is deprecated and will be disabled soon. Please upgrade to using Environment Files. For more information see: https://github.blog/changelog/2022-10-11-github-actions-deprecating-save-state-and-set-output-commands/
-- Support for language version 2.0+ in kapt is in Alpha and must be enabled explicitly. Falling back to 1.9.
+- clean proguard-rules
+- android vitals
+- firebase crashalitycs

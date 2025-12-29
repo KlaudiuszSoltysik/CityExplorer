@@ -74,7 +74,7 @@ public class HexagonControllerTests : IClassFixture<WebApplicationFactory<Progra
         var response = await client.GetAsync("/hexagon/get-countries-with-cities");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<List<GetCountriesWithCitiesDto>>();
+        var result = await response.Content.ReadFromJsonAsync<List<GetCountriesWithCitiesResponseDto>>();
 
         result.Should().HaveCount(2);
         result[0].Country.Should().Be("Germany");
@@ -107,7 +107,7 @@ public class HexagonControllerTests : IClassFixture<WebApplicationFactory<Progra
         var response = await client.GetAsync($"/hexagon/get-hexagons-from-city?city={cityName}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<GetCityHexagonsDataDto>();
+        var result = await response.Content.ReadFromJsonAsync<GetHexagonsFromCityResponseDto>();
         result!.Bbox.Should().ContainInOrder(1.0, 2.0, 3.0, 4.0);
         result.Hexagons.Should().HaveCount(1);
         result.Hexagons[0].Id.Should().Be("hex-1");
@@ -187,7 +187,7 @@ public class HexagonControllerTests : IClassFixture<WebApplicationFactory<Progra
         var response = await client.GetAsync($"/hexagon/get-pois-from-hexagon?hexagonId={hexId}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<List<GetPoisFromHexagonDto>>();
+        var result = await response.Content.ReadFromJsonAsync<List<GetPoisFromHexagonResponseDto>>();
 
         result.Should().NotBeNull();
         result.Count.Should().BeInRange(0, 3);
@@ -243,7 +243,7 @@ public class HexagonControllerTests : IClassFixture<WebApplicationFactory<Progra
         var response = await client.GetAsync($"/hexagon/get-hexagon-progresses?city={cityId}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<List<HexagonProgressDto>>();
+        var result = await response.Content.ReadFromJsonAsync<List<HexagonProgress>>();
 
         result.Should().HaveCount(1);
         result[0].HexagonId.Should().Be("hex-1");

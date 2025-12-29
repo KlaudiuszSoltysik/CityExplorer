@@ -4,12 +4,13 @@ import com.example.cityexplorer.BuildConfig
 import com.example.cityexplorer.data.api.HexagonApiClient
 import com.example.cityexplorer.data.api.VersionApiClient
 import com.example.cityexplorer.data.dtos.GenerateRouteRequestDto
-import com.example.cityexplorer.data.dtos.GetCityHexagonsDataDto
-import com.example.cityexplorer.data.dtos.GetCountriesWithCitiesDto
-import com.example.cityexplorer.data.dtos.GetPoisFromHexagonDto
-import com.example.cityexplorer.data.dtos.HexagonProgressDto
-import com.example.cityexplorer.data.dtos.PostLocationBatchDto
-import com.example.cityexplorer.data.dtos.WorkerResultDto
+import com.example.cityexplorer.data.dtos.GetCountriesWithCitiesResponseDto
+import com.example.cityexplorer.data.dtos.GetCurrentVersionRequestDto
+import com.example.cityexplorer.data.dtos.GetHexagonsFromCityResponseDto
+import com.example.cityexplorer.data.dtos.GetPoisFromHexagonResponseDto
+import com.example.cityexplorer.data.dtos.HexagonProgress
+import com.example.cityexplorer.data.dtos.PostLocationBatchRequestDto
+import com.example.cityexplorer.data.dtos.WorkerResult
 import com.example.cityexplorer.data.util.CacheService
 import com.example.cityexplorer.data.util.TokenService
 import com.google.gson.reflect.TypeToken
@@ -22,7 +23,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import retrofit2.HttpException
 import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -33,33 +33,51 @@ class HexagonRepository @Inject constructor(
     private val cacheService: CacheService,
     private val tokenService: TokenService
 ) {
-    private val _hexagonUpdates = MutableSharedFlow<List<HexagonProgressDto>>()
+    private val _hexagonUpdates = MutableSharedFlow<List<HexagonProgress>>()
     val hexagonUpdates = _hexagonUpdates.asSharedFlow()
 
-    suspend fun getCountriesWithCities(forceRefresh: Boolean = false): List<GetCountriesWithCitiesDto> =
+    suspend fun getCountriesWithCities(forceRefresh: Boolean = false): List<GetCountriesWithCitiesResponseDto> =
         withContext(Dispatchers.IO) {
             val key = "get-countries-with-cities"
-            val dtoType = object : TypeToken<List<GetCountriesWithCitiesDto>>() {}.type
+            val dtoType = object : TypeToken<List<GetCountriesWithCitiesResponseDto>>() {}.type
 
             try {
-                val remoteVersion = versionApiClient.getCurrentVersion(key).string()
+                val versionRequest = GetCurrentVersionRequestDto(key = key)
+                val versionResponse = versionApiClient.getCurrentVersion(versionRequest.key)
+
+                if (!versionResponse.isSuccessful || versionResponse.body() == null) {
+                    throw Exception("Failed to fetch version: ${versionResponse.code()}.")
+                }
+
+                val remoteVersion = versionResponse.body()!!.version
                 val cachedVersion = cacheService.getCachedVersion(key)
 
                 if (!forceRefresh && cachedVersion == remoteVersion) {
                     val cachedData =
-                        cacheService.getCachedData<List<GetCountriesWithCitiesDto>>(key, dtoType)
+                        cacheService.getCachedData<List<GetCountriesWithCitiesResponseDto>>(
+                            key,
+                            dtoType
+                        )
                     if (cachedData != null) return@withContext cachedData
                 }
 
-                val networkData = hexagonApiClient.getCountriesWithCities()
+                val response = hexagonApiClient.getCountriesWithCities()
 
-                cacheService.saveToCache(key, remoteVersion, networkData)
+                if (response.isSuccessful && response.body() != null) {
+                    val networkData = response.body()!!
 
-                return@withContext networkData
+                    cacheService.saveToCache(key, remoteVersion, networkData)
 
+                    return@withContext networkData
+                } else {
+                    throw Exception("API Error: ${response.code()} ${response.message()}.")
+                }
             } catch (e: Exception) {
                 val fallbackData =
-                    cacheService.getCachedData<List<GetCountriesWithCitiesDto>>(key, dtoType)
+                    cacheService.getCachedData<List<GetCountriesWithCitiesResponseDto>>(
+                        key,
+                        dtoType
+                    )
 
                 if (fallbackData != null) {
                     return@withContext fallbackData
@@ -72,28 +90,44 @@ class HexagonRepository @Inject constructor(
     suspend fun getHexagonsFromCity(
         city: String,
         forceRefresh: Boolean = false
-    ): GetHexagonsFromCityResult<GetCityHexagonsDataDto> = withContext(Dispatchers.IO) {
+    ): GetHexagonsFromCityResult<GetHexagonsFromCityResponseDto> = withContext(Dispatchers.IO) {
         val key = "get-hexagons-from-city-$city"
-        val dtoType = object : TypeToken<GetCityHexagonsDataDto>() {}.type
+        val dtoType = object : TypeToken<GetHexagonsFromCityResponseDto>() {}.type
 
         try {
-            val remoteVersion = versionApiClient.getCurrentVersion(key).string()
+            val versionRequest = GetCurrentVersionRequestDto(key = key)
+            val versionResponse = versionApiClient.getCurrentVersion(versionRequest.key)
+
+            if (!versionResponse.isSuccessful || versionResponse.body() == null) {
+                throw Exception("Version check failed: ${versionResponse.code()}.")
+            }
+
+            val remoteVersion = versionResponse.body()!!.version
             val cachedVersion = cacheService.getCachedVersion(key)
 
             if (!forceRefresh && cachedVersion == remoteVersion) {
-                val cachedData = cacheService.getCachedData<GetCityHexagonsDataDto>(key, dtoType)
-                if (cachedData != null) return@withContext GetHexagonsFromCityResult.Success(
-                    cachedData
-                )
+                val cachedData =
+                    cacheService.getCachedData<GetHexagonsFromCityResponseDto>(key, dtoType)
+                if (cachedData != null) {
+                    return@withContext GetHexagonsFromCityResult.Success(cachedData)
+                }
             }
 
-            val networkData = hexagonApiClient.getHexagonsFromCity(city)
-            cacheService.saveToCache(key, remoteVersion, networkData)
+            val response = hexagonApiClient.getHexagonsFromCity(city)
 
-            return@withContext GetHexagonsFromCityResult.Success(networkData)
+            if (response.isSuccessful && response.body() != null) {
+                val networkData = response.body()!!
+
+                cacheService.saveToCache(key, remoteVersion, networkData)
+
+                return@withContext GetHexagonsFromCityResult.Success(networkData)
+            } else {
+                throw Exception("API Error: ${response.code()} ${response.message()}.")
+            }
 
         } catch (e: Exception) {
-            val fallbackData = cacheService.getCachedData<GetCityHexagonsDataDto>(key, dtoType)
+            val fallbackData =
+                cacheService.getCachedData<GetHexagonsFromCityResponseDto>(key, dtoType)
 
             if (fallbackData != null) {
                 return@withContext GetHexagonsFromCityResult.Fallback(fallbackData)
@@ -103,11 +137,17 @@ class HexagonRepository @Inject constructor(
         }
     }
 
-    suspend fun getPoisFromHexagon(hexagonId: String): List<GetPoisFromHexagonDto> {
-        return hexagonApiClient.getPoisFromHexagon(hexagonId)
+    suspend fun getPoisFromHexagon(hexagonId: String): List<GetPoisFromHexagonResponseDto> {
+        val response = hexagonApiClient.getPoisFromHexagon(hexagonId)
+
+        if (response.isSuccessful && response.body() != null) {
+            return response.body() ?: emptyList()
+        } else {
+            throw Exception("Failed to fetch POIs: ${response.code()}.")
+        }
     }
 
-    suspend fun postLocationBatch(locationDtos: PostLocationBatchDto): Boolean {
+    suspend fun postLocationBatch(requestDto: PostLocationBatchRequestDto): Boolean {
         val token = tokenService.getToken()
 
         if (token.isNullOrBlank()) {
@@ -115,7 +155,7 @@ class HexagonRepository @Inject constructor(
         }
 
         try {
-            val response = hexagonApiClient.postLocationBatch("Bearer $token", locationDtos)
+            val response = hexagonApiClient.postLocationBatch("Bearer $token", requestDto)
 
             if (response.isSuccessful) {
                 val responseBody = response.body()
@@ -138,42 +178,50 @@ class HexagonRepository @Inject constructor(
         }
     }
 
-    suspend fun getHexagonProgresses(city: String): List<HexagonProgressDto> {
-        val token = tokenService.getToken()
+    suspend fun getHexagonProgresses(city: String): List<HexagonProgress> =
+        withContext(Dispatchers.IO) {
+            val token = tokenService.getToken()
 
-        if (token.isNullOrBlank()) {
-            throw InvalidTokenException()
-        }
-
-        return try {
-            hexagonApiClient.getHexagonProgresses("Bearer $token", city)
-
-        } catch (e: HttpException) {
-            if (e.code() == 401) {
-                tokenService.clearToken()
+            if (token.isNullOrBlank()) {
                 throw InvalidTokenException()
-            } else {
+            }
+
+            try {
+                val response = hexagonApiClient.getHexagonProgresses("Bearer $token", city)
+
+                if (response.isSuccessful && response.body() != null) {
+                    return@withContext response.body()!!
+                } else {
+                    if (response.code() == 401) {
+                        tokenService.clearToken()
+                        throw InvalidTokenException()
+                    }
+
+                    throw Exception("API Error: ${response.code()} ${response.message()}.")
+                }
+            } catch (e: Exception) {
                 throw e
             }
-        } catch (e: Exception) {
-            throw e
         }
-    }
 
-    suspend fun generateRoute(latitude: Double, longitude: Double, duration: Int): WorkerResultDto {
+    suspend fun generateRoute(
+        userLatitude: Double,
+        userLongitude: Double,
+        duration: Int
+    ): WorkerResult? {
         val token = tokenService.getToken()
 
         if (token.isNullOrBlank()) {
-            throw InvalidTokenException()
+            return null
         }
 
         try {
             val response = hexagonApiClient.generateRoute(
                 "Bearer $token",
-                GenerateRouteRequestDto(latitude, longitude, duration)
+                GenerateRouteRequestDto(userLatitude, userLongitude, duration)
             )
 
-            if (response.isSuccessful) {
+            if (response.isSuccessful && response.body() != null) {
                 val responseBody = response.body() ?: throw Exception()
 
                 if (responseBody.token != null) {
@@ -182,25 +230,23 @@ class HexagonRepository @Inject constructor(
 
                 val jobId = responseBody.jobId
 
-                val token = tokenService.getToken()
-
-                if (token.isNullOrBlank()) {
-                    throw InvalidTokenException()
-                }
-
                 return withTimeout(10000L) {
                     listenForRouteCompletion(jobId, token)
                 }
-
             } else {
-                throw Exception("Failed to generate route.")
+                if (response.code() == 401) {
+                    tokenService.clearToken()
+                    return null
+                }
+
+                throw Exception("API Error: ${response.code()} ${response.message()}.")
             }
-        } catch (_: Exception) {
-            throw Exception("Failed to generate route.")
+        } catch (e: Exception) {
+            throw e
         }
     }
 
-    private suspend fun listenForRouteCompletion(jobId: String, token: String): WorkerResultDto =
+    private suspend fun listenForRouteCompletion(jobId: String, token: String): WorkerResult =
         suspendCancellableCoroutine { continuation ->
             val baseUrl = BuildConfig.BASE_URL.trimEnd('/')
             val hubUrl = "$baseUrl/hubs/worker"
@@ -210,16 +256,16 @@ class HexagonRepository @Inject constructor(
                 .withHeader("X-Api-Key", BuildConfig.API_KEY)
                 .build()
 
-            hubConnection.on("JobCompleted", { result: WorkerResultDto ->
+            hubConnection.on("JobCompleted", { result: WorkerResult ->
                 if (continuation.isActive) {
                     continuation.resume(result)
                 }
                 hubConnection.stop()
-            }, WorkerResultDto::class.java)
+            }, WorkerResult::class.java)
 
             hubConnection.on("JobFailed", { reason: String ->
                 if (continuation.isActive) {
-                    continuation.resumeWithException(Exception("Job failed: $reason"))
+                    continuation.resumeWithException(Exception("Job failed: $reason."))
                 }
                 hubConnection.stop()
             }, String::class.java)

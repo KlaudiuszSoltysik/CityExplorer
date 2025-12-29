@@ -8,11 +8,8 @@ namespace worker;
 public interface IH3Service
 {
     List<string> GetKRing(string originHexId, int k);
-
     List<string> GetNeighbors(string originHexId);
-
     int GetDistance(string hexA, string hexB);
-
     string GetHexagonId(double latitude, double longitude);
 }
 

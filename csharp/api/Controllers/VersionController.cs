@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using csharp.Dtos;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace csharp.Controllers;
@@ -9,12 +10,17 @@ public class VersionController(PostgresContext postgresContext) : ControllerBase
 {
     // Retrieve current data version by key (used for caching invalidation)
     [HttpGet("get-current-version")]
-    public async Task<IActionResult> GetCurrentVersion([FromQuery] string key)
+    public async Task<IActionResult> GetCurrentVersion([FromQuery] GetCurrentVersionRequestDto requestDto)
     {
         var version = await postgresContext.Versions
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Key == key);
+            .FirstOrDefaultAsync(x => x.Key == requestDto.Key);
 
-        return Ok(version == null ? "0" : version.VersionNumber);
+        var responseDto = new GetCurrentVersionResponseDto
+        {
+            Version = version == null ? "0" : version.VersionNumber
+        };
+
+        return Ok(responseDto);
     }
 }

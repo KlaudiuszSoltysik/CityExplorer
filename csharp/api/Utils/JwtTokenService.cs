@@ -7,7 +7,6 @@ namespace csharp.Utils;
 
 public static class JwtTokenService
 {
-    // Helper method to generate JWT tokens based on Google Payload
     public static string CreateAppJwtToken(string userId, string email, IConfiguration configuration)
     {
         var secretKey = configuration["JwtSettings:SecretKey"]

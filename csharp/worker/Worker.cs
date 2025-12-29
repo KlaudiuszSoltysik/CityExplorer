@@ -99,14 +99,13 @@ public class Worker(
 
                     await hubContext.Clients.Group(jobId).JobCompleted(workerResult);
                 }
-                catch (Exception e)
+                catch
                 {
-                    logger.LogError("Error: {Message}", e.Message);
+                    // ignored
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                logger.LogError(ex, "Connection error. Reconnecting...");
                 await Task.Delay(5000, stoppingToken);
             }
     }
