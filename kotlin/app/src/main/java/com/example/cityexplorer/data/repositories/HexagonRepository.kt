@@ -13,7 +13,6 @@ import com.example.cityexplorer.data.dtos.PostLocationBatchRequestDto
 import com.example.cityexplorer.data.dtos.WorkerResult
 import com.example.cityexplorer.data.util.CacheService
 import com.example.cityexplorer.data.util.TokenService
-import com.google.gson.reflect.TypeToken
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.HubConnectionState
 import io.reactivex.rxjava3.core.Single
@@ -39,7 +38,6 @@ class HexagonRepository @Inject constructor(
     suspend fun getCountriesWithCities(forceRefresh: Boolean = false): List<GetCountriesWithCitiesResponseDto> =
         withContext(Dispatchers.IO) {
             val key = "get-countries-with-cities"
-            val dtoType = object : TypeToken<List<GetCountriesWithCitiesResponseDto>>() {}.type
 
             try {
                 val versionRequest = GetCurrentVersionRequestDto(key = key)
@@ -53,11 +51,8 @@ class HexagonRepository @Inject constructor(
                 val cachedVersion = cacheService.getCachedVersion(key)
 
                 if (!forceRefresh && cachedVersion == remoteVersion) {
-                    val cachedData =
-                        cacheService.getCachedData<List<GetCountriesWithCitiesResponseDto>>(
-                            key,
-                            dtoType
-                        )
+                    val cachedData = cacheService.getCachedData<List<GetCountriesWithCitiesResponseDto>>(key)
+
                     if (cachedData != null) return@withContext cachedData
                 }
 
@@ -73,11 +68,7 @@ class HexagonRepository @Inject constructor(
                     throw Exception("API Error: ${response.code()} ${response.message()}.")
                 }
             } catch (e: Exception) {
-                val fallbackData =
-                    cacheService.getCachedData<List<GetCountriesWithCitiesResponseDto>>(
-                        key,
-                        dtoType
-                    )
+                val fallbackData = cacheService.getCachedData<List<GetCountriesWithCitiesResponseDto>>(key)
 
                 if (fallbackData != null) {
                     return@withContext fallbackData
@@ -92,7 +83,6 @@ class HexagonRepository @Inject constructor(
         forceRefresh: Boolean = false
     ): GetHexagonsFromCityResult<GetHexagonsFromCityResponseDto> = withContext(Dispatchers.IO) {
         val key = "get-hexagons-from-city-$city"
-        val dtoType = object : TypeToken<GetHexagonsFromCityResponseDto>() {}.type
 
         try {
             val versionRequest = GetCurrentVersionRequestDto(key = key)
@@ -106,8 +96,8 @@ class HexagonRepository @Inject constructor(
             val cachedVersion = cacheService.getCachedVersion(key)
 
             if (!forceRefresh && cachedVersion == remoteVersion) {
-                val cachedData =
-                    cacheService.getCachedData<GetHexagonsFromCityResponseDto>(key, dtoType)
+                val cachedData = cacheService.getCachedData<GetHexagonsFromCityResponseDto>(key)
+
                 if (cachedData != null) {
                     return@withContext GetHexagonsFromCityResult.Success(cachedData)
                 }
@@ -126,8 +116,7 @@ class HexagonRepository @Inject constructor(
             }
 
         } catch (e: Exception) {
-            val fallbackData =
-                cacheService.getCachedData<GetHexagonsFromCityResponseDto>(key, dtoType)
+            val fallbackData = cacheService.getCachedData<GetHexagonsFromCityResponseDto>(key)
 
             if (fallbackData != null) {
                 return@withContext GetHexagonsFromCityResult.Fallback(fallbackData)

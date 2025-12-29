@@ -134,7 +134,6 @@ dependencies {
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
     implementation(libs.androidx.security.crypto)
-    implementation(libs.gson)
     implementation(libs.hilt.android)
     implementation(libs.firebase.crashlytics.buildtools)
     ksp(libs.hilt.android.compiler)
