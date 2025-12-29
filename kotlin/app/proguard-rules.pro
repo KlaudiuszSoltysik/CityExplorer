@@ -6,3 +6,6 @@
 -keepattributes Signature
 -keepattributes *Annotation*
 -keepattributes EnclosingMethod
+-dontwarn com.google.api.client.http.**
+-dontwarn org.joda.time.**
+-dontwarn com.google.crypto.tink.util.KeysDownloader
