@@ -86,6 +86,14 @@ class MapViewModel @Inject constructor(
     // Initializes view model and starts location tracking if service is active
     init {
         viewModelScope.launch {
+            tokenService.tokenState.collect { token ->
+                if (token == null) {
+                    clearProgress()
+                }
+            }
+        }
+
+        viewModelScope.launch {
             LocationTrackingService.ServiceStateManager.currentState
                 .collect { realServiceState ->
                     _state.update {
@@ -330,6 +338,29 @@ class MapViewModel @Inject constructor(
     // Clears route from state
     fun clearRoute() {
         _state.update { it.copy(route = null) }
+    }
+
+    // Clears user progress (after logging out)
+    fun clearProgress() {
+        val currentUiState = state.value.dataState
+
+        if (currentUiState is MapUiState.Success) {
+            val currentCityData = currentUiState.data
+
+            val updatedHexagons = currentCityData.hexagons.map { hexagon ->
+                hexagon.copy(progress = 0.0)
+            }
+
+            _state.update {
+                it.copy(
+                    dataState = MapUiState.Success(
+                        data = currentCityData.copy(
+                            hexagons = updatedHexagons
+                        )
+                    )
+                )
+            }
+        }
     }
 
     // Handles logout by clearing token

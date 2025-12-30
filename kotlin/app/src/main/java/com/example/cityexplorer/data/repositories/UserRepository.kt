@@ -58,6 +58,8 @@ class UserRepository @Inject constructor(
                 val response = apiService.deleteUserAccount("Bearer $token")
 
                 if (response.isSuccessful) {
+                    tokenService.clearToken()
+
                     Result.success(Unit)
                 } else {
                     Result.failure(Exception("Delete account failed: ${response.code()}."))

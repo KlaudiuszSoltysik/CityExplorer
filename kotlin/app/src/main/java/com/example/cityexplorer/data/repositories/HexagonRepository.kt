@@ -23,9 +23,11 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import javax.inject.Inject
+import javax.inject.Singleton
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
+@Singleton
 class HexagonRepository @Inject constructor(
     private val hexagonApiClient: HexagonApiClient,
     private val versionApiClient: VersionApiClient,

@@ -6,6 +6,8 @@ import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -42,20 +44,27 @@ class TokenService @Inject constructor(
         context.deleteSharedPreferences(PREFS_FILENAME)
     }
 
+    fun getToken(): String? {
+        return sharedPreferences.getString(KEY_JWT_TOKEN, null)
+    }
+
+    private val _tokenState = MutableStateFlow(getToken())
+    val tokenState = _tokenState.asStateFlow()
+
     fun saveToken(token: String) {
         sharedPreferences.edit {
             putString(KEY_JWT_TOKEN, token)
         }
-    }
 
-    fun getToken(): String? {
-        return sharedPreferences.getString(KEY_JWT_TOKEN, null)
+        _tokenState.value = token
     }
 
     fun clearToken() {
         sharedPreferences.edit {
             remove(KEY_JWT_TOKEN)
         }
+
+        _tokenState.value = null
     }
 
     companion object {
