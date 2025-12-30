@@ -124,13 +124,8 @@ The API documentation is automatically generated during the build process. You c
 
 ### 🟡 High Impact
 
-- **Singleton Repository** application state (Memory Cache)
-
 ### 🟢 Nice to Have
 
-- **Bug fix:**
-  - Sometimes hexagon color isn't updated during exploration
-  - After user loggs out / deletes account progress is still displayed (cached)
-- **Tests:** add more backend and application tests
-- clean proguard-rules
+- Test localization posting
 - android vitals / firebase crashalitycs
+- **Unit tests:** add more backend and application tests
