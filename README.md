@@ -48,8 +48,9 @@ Built with a focus on performance and battery efficiency during background track
 - **Google Maps SDK:** Custom styling and overlay management for rendering hexagonal grids.
 - **Authentication:** Secure sign-in flow implemented via **Google OAuth**.
 - **Architecture:** Uses modern Jetpack Compose for UI, Coroutines for asynchronous tasks and Hilt.
+- **Production Monitoring:** Integrated **Firebase Crashlytics** and **Analytics** to track application stability, diagnose silent failures, and monitor user engagement in real-time.
 - **Automated Testing & QA:**
-  - **Repository Unit Tests:** Verification of data integrity, cache fallbacks, and API error handling using `JUnit 5` and `MockK`.
+  - **Repository Unit Tests:** Verification of data integrity, cache fallbacks, and API error handling using `JUnit` and `MockK`.
   - **CI/CD Integration:** Automated unit test execution on every Push/PR to ensure core logic stability.
 - **Deployment:** Fully automated CI/CD pipeline that builds, signs, and publishes minified release APKs.
 
@@ -97,13 +98,13 @@ Fully dockerized environment with automated pipelines.
 
 ## 💻 Tech Stack
 
-| Domain       | Technology                                                          |
-| :----------- | :------------------------------------------------------------------ |
-| **Mobile**   | Kotlin, Jetpack Compose, Hilt, Google Maps SDK, Google OAuth, JUnit |
-| **Backend**  | C# .NET 9.0, Entity Framework Core, Uber H3, XUnit                  |
-| **Data**     | Python, Uber H3, Overpass API, Pytest                               |
-| **Database** | PostgreSQL                                                          |
-| **DevOps**   | Docker, Docker Compose, Terraform, Cloudflare, GitHub Actions       |
+| Domain       | Technology                                                                                |
+| :----------- | :---------------------------------------------------------------------------------------- |
+| **Mobile**   | Kotlin, Jetpack Compose, Hilt, Google Maps SDK, Google OAuth, JUnit, Firebase Crashlytics |
+| **Backend**  | C# .NET 9.0, Entity Framework Core, Uber H3, XUnit                                        |
+| **Data**     | Python, Uber H3, Overpass API, Pytest                                                     |
+| **Database** | PostgreSQL                                                                                |
+| **DevOps**   | Docker, Docker Compose, Terraform, Cloudflare, GitHub Actions                             |
 
 ## 📖 API Documentation
 
@@ -117,15 +118,3 @@ The API documentation is automatically generated during the build process. You c
 1. View the raw [JSON Specification](./csharp/src/api_documentation.json) directly in the repo.
 2. Download the file and paste it into [Swagger Editor](https://editor.swagger.io/) or [Scalar](https://scalar.com/) to see an interactive UI.
 </details>
-
-## 🚀 Project Roadmap
-
-### 🔴 Mandatory / New functions
-
-### 🟡 High Impact
-
-### 🟢 Nice to Have
-
-- Test localization posting
-- android vitals / firebase crashalitycs
-- **Unit tests:** add more backend and application tests

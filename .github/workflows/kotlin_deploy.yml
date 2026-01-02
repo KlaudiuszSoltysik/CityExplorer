@@ -32,6 +32,37 @@ jobs:
           cache: gradle
       - name: Grant execute permission for gradlew
         run: chmod +x kotlin/gradlew
+      - name: Create dummy google-services.json
+        run: |
+          cat <<EOT > kotlin/app/google-services.json
+          {
+            "project_info": {
+              "project_number": "123456789012",
+              "project_id": "dummy-project",
+              "storage_bucket": "dummy-bucket"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:123456789012:android:dummy",
+                  "android_client_info": {
+                    "package_name": "com.example.cityexplorer"
+                  }
+                },
+                "api_key": [ { "current_key": "dummy_key" } ]
+              },
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:123456789012:android:dummy",
+                  "android_client_info": {
+                    "package_name": "com.example.cityexplorer.dev" 
+                  }
+                },
+                "api_key": [ { "current_key": "dummy_key" } ]
+              }
+            ]
+          }
+          EOT
       - name: Run tests
         working-directory: ./kotlin
         run: ./gradlew testDebugUnitTest

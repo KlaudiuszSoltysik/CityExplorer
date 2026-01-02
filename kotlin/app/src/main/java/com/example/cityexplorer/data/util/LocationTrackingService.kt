@@ -256,6 +256,7 @@ class LocationTrackingService : Service() {
                 hexagonRepository.postLocationBatch(PostLocationBatchRequestDto(locationsDtos))
         } catch (_: Exception) {
             consecutiveFailedSendBatchData++
+            return
         }
 
 
@@ -271,6 +272,7 @@ class LocationTrackingService : Service() {
             }
         } else {
             consecutiveFailedSendBatchData++
+            return
         }
     }
 
