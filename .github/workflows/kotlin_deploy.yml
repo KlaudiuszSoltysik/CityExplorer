@@ -34,7 +34,7 @@ jobs:
         run: chmod +x kotlin/gradlew
       - name: Create dummy google-services.json
         run: |
-          cat <<EOT > app/google-services.json
+          cat <<EOT > kotlin/app/google-services.json
           {
             "project_info": {
               "project_number": "123456789012",
