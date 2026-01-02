@@ -634,7 +634,7 @@ private fun HexagonInfoPanel(
                 .padding(bottom = 8.dp)
         )
 
-        hexagonPois.pois.forEach { poi ->
+        hexagonPois.pois?.forEach { poi ->
             PoiInfoItem(
                 name = poi.name,
                 type = poi.type,

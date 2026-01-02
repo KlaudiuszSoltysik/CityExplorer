@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "882430196174",
+    "project_id": "cityexplorer-6ef0e",
+    "storage_bucket": "cityexplorer-6ef0e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:882430196174:android:74d8319c7b1fa66936d39f",
+        "android_client_info": {
+          "package_name": "com.example.cityexplorer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDs76Y12Yoz7FpYncZX5J2YLSde30ql_9o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

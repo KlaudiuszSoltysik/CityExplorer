@@ -106,7 +106,7 @@ data class SelectedHexagon(
     val weight: Double = 0.0,
 
     @SerialName("pois")
-    val pois: List<GetPoisFromHexagonResponseDto> = emptyList()
+    val pois: List<GetPoisFromHexagonResponseDto>? = emptyList()
 )
 
 

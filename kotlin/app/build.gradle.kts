@@ -10,6 +10,8 @@ plugins {
     alias(libs.plugins.secrets.gradle.plugin)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
 }
 
 val localProperties = Properties()
@@ -114,6 +116,9 @@ android {
 }
 
 dependencies {
+    implementation(libs.firebase.crashlytics)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
     implementation(libs.retrofit)
     implementation(libs.logging.interceptor)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -142,6 +147,7 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.truth)
+    testImplementation(libs.kotlin.reflect)
     testRuntimeOnly(libs.junit.platform.launcher)
     implementation(libs.rxjava)
     implementation(libs.slf4j.android)

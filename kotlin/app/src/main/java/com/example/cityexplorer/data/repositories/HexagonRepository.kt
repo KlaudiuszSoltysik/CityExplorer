@@ -128,11 +128,11 @@ class HexagonRepository @Inject constructor(
         }
     }
 
-    suspend fun getPoisFromHexagon(hexagonId: String): List<GetPoisFromHexagonResponseDto> {
+    suspend fun getPoisFromHexagon(hexagonId: String): List<GetPoisFromHexagonResponseDto>? {
         val response = hexagonApiClient.getPoisFromHexagon(hexagonId)
 
-        if (response.isSuccessful && response.body() != null) {
-            return response.body() ?: emptyList()
+        if (response.isSuccessful) {
+            return response.body()
         } else {
             throw Exception("Failed to fetch POIs: ${response.code()}.")
         }
