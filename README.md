@@ -5,7 +5,7 @@
 
 Gamify urban exploration by turning the real world into a hexagonal strategy board using GPS location.
 
-## 📲 Download application
+## Download application
 
 <a href="https://github.com/KlaudiuszSoltysik/CityExplorer/releases/download/beta/app-release.apk"><img src="https://img.shields.io/badge/Download%20.APK-3DDC84?style=for-the-badge&logo=android&logoColor=white" height="40"></a><br><br>
 
@@ -13,11 +13,11 @@ Gamify urban exploration by turning the real world into a hexagonal strategy boa
 
 > _You have to allow instalation from unknown sources._
 
-## 📖 About
+## About
 
 City Explorer is a mobile platform designed to encourage physical activity through location-based competition. The world is divided into a hexagonal grid, where users compete to "conquer" territories by physically spending time within them. The system dynamically weights areas based on their real-world popularity (POIs).
 
-## 📸 Screenshots
+## Screenshots
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/a4dadab2-ab0a-4d0d-a6b1-46d2bbc0d60d" width="19%"/>
@@ -31,14 +31,140 @@ City Explorer is a mobile platform designed to encourage physical activity throu
 
 The system relies on a complex geospatial model rather than simple coordinates:
 
-- **⬡ Hexagonal World Model:** Cities are tessellated into hexagons, creating a discrete grid for gameplay.
-- **⚖️ Dynamic Weighting Algorithm:** Each hexagon has a unique value calculated via Python scripts, analyzing the density of Points of Interest (POIs) extracted from OpenStreetMap.
-- **⏱️ Time-Based Discovery:** To "claim" a hexagon, a user must maintain GPS presence within its boundaries. The required duration scales dynamically with the hexagon's importance (weight).
-- **🏆 Competitive Leaderboards:** Real-time scoring system based on the quality and quantity of discovered territories.
+- **Hexagonal World Model:** Cities are tessellated into hexagons, creating a discrete grid for gameplay.
+- **Dynamic Weighting Algorithm:** Each hexagon has a unique value calculated via Python scripts, analyzing the density of Points of Interest (POIs) extracted from OpenStreetMap.
+- **Time-Based Discovery:** To "claim" a hexagon, a user must maintain GPS presence within its boundaries. The required duration scales dynamically with the hexagon's importance (weight).
+- **Competitive Leaderboards:** Real-time scoring system based on the quality and quantity of discovered territories.
 
-## 🚀 Technical Highlights
+## Technical Highlights
 
-### 📱 Mobile App (Kotlin & Jetpack Compose)
+### Architecture Diagram
+
+```mermaid
+---
+---
+config:
+  layout: dagre
+  look: neo
+  theme: neo
+---
+flowchart TB
+ subgraph Client["Mobile Device"]
+        App["<b>Android App</b><br>Kotlin + Compose"]
+        Cache["<b>Local cache</b>"]
+  end
+ subgraph DevOps["Ops & Monitoring"]
+        Watchtower["Watchtower<br><i>Auto-updater</i>"]
+        Portainer["Portainer<br><i>Container monitor</i>"]
+  end
+ subgraph Backend["Core Services"]
+        API["<b>Web API</b><br>.NET 9"]
+        Redis[("<b>Redis</b><br><i>Broker &amp; Cache</i>")]
+        subgraph WorkerGroup["Workers"]
+            direction TB
+            W1["Worker #1"]
+            W2["Worker #2"]
+            W3["Worker #N..."]
+        end
+  end
+ subgraph Data["Data & Persistence"]
+        DB[("<b>PostgreSQL</b>")]
+        DB_backup["<b>Backup Sidecar</b>"]
+        Python["<b>Data Processor</b><br>Python Container"]
+  end
+ subgraph OnPrem["On-Premise Host / Docker Network"]
+        DevOps
+        Backend
+        Data
+        Cloudflare["Cloudflare Tunnel"]
+  end
+ subgraph External["External Services"]
+        GMaps["Google Maps SDK"]
+        Auth["Google OAuth<br><i>Authentication</i>"]
+        Firebase["Firebase Crashlytics"]
+        OSM["OpenStreetMap<br>Overpass API"]
+  end
+    User(("Mobile User")) -- Interaction --> App
+    App -- Map Rendering --> GMaps
+    App -- Monitoring --> Firebase
+    App <--> Cache
+    App -- Sign-in --> Auth
+    App <-- HTTPS / WSS --> Cloudflare
+    Cloudflare -- Secure Forward --> API
+    API -- "1. Push job" --> Redis
+    Redis -- "2. BRPOP (Task)" --> WorkerGroup
+    WorkerGroup -- "3. Notify/Cache" --> Redis
+    API -- "4. Poll/Read Result" --> Redis
+    API -- Read data --> DB
+    Python -- Fetch POIs --> OSM
+    Python -- Update Weights --> DB
+    DB -- Periodic Dump --> DB_backup
+    Watchtower ~~~ API
+```
+
+### DevOps / CI/CD Diagram
+
+```mermaid
+---
+config:
+  layout: dagre
+  look: neo
+  theme: neo
+---
+flowchart LR
+    subgraph Local["Local Workstation"]
+        Developer[("Developer")]
+        LocalCompose["Local environment<br><i>docker-compose.dev.yml</i>"]
+        Terraform["Terraform CLI<br><i>Manual Apply</i>"]
+        GitLocal["Git CLI"]
+    end
+
+    subgraph CF["Cloudflare"]
+        CF_Config["Tunnel & Access Policies"]
+    end
+
+    subgraph GitHub["GitHub"]
+        BranchDev["Branch: dev<br><i>No Pipeline</i>"]
+        BranchMaster["Branch: master<br><i>Production</i>"]
+    end
+
+    subgraph GHA["GitHub Actions<br>Trigger: master"]
+        direction TB
+        Tests["Unit Tests<br>(JUnit, xUnit, pytest)"]
+        Build["Build & Push<br>Docker images"]
+        ReleaseAPK["Sign & Publish<br>Release APK"]
+        Documentation["Generate OpenAPI<br>Update repository"]
+    end
+
+    Registry[("Container Registry")]
+
+    subgraph Server["On-premise host"]
+        Watchtower["Watchtower<br><i>Auto-update</i>"]
+        ProdEnv["Production environment<br><i>docker-compose.yml</i>"]
+    end
+
+    Developer -- "Apply configuration" --> Terraform
+    Terraform -- "Configure" --> CF_Config
+
+    Developer -- "Code & test" --> LocalCompose
+    LocalCompose -- "Ready?" --> GitLocal
+
+    Developer -- "Commit & Push" --> GitLocal
+    GitLocal --> BranchDev
+    BranchDev -- "Merge" --> BranchMaster
+    
+    BranchMaster -- "Trigger workflow" --> Tests
+    Tests --> Build
+    Tests --> ReleaseAPK
+    Tests --> Documentation
+    
+    Build -- "Push images" --> Registry
+    
+    Registry -- "Detect new image" --> Watchtower
+    Watchtower -- "Redeploy" --> ProdEnv
+```
+
+### Mobile App (Kotlin & Jetpack Compose)
 
 Built with a focus on performance and battery efficiency during background tracking.
 
@@ -54,7 +180,7 @@ Built with a focus on performance and battery efficiency during background track
   - **CI/CD Integration:** Automated unit test execution on every Push/PR to ensure core logic stability.
 - **Deployment:** Fully automated CI/CD pipeline that builds, signs, and publishes minified release APKs.
 
-### 🔙 Backend (.NET 9.0 & PostgreSQL)
+### Backend (.NET 9 & PostgreSQL)
 
 High-performance REST API designed for throughput and scalability.
 
@@ -69,7 +195,7 @@ High-performance REST API designed for throughput and scalability.
   - **Quality Gate:** Deployment to production is blocked if any test fails, ensuring stability.
 - **Auto-Generated Documentation:** OpenAPI (Swagger) specification is automatically updated on every build to stay in sync with the code.
 
-### 🐍 Data Engineering (Python)
+### Data Engineering (Python)
 
 Scripts responsible for world generation and data analysis.
 
@@ -82,7 +208,7 @@ Scripts responsible for world generation and data analysis.
   - **CI/CD Integration:** Dedicated GitHub Actions workflow triggered on `python/` directory changes, enforcing "green" tests before any code merge.
 - **Geographic Visualization:** Automated generation of Interactive Folium maps for visual verification of hexagon grids and POI distribution across cities.
 
-### 🛠️ DevOps & Infrastructure
+### DevOps & Infrastructure
 
 Fully dockerized environment with automated pipelines.
 
@@ -96,22 +222,22 @@ Fully dockerized environment with automated pipelines.
 - **Docker:** Separate containers for independent Development and Production environments with auto-deploy on changes.
 - **Server:** Backend and database are hosted on-premise.
 
-## 💻 Tech Stack
+## Tech Stack
 
-| Domain       | Technology                                                                                |
-| :----------- | :---------------------------------------------------------------------------------------- |
-| **Mobile**   | Kotlin, Jetpack Compose, Hilt, Google Maps SDK, Google OAuth, JUnit, Firebase Crashlytics |
-| **Backend**  | C# .NET 9.0, Entity Framework Core, Uber H3, XUnit                                        |
-| **Data**     | Python, Uber H3, Overpass API, Pytest                                                     |
-| **Database** | PostgreSQL                                                                                |
-| **DevOps**   | Docker, Docker Compose, Terraform, Cloudflare, GitHub Actions                             |
+| Domain | Technologies |
+| :--- | :--- |
+| **Mobile** | **Kotlin**, Jetpack Compose, Hilt, Google Maps SDK, **Google OAuth**, JUnit, Firebase Crashlytics |
+| **Backend** | **C# .NET 9**, Entity Framework Core, Uber H3, XUnit, **Redis** |
+| **Data** | **Python**, Uber H3, Overpass API (OSM), Pytest, Pandas |
+| **Database** | **PostgreSQL** (with PostGIS extension) |
+| **DevOps** | **Docker**, Docker Compose, Terraform, Cloudflare Tunnel, GitHub Actions |
 
-## 📖 API Documentation
+## API Documentation
 
 [![API Documentation](https://img.shields.io/badge/OpenAPI-Specification-blue?style=for-the-badge&logo=openapi-initiative&logoColor=white)](./csharp/api/api_documentation.json)
 
 <details>
-<summary>🔍 Click to see how to use the documentation</summary>
+<summary>Click to see how to use the documentation</summary>
 
 The API documentation is automatically generated during the build process. You can:
 
