@@ -226,11 +226,11 @@ Fully dockerized environment with automated pipelines.
 
 | Domain | Technologies |
 | :--- | :--- |
-| **Mobile** | **Kotlin**, Jetpack Compose, Hilt, Google Maps SDK, **Google OAuth**, JUnit, Firebase Crashlytics |
-| **Backend** | **C# .NET 9**, Entity Framework Core, Uber H3, XUnit, **Redis** |
+| **Mobile** | **Kotlin**, Jetpack Compose, Hilt, Google Maps SDK, Google OAuth, JUnit, Firebase Crashlytics |
+| **Backend** | **C# .NET 9**, Entity Framework Core, Uber H3, XUnit, Redis |
 | **Data** | **Python**, Uber H3, Overpass API (OSM), Pytest, Pandas |
-| **Database** | **PostgreSQL** (with PostGIS extension) |
-| **DevOps** | **Docker**, Docker Compose, Terraform, Cloudflare Tunnel, GitHub Actions |
+| **Database** | **PostgreSQL** |
+| **DevOps** | Docker, Docker Compose, Terraform, Cloudflare Tunnel, GitHub Actions |
 
 ## API Documentation
 
