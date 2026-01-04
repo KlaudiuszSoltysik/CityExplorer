@@ -1,7 +1,7 @@
 services:
   postgres-dev:
     image: postgres:15-alpine
-    container_name: city_explorer_postgres_dev
+    container_name: z_city_explorer_postgres_dev
     env_file: .env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -22,14 +22,14 @@ services:
 
   redis-dev:
     image: redis:alpine
-    container_name: city_explorer_redis_dev
+    container_name: z_city_explorer_redis_dev
     ports:
       - "6379:6379"
     networks:
       - city_explorer_net
 
   api-dev:
-    container_name: city_explorer_api_dev
+    container_name: z_city_explorer_api_dev
     build:
       context: ./csharp
       dockerfile: api/Dockerfile.dev
@@ -52,7 +52,7 @@ services:
       - city_explorer_net
 
   worker-dev:
-    container_name: city_explorer_worker_dev
+    container_name: z_city_explorer_worker_dev
     build:
       context: ./csharp
       dockerfile: worker/Dockerfile.dev
