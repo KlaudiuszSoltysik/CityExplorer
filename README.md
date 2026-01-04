@@ -88,10 +88,10 @@ Fully dockerized environment with automated pipelines.
 
 - **Horizontal Scalability:** Implemented the **Competing Consumers Pattern** for the Worker service. The infrastructure supports running multiple Worker replicas that process jobs from the Redis queue in parallel, handling traffic spikes efficiently.
 - **Infrastructure as Code:** **Terraform** manages Cloudflare Tunnel and **Cloudflare Access** policies, ensuring secure exposure of services without opening public ports.
-- **Observability & Logging:** **Portainer** instance deployed for real-time host monitoring, visual resource usage graphs, and centralized container log inspection (Error Tracking).
+- **Comprehensive Observability:** Deployed a full monitoring stack using **Prometheus** (time-series database) and **cAdvisor** for granular container metric collection. **Grafana** dashboards provide visualization for long-term resource usage trends and performance analysis, complementing **Portainer**, which is utilized for real-time container management and centralized log inspection.
 - **Disaster Recovery Strategy:** Automated, scheduled database backups with a configurable **retention policy** (7-day rotation) executed via a dedicated sidecar container, ensuring data persistence and rapid recovery capability.
-- **Resource Governance:** Strict CPU and RAM limits configured via Docker Compose to prevent resource exhaustion and ensure high system stability.
-- **Security:** Administrative dashboards (Monitoring) are protected behind a **Cloudflare Zero Trust** authentication wall (Email OTP), completely isolating them from public access.
+- **Resource Governance:** Strict CPU and RAM limits configured via Docker Compose to prevent resource exhaustion and ensure high system stability (preventing OOM kills).
+- **Security:** Administrative dashboards (**Portainer, Grafana**) are protected behind a **Cloudflare Zero Trust** authentication wall (Email OTP), completely isolating them from public access.
 - **CI/CD:** GitHub Actions configured for automated building, testing, and application release.
 - **Docker:** Separate containers for independent Development and Production environments with auto-deploy on changes.
 - **Server:** Backend and database are hosted on-premise.
