@@ -5,3 +5,4 @@ terraform/*
 !terraform/main.tf
 !terraform/.terraform.lock.hcl
 backups/*
+csharp/csharp.sln.DotSettings.user

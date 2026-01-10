@@ -1,6 +1,7 @@
 ﻿raw_data/*
 processed_data/*
 .venv/*
-.idea
+.idea/*
 __pycache__/*
 tests/__pycache__/*
+.pytest_cache/*
