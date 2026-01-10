@@ -54,15 +54,22 @@ config:
   theme: neo
 ---
 flowchart TB
- subgraph Client["Mobile Device"]
+  subgraph Client["Mobile Device"]
         App["<b>Android App</b><br>Kotlin + Compose"]
         Cache["<b>Local cache</b>"]
   end
- subgraph DevOps["Ops & Monitoring"]
+  subgraph DevOps["Ops & Monitoring"]
         Watchtower["Watchtower<br><i>Auto-updater</i>"]
-        Portainer["Portainer<br><i>Container monitor</i>"]
+        Portainer["Portainer<br><i>Container Management</i>"]
+        Prometheus["Prometheus<br><i>Metrics Database</i>"]
+        CAdvisor["cAdvisor<br><i>Resource Usage</i>"]
+        Grafana["Grafana<br><i>Visualization</i>"]
+
+        %% Opcjonalne powiązania dla lepszego zobrazowania przepływu danych
+        CAdvisor --> Prometheus
+        Prometheus --> Grafana
   end
- subgraph Backend["Core Services"]
+  subgraph Backend["Core Services"]
         API["<b>Web API</b><br>.NET 9"]
         Redis[("<b>Redis</b><br><i>Broker &amp; Cache</i>")]
         subgraph WorkerGroup["Workers"]
@@ -72,18 +79,18 @@ flowchart TB
             W3["Worker #N..."]
         end
   end
- subgraph Data["Data & Persistence"]
+  subgraph Data["Data & Persistence"]
         DB[("<b>PostgreSQL</b>")]
         DB_backup["<b>Backup Sidecar</b>"]
         Python["<b>Data Processor</b><br>Python Container"]
   end
- subgraph OnPrem["On-Premise Host / Docker Network"]
+  subgraph OnPrem["On-Premise Host / Docker Network"]
         DevOps
         Backend
         Data
         Cloudflare["Cloudflare Tunnel"]
   end
- subgraph External["External Services"]
+  subgraph External["External Services"]
         GMaps["Google Maps SDK"]
         Auth["Google OAuth<br><i>Authentication</i>"]
         Firebase["Firebase Crashlytics"]
@@ -157,14 +164,14 @@ flowchart LR
     Developer -- "Commit & Push" --> GitLocal
     GitLocal --> BranchDev
     BranchDev -- "Merge" --> BranchMaster
-    
+
     BranchMaster -- "Trigger workflow" --> Tests
     Tests --> Build
     Tests --> ReleaseAPK
     Tests --> Documentation
-    
+
     Build -- "Push images" --> Registry
-    
+
     Registry -- "Detect new image" --> Watchtower
     Watchtower -- "Redeploy" --> ProdEnv
 ```
@@ -229,13 +236,13 @@ Fully dockerized environment with automated pipelines.
 
 ## Tech Stack
 
-| Domain | Technologies |
-| :--- | :--- |
-| **Mobile** | **Kotlin**, Jetpack Compose, Hilt, Google Maps SDK, Google OAuth, JUnit, Firebase Crashlytics |
-| **Backend** | **C# .NET 9**, Entity Framework Core, Uber H3, XUnit, Redis |
-| **Data** | **Python**, Uber H3, Overpass API (OSM), Pytest, Pandas |
-| **Database** | **PostgreSQL** |
-| **DevOps** | Docker, Docker Compose, Terraform, Cloudflare Tunnel, GitHub Actions |
+| Domain       | Technologies                                                                                  |
+| :----------- | :-------------------------------------------------------------------------------------------- |
+| **Mobile**   | **Kotlin**, Jetpack Compose, Hilt, Google Maps SDK, Google OAuth, JUnit, Firebase Crashlytics |
+| **Backend**  | **C# .NET 9**, Entity Framework Core, Uber H3, XUnit, Redis                                   |
+| **Data**     | **Python**, Uber H3, Overpass API (OSM), Pytest, Pandas                                       |
+| **Database** | **PostgreSQL**                                                                                |
+| **DevOps**   | Docker, Docker Compose, Terraform, Cloudflare Tunnel, GitHub Actions                          |
 
 ## API Documentation
 
