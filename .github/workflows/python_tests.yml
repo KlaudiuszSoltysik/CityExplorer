@@ -31,4 +31,4 @@ jobs:
 
       - name: Run tests with pytest
         run: |
-          pytest python/tests/tests_main.py
+          PYTHONPATH=python pytest python/tests/tests_main.py
