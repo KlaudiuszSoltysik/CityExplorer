@@ -32,7 +32,7 @@ City Explorer is a mobile platform designed to encourage physical activity throu
   <img src="https://github.com/user-attachments/assets/b4697567-c0c3-41d9-bbf0-f380169eebb5" width="49%"/>
 </p>
 
-## ⚙️ Core Mechanics
+## Core Mechanics
 
 The system relies on a complex geospatial model rather than simple coordinates:
 
